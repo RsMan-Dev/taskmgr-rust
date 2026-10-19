@@ -39,14 +39,6 @@ Item {
         colors: page.colors
     }
 
-    // The profile can change from the desktop's own controls.
-    Timer {
-        interval: 10000
-        repeat: true
-        triggeredOnStart: true
-        running: page.visible
-        onTriggered: page.monitor.refreshPower()
-    }
 
     // Changes only when a device comes or goes, so delegates and selection
     // survive updates.
@@ -60,7 +52,7 @@ Item {
             .concat(s.networks.map(n => "net:" + n.name))
             .concat(s.gpus.map(g => "gpu:" + g.pci_slot))
             .concat(s.batteries.map(b => "battery:" + b.name))
-            .concat(["power"])
+            .concat(["consumption"])
             .concat(s.sensors.length > 0 ? ["sensors"] : [])
             .join(",")
     }
@@ -72,7 +64,7 @@ Item {
         const s = snapshot
         switch (kind) {
         case "cpu": return compute.cpu(s)
-        case "power": return compute.powerAndClocks(s)
+        case "consumption": return compute.consumption(s)
         case "battery": return compute.battery(s, id)
         case "memory": return compute.memory(s)
         case "disk": return devices.disk(s, id)

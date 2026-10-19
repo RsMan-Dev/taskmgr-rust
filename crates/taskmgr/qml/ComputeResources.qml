@@ -95,48 +95,51 @@ QtObject {
     }
     }
 
-    function powerAndClocks(s) {
-    const c = s.cpu
-    const gpus = s.gpus.filter(g => g.power_watts !== null)
-    const cpuW = s.energy.package_watts
-    const known = [cpuW, ...gpus.map(g => g.power_watts)].filter(w => w !== null)
-    const total = known.length > 0 ? known.reduce((a, b) => a + b, 0) : null
-    const totalHistory = ResourceKit.sum([s.energy.history ?? [], ...gpus.map(g => g.charts.power ?? [])])
-    const top = Format.niceMax(Math.max(...totalHistory, 0), 50)
-    const profile = root.power?.profile ? root.profileNames[root.power.profile] ?? root.power.profile : ""
-    const hottest = c.core_mhz_history.reduce((a, h) => Math.max(a, h[h.length - 1] ?? 0), 0)
-    return {
-        title: qsTr("Power and clocks"),
-        subtitle: profile,
-        summary: ResourceKit.summary(total !== null ? Format.watts(total) : "", Format.ghz(c.mhz)),
-        header: total !== null && known.length > 1 ? qsTr("CPU + GPU") : "",
-        color: colors.power,
-        chartLabel: gpus.length > 0 ? qsTr("Measured power (all, CPU in blue)") : qsTr("CPU power"),
-        maximum: top,
-        maximumLabel: Format.watts(top),
-        series: [ResourceKit.series(totalHistory, colors.power), ResourceKit.series(s.energy.history ?? [], colors.cpu)],
-        energy: true,
-        profile: root.power?.profile ? root.power : null,
-        grid: c.core_mhz_history.length > 0 ? processorGrid(c, "clocks") : null,
-        charts: gpus.map(g => ResourceKit.mini(qsTr("GPU %1").arg(g.index), Format.watts(g.power_watts), g.charts.power ?? [],
-                                   g.power_limit_watts ?? Math.max(1, ...(g.charts.power ?? [])), colors.gpu))
-            .concat(s.batteries.filter(b => b.watts !== null).map(b => ResourceKit.mini(qsTr("Battery"), Format.watts(b.watts),
-                                   b.watts_history, Math.max(1, ...b.watts_history), colors.power)))
-            .concat(gpus.map(g => ResourceKit.mini(qsTr("GPU %1 clock").arg(g.index), Format.mhz(g.core_mhz), g.charts.core_clock ?? [],
-                                       g.core_max_mhz ?? Math.max(1, ...(g.charts.core_clock ?? [])), colors.clock))),
-        stats: [
-            [qsTr("Total"), total !== null ? Format.watts(total) : "—"],
-            [qsTr("CPU"), cpuW !== null ? Format.watts(cpuW) : "—"],
-        ].concat(gpus.map(g => [qsTr("GPU %1").arg(g.index), Format.watts(g.power_watts)]))
-         .concat([[qsTr("Average clock"), Format.ghz(c.mhz)], [qsTr("Fastest core"), Format.mhz(hottest)]]),
-        details: ResourceKit.details([
-            [qsTr("Power profile"), profile],
-            [qsTr("Frequency driver"), root.power?.driver],
-            [qsTr("Governor"), root.power?.governor],
-            [qsTr("Energy preference"), root.power?.epp],
-            [qsTr("Max speed"), c.max_mhz ? Format.ghz(c.max_mhz) : null],
-        ]),
+    readonly property var sourceNames: ({
+        "cpu": qsTr("CPU package"),
+        "cpu-cores": qsTr("CPU cores"),
+        "cpu-uncore": qsTr("Integrated graphics and cache"),
+        "memory": qsTr("Memory"),
+        "platform": qsTr("Whole machine (platform)"),
+        "battery": qsTr("Battery discharge"),
+    })
+
+    function sourceName(src) {
+        return src.kind === "gpu" || src.kind === "sensor" ? src.name : sourceNames[src.kind] ?? src.name
     }
+
+    // Everything that reports the power it draws.
+    function consumption(s) {
+        const c = s.consumption
+        const cpu = c.sources.find(x => x.kind === "cpu")
+        const top = Format.niceMax(Math.max(...c.total_history, 0), 50)
+        const totalLabel = {
+            platform: qsTr("Whole machine"),
+            battery: qsTr("On battery"),
+            sum: qsTr("Measured parts"),
+        }[c.total_kind] ?? ""
+        const wh = v => qsTr("%1 Wh").arg(Format.num(v, v < 10 ? 2 : 1))
+        return {
+            title: qsTr("Power use"),
+            subtitle: totalLabel,
+            summary: ResourceKit.summary(c.total_watts !== null ? Format.watts(c.total_watts) : qsTr("Not measured"), ""),
+            header: totalLabel,
+            color: colors.power,
+            chartLabel: cpu ? qsTr("Total power (CPU in blue)") : qsTr("Total power"),
+            maximum: top,
+            maximumLabel: Format.watts(top),
+            series: [ResourceKit.series(c.total_history, colors.power), ResourceKit.series(cpu?.history ?? [], colors.cpu)],
+            energy: true,
+            charts: c.sources.map(src => ResourceKit.mini(sourceName(src), Format.watts(src.watts), src.history,
+                Format.niceMax(Math.max(...src.history, 0), 5), src.kind === "gpu" ? colors.gpu : src.kind.startsWith("cpu") ? colors.cpu : colors.power)),
+            stats: [
+                [qsTr("Total"), c.total_watts !== null ? Format.watts(c.total_watts) : "—"],
+                [qsTr("Since this window opened"), wh(c.total_wh)],
+            ],
+            details: ResourceKit.details(c.sources.map(src => [sourceName(src) + (src.part_of ? " " + qsTr("(included above)") : ""),
+                    (src.watts !== null ? Format.watts(src.watts) : "—") + "  \u00b7  " + wh(src.energy_wh)])
+                .concat([[qsTr("Disks, memory modules, fans"), qsTr("Not published by the hardware")]])),
+        }
     }
 
     function battery(s, id) {

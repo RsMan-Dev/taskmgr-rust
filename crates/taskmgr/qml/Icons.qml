@@ -17,6 +17,7 @@ QtObject {
         "nav-users": "people",
         "nav-connections": "globe",
         "nav-crashes": "bug",
+        "nav-benchmark": "top_speed",
         "journal": "document_text",
         "tree": "text_bullet_list_tree",
         "nav-system": "desktop",

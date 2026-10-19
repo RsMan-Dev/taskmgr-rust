@@ -23,6 +23,8 @@ pub struct Sensor {
 pub struct SensorGroup {
     pub name: String,
     pub kind: &'static str,
+    /// Disk name, GPU PCI slot or network interface the group belongs to.
+    pub device: Option<String>,
     pub sensors: Vec<Sensor>,
 }
 
@@ -90,20 +92,32 @@ impl SensorSampler {
             let gpu = gpus
                 .iter()
                 .find(|g| Some(&g.pci_slot) == device_name.as_ref());
-            let (name, kind) = if let Some(d) = disk {
-                (format!("Disk {} ({})", d.index, d.model), "disk")
+            let (name, kind, device) = if let Some(d) = disk {
+                (
+                    format!("Disk {} ({})", d.index, d.model),
+                    "disk",
+                    Some(d.name.clone()),
+                )
             } else if let Some(g) = gpu {
-                (format!("GPU {} ({})", g.index, g.name), "gpu")
+                (
+                    format!("GPU {} ({})", g.index, g.name),
+                    "gpu",
+                    Some(g.pci_slot.clone()),
+                )
             } else if matches!(chip.name.as_str(), "k10temp" | "zenpower" | "coretemp") {
-                ("CPU".to_owned(), "cpu")
+                ("CPU".to_owned(), "cpu", None)
             } else if BOARD_CHIPS.iter().any(|b| chip.name.starts_with(b)) {
-                ("Motherboard".to_owned(), "board")
+                ("Motherboard".to_owned(), "board", None)
             } else if chip.name == "acpitz" {
-                ("ACPI (thermal zone)".to_owned(), "other")
+                ("ACPI (thermal zone)".to_owned(), "other", None)
             } else if root.exists(format!("/sys/class/net/{}", chip.name)) {
-                (format!("Network card {}", chip.name), "network")
+                (
+                    format!("Network card {}", chip.name),
+                    "network",
+                    Some(chip.name.clone()),
+                )
             } else {
-                (chip.name.clone(), "other")
+                (chip.name.clone(), "other", None)
             };
             let base = format!("{}:{}", chip.name, device_name.unwrap_or_default());
             let sensors: Vec<Sensor> = chip
@@ -129,6 +143,7 @@ impl SensorSampler {
                 groups.push(SensorGroup {
                     name,
                     kind,
+                    device,
                     sensors,
                 });
             }
@@ -146,6 +161,7 @@ impl SensorSampler {
                 groups.push(SensorGroup {
                     name: format!("GPU {} ({})", g.index, g.name),
                     kind: "gpu",
+                    device: Some(g.pci_slot.clone()),
                     sensors: vec![s],
                 });
             }

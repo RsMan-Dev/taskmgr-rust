@@ -52,6 +52,7 @@ QQC2.ApplicationWindow {
         { text: qsTr("Services"), icon: "nav-services" },
         { text: qsTr("Connections"), icon: "nav-connections" },
         { text: qsTr("Crashes"), icon: "nav-crashes" },
+        { text: qsTr("Benchmark"), icon: "nav-benchmark" },
         { text: qsTr("System"), icon: "nav-system" },
         { text: qsTr("Settings"), icon: "nav-settings" },
     ]
@@ -169,6 +170,11 @@ QQC2.ApplicationWindow {
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
     }
 
+    Shortcut {
+        sequences: [StandardKey.Find]
+        onActivated: stack.children[window.currentPage]?.focusSearch?.()
+    }
+
     JournalDialog {
         id: journalDialog
         monitor: monitor
@@ -266,6 +272,7 @@ QQC2.ApplicationWindow {
             color: Kirigami.Theme.backgroundColor
 
             StackLayout {
+                id: stack
                 anchors.fill: parent
                 currentIndex: window.currentPage
 
@@ -329,9 +336,16 @@ QQC2.ApplicationWindow {
                     bootedAt: window.openedAt - (window.snapshot?.cpu.uptime_secs ?? 0) * 1000
                     onJournalRequested: (title, query) => journalDialog.show(title, query)
                 }
+                BenchmarkPage {
+                    monitor: monitor
+                    active: window.currentPage === 8
+                    snapshot: window.shown(8, window.snapshot)
+                }
                 SystemPage {
                     info: window.systemInfo
-                    snapshot: window.shown(8, window.snapshot)
+                    monitor: monitor
+                    active: window.currentPage === 9
+                    snapshot: window.shown(9, window.snapshot)
                 }
                 SettingsPage {
                     pageNames: window.pages.slice(0, window.pages.length - 1).map(p => p.text)

@@ -38,6 +38,8 @@ pub struct GpuSnapshot {
     pub memory_mhz: Option<f64>,
     pub memory_max_mhz: Option<f64>,
     pub voltage_mv: Option<f64>,
+    /// Fan speed in percent of its maximum (NVML).
+    pub fan_percent: Option<f64>,
     pub history: History,
     pub memory_history: History,
     pub charts: Charts,
@@ -284,6 +286,7 @@ impl GpuSampler {
         g.power_limit_watts = d.enforced_power_limit().ok().map(|mw| mw as f64 / 1000.0);
         g.core_mhz = d.clock_info(Clock::Graphics).ok().map(f64::from);
         g.memory_mhz = d.clock_info(Clock::Memory).ok().map(f64::from);
+        g.fan_percent = d.fan_speed(0).ok().map(f64::from);
         if !per_process {
             return seen;
         }

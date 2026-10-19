@@ -27,6 +27,8 @@ ColumnLayout {
     property var expanded: ({})
     // Shows every group open (while searching) without touching `expanded`.
     property bool expandAll: false
+    // Groups start open; `expanded` then lists the ones the user closed.
+    property bool openByDefault: false
 
     readonly property var selectedRow: index[selectedKey] ?? null
     property real indentUnit: Kirigami.Units.gridUnit
@@ -150,8 +152,24 @@ ColumnLayout {
         return r._group !== undefined ? "group:" + r._group : keyOf(r)
     }
 
+    // Cells of a row, tab-separated, as pasted into a spreadsheet.
+    function rowText(row) {
+        return columns.map(c => String(c.text(row))).filter(t => t !== "").join("\t")
+    }
+
+    function copyRow(row) {
+        clipboard.text = rowText(row)
+        clipboard.selectAll()
+        clipboard.copy()
+    }
+
+    TextEdit {
+        id: clipboard
+        visible: false
+    }
+
     function isOpen(group) {
-        return expandAll || !!expanded[group]
+        return expandAll || openByDefault !== !!expanded[group]
     }
 
     function toggle(group) {
@@ -261,6 +279,12 @@ ColumnLayout {
         Keys.onUpPressed: table.moveSelection(-1)
         Keys.onDownPressed: table.moveSelection(1)
         Keys.onReturnPressed: if (table.selectedRow) table.activated(table.selectedRow)
+        Keys.onPressed: (event) => {
+            if (event.matches(StandardKey.Copy) && table.selectedRow) {
+                table.copyRow(table.selectedRow)
+                event.accepted = true
+            }
+        }
 
         delegate: QQC2.ItemDelegate {
             id: rowItem
@@ -345,7 +369,7 @@ ColumnLayout {
                             anchors.verticalCenter: parent.verticalCenter
                             width: Kirigami.Units.iconSizes.small
                             height: width
-                            source: Icons.of(table.expandAll || table.expanded[group] ? "collapse" : "expand", Kirigami.Theme.textColor)
+                            source: Icons.of(table.isOpen(group) ? "collapse" : "expand", Kirigami.Theme.textColor)
                             TapHandler {
                                 onTapped: table.toggle(parent.group)
                             }

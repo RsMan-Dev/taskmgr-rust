@@ -51,6 +51,10 @@ impl Chip {
         root.read_sensor(format!("{}/{prefix}{n}_input", self.dir))
     }
 
+    pub fn label(&self, root: &Root, prefix: &str, n: u32) -> Option<String> {
+        root.read_trimmed(format!("{}/{prefix}{n}_label", self.dir))
+    }
+
     pub fn file(&self, root: &Root, name: &str) -> Option<i64> {
         root.read_sensor(format!("{}/{name}", self.dir))
     }

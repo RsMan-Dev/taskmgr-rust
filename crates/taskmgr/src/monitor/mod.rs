@@ -2,6 +2,7 @@
 //! anything slow runs off the GUI thread.
 
 mod actions;
+mod bench;
 mod queries;
 mod sampling;
 pub mod startup;
@@ -38,6 +39,8 @@ pub mod qobject {
         #[qproperty(QString, crashes)]
         #[qproperty(QString, journal)]
         #[qproperty(QString, process_details, cxx_name = "processDetails")]
+        #[qproperty(QString, benchmark)]
+        #[qproperty(QString, benchmark_history, cxx_name = "benchmarkHistory")]
         type SystemMonitor = super::SystemMonitorRust;
 
         #[qinvokable]
@@ -102,6 +105,23 @@ pub mod qobject {
         fn request_journal(self: Pin<&mut SystemMonitor>, query: &QString, tag: &QString);
 
         #[qinvokable]
+        #[cxx_name = "startBenchmark"]
+        fn start_benchmark(self: Pin<&mut SystemMonitor>, kind: &QString, option: &QString);
+
+        #[qinvokable]
+        #[cxx_name = "stopBenchmark"]
+        fn stop_benchmark(self: &SystemMonitor);
+
+        #[qinvokable]
+        #[cxx_name = "refreshBenchmarkHistory"]
+        fn refresh_benchmark_history(self: Pin<&mut SystemMonitor>);
+
+        /// Returns "" or the error.
+        #[qinvokable]
+        #[cxx_name = "clearBenchmarkHistory"]
+        fn clear_benchmark_history(self: Pin<&mut SystemMonitor>) -> QString;
+
+        #[qinvokable]
         #[cxx_name = "refreshPower"]
         fn refresh_power(self: Pin<&mut SystemMonitor>);
 
@@ -145,7 +165,11 @@ pub struct SystemMonitorRust {
     crashes: QString,
     journal: QString,
     process_details: QString,
+    benchmark: QString,
+    benchmark_history: QString,
     started: bool,
+    bench_stop: Arc<AtomicBool>,
+    bench_running: Arc<AtomicBool>,
     net: Arc<Mutex<Option<taskmgr_core::netflow::HelperData>>>,
     interval_ms: Arc<AtomicU64>,
     processes_visible: Arc<AtomicBool>,

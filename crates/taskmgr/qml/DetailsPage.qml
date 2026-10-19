@@ -93,6 +93,11 @@ ColumnLayout {
 
     spacing: 0
 
+    function focusSearch() {
+        search.forceActiveFocus()
+        search.selectAll()
+    }
+
     function stateName(s) {
         switch (s) {
         case "R": return qsTr("Running")
@@ -287,6 +292,12 @@ ColumnLayout {
             icon.source: Icons.of("open-folder", Kirigami.Theme.textColor)
             enabled: !!page.processDetails[menu.row?.pid]?.exe
             onTriggered: Qt.openUrlExternally("file://" + page.folder(page.processDetails[menu.row.pid].exe))
+        }
+        QQC2.MenuItem {
+            text: qsTr("Copy row")
+            icon.source: Icons.of("copy", Kirigami.Theme.textColor)
+            enabled: !!menu.row
+            onTriggered: table.copyRow(menu.row)
         }
         QQC2.MenuItem {
             text: qsTr("Copy command line")

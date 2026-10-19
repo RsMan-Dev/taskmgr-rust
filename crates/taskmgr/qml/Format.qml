@@ -75,10 +75,13 @@ QtObject {
         return d + ":" + pad(h) + ":" + pad(m) + ":" + pad(Math.floor(secs % 60))
     }
 
-    // Remaining time, "2 h 05" or "35 min".
+    // Duration, "2 h 05", "35 min" or "40 s".
     function duration(secs) {
         const h = Math.floor(secs / 3600)
         const m = Math.floor(secs % 3600 / 60)
+        if (h === 0 && m === 0) {
+            return qsTr("%1 s").arg(Math.floor(secs))
+        }
         return h > 0 ? qsTr("%1 h %2").arg(h).arg(String(m).padStart(2, "0")) : qsTr("%1 min").arg(m)
     }
 

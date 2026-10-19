@@ -42,6 +42,11 @@ ColumnLayout {
 
     spacing: 0
 
+    function focusSearch() {
+        search.forceActiveFocus()
+        search.selectAll()
+    }
+
     function compare(column, descending) {
         const def = allColumns.find(c => c.key === column)
         const value = x => def ? def.value(x) : 0

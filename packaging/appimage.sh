@@ -49,7 +49,8 @@ chmod -R u+w "$dir/usr/plugins"
 
 qml=$QTDECL/lib/qt-6/qml
 for m in QtQml QtCore QtQuick/Window QtQuick/Layouts QtQuick/Templates QtQuick/Shapes \
-         QtQuick/Controls/impl QtQuick/Controls/Basic QtQuick/Controls/Fusion; do
+         QtQuick/Controls/impl QtQuick/Controls/Basic QtQuick/Controls/Fusion \
+         QtQuick/Dialogs; do
     copy_tree "$qml/$m" "$dir/usr/qml/$m"
 done
 for m in QtQuick QtQuick/Controls; do

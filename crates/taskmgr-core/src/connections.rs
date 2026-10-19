@@ -23,6 +23,30 @@ pub struct Connection {
     pub state: &'static str,
     pub user: String,
     pub pid: Option<u32>,
+    /// Who can reach it. Listening: "all" (every interface), "local" (this
+    /// machine), "lan" or "internet" (one address); connected: where the
+    /// other end is; "" for Unix sockets.
+    pub scope: &'static str,
+}
+
+fn reach(ip: &IpAddr) -> &'static str {
+    if ip.is_unspecified() {
+        return "all";
+    }
+    if ip.is_loopback() {
+        return "local";
+    }
+    if ip.is_multicast() {
+        return "lan";
+    }
+    let private = match ip {
+        IpAddr::V4(v4) => v4.is_private() || v4.is_link_local(),
+        IpAddr::V6(v6) => {
+            let first = v6.segments()[0];
+            first & 0xfe00 == 0xfc00 || first & 0xffc0 == 0xfe80
+        }
+    };
+    if private { "lan" } else { "internet" }
 }
 
 fn state(tcp: bool, code: u8) -> &'static str {
@@ -85,7 +109,10 @@ pub fn list(root: &Root) -> Vec<Connection> {
             let code = u8::from_str_radix(f[3], 16).unwrap_or(0);
             let inode = f[9].parse::<u64>().unwrap_or(0);
             let uid = f[7].parse::<u32>().unwrap_or(u32::MAX);
+            let state = state(tcp, code);
+            let listening = state == "listen" || (!tcp && remote.is_unspecified());
             out.push(Connection {
+                scope: reach(if listening { &local } else { &remote }),
                 protocol: if tcp { "TCP" } else { "UDP" },
                 ipv6,
                 local: local.to_string(),
@@ -96,13 +123,48 @@ pub fn list(root: &Root) -> Vec<Connection> {
                     remote.to_string()
                 },
                 remote_port,
-                state: state(tcp, code),
+                state,
                 user: users.name(root, uid),
                 pid: (inode != 0).then(|| owners.get(&inode).copied()).flatten(),
             });
         }
     }
+    out.extend(unix_sockets(root, &owners));
     out
+}
+
+/// Named Unix sockets (a path or an abstract @name): the local services.
+/// Anonymous ones are pairs between two processes, left out.
+fn unix_sockets(root: &Root, owners: &std::collections::HashMap<u64, u32>) -> Vec<Connection> {
+    let text = root.read("/proc/net/unix").unwrap_or_default();
+    text.lines()
+        .skip(1)
+        .filter_map(|line| {
+            let f: Vec<&str> = line.split_whitespace().collect();
+            let path = f.get(7)?;
+            let listening = u32::from_str_radix(f.get(3)?, 16).ok()? & 0x0001_0000 != 0;
+            let connected = *f.get(5)? == "03";
+            let inode = f.get(6)?.parse::<u64>().ok()?;
+            Some(Connection {
+                protocol: "Unix",
+                ipv6: false,
+                local: (*path).to_owned(),
+                local_port: 0,
+                remote: String::new(),
+                remote_port: 0,
+                state: if listening {
+                    "listen"
+                } else if connected {
+                    "established"
+                } else {
+                    ""
+                },
+                user: String::new(),
+                pid: owners.get(&inode).copied(),
+                scope: "",
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -151,5 +213,6 @@ mod tests {
         );
         assert_eq!(list[1].remote, "93.184.216.34");
         assert_eq!((list[1].remote_port, list[1].user.as_str()), (443, "alice"));
+        assert_eq!((list[0].scope, list[1].scope), ("local", "internet"));
     }
 }

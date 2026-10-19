@@ -27,6 +27,11 @@ ColumnLayout {
 
     spacing: 0
 
+    function focusSearch() {
+        search.forceActiveFocus()
+        search.selectAll()
+    }
+
     function stateName(s) {
         switch (s) {
         case "active": return qsTr("Running")

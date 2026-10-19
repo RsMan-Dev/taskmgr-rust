@@ -3,8 +3,10 @@
 
 pub mod autostart;
 pub mod battery;
+pub mod bench;
 pub mod catalog;
 pub mod connections;
+pub mod consumption;
 pub mod cpu;
 pub mod crashes;
 pub mod disk;
@@ -19,6 +21,7 @@ pub mod net;
 pub mod netflow;
 pub mod power;
 pub mod process;
+pub mod readings;
 pub mod sensors;
 pub mod services;
 pub mod smart;
@@ -44,6 +47,8 @@ pub struct Snapshot {
     pub sensors: Vec<sensors::SensorGroup>,
     pub energy: energy::EnergySnapshot,
     pub batteries: Vec<battery::BatterySnapshot>,
+    pub consumption: consumption::ConsumptionSnapshot,
+    pub readings: Vec<readings::ReadingGroup>,
 }
 
 pub struct Sampler {
@@ -57,6 +62,8 @@ pub struct Sampler {
     sensors: sensors::SensorSampler,
     energy: energy::EnergySampler,
     batteries: battery::BatterySampler,
+    consumption: consumption::ConsumptionSampler,
+    readings: readings::ReadingTracker,
     /// Core voltage from the root helper, used when no driver exposes one.
     pub fallback_voltage: Option<f64>,
     /// Whether per-process GPU use is wanted (a process list is shown).
@@ -74,6 +81,8 @@ impl Sampler {
             sensors: Default::default(),
             energy: Default::default(),
             batteries: Default::default(),
+            consumption: Default::default(),
+            readings: Default::default(),
             fallback_voltage: None,
             per_process: true,
             last: None,
@@ -91,15 +100,23 @@ impl Sampler {
         let chips = hwmon::chips(root);
         let disks = self.disks.sample(root, &chips, secs);
         let gpus = self.gpus.sample(root, &chips, self.per_process);
-        Snapshot {
+        let batteries = self.batteries.sample(root);
+        let consumption = self
+            .consumption
+            .sample(root, secs, &chips, &gpus, &batteries);
+        let mut snapshot = Snapshot {
             cpu: self.cpu.sample(root, &chips, self.fallback_voltage),
             memory: self.memory.sample(root),
             networks: self.networks.sample(root, secs),
             sensors: self.sensors.sample(root, &chips, &disks, &gpus),
             energy: self.energy.sample(root, secs),
-            batteries: self.batteries.sample(root),
+            batteries,
+            consumption,
             disks,
             gpus,
-        }
+            readings: Vec::new(),
+        };
+        snapshot.readings = self.readings.update(&snapshot);
+        snapshot
     }
 }

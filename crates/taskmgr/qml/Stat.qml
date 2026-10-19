@@ -15,7 +15,7 @@ ColumnLayout {
         opacity: 0.7
         font: Kirigami.Theme.smallFont
     }
-    QQC2.Label {
+    SelectableText {
         id: number
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.5
     }

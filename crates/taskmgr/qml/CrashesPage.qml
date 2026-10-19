@@ -29,6 +29,11 @@ ColumnLayout {
 
     spacing: 0
 
+    function focusSearch() {
+        search.forceActiveFocus()
+        search.selectAll()
+    }
+
     function sinceSecs() {
         const day = 86400
         switch (period) {

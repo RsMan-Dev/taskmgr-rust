@@ -3,7 +3,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// Static "label: value" line.
+// "label: value" line; the value can be selected and copied.
 RowLayout {
     property alias label: caption.text
     property alias value: content.text
@@ -14,14 +14,13 @@ RowLayout {
     QQC2.Label {
         id: caption
         opacity: 0.7
+        wrapMode: Text.Wrap
         Layout.preferredWidth: parent.labelWidth
         Layout.alignment: Qt.AlignTop
-        elide: Text.ElideRight
     }
-    QQC2.Label {
+    SelectableText {
         id: content
+        wrapMode: TextEdit.Wrap
         Layout.fillWidth: true
-        wrapMode: Text.Wrap
-        textFormat: Text.PlainText
     }
 }

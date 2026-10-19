@@ -10,7 +10,8 @@ ColumnLayout {
     required property var monitor
     property var groups: null
     property bool active: false
-    // 0: all, 1: connected, 2: listening.
+    // 0: all (network), 1: connected, 2: listening, 3: open to the
+    // network, 4: Unix sockets.
     property int filter: 0
     property string error: ""
 
@@ -39,10 +40,17 @@ ColumnLayout {
         }
         const q = search.text.trim().toLowerCase()
         return all.filter(c => {
+            if ((filter === 4) !== (c.protocol === "Unix")) {
+                return false
+            }
             if (filter === 1 && c.state !== "established") {
                 return false
             }
-            if (filter === 2 && !(c.state === "listen" || (c.protocol === "UDP" && c.remote === ""))) {
+            const listening = c.state === "listen" || (c.protocol === "UDP" && c.remote === "")
+            if (filter === 2 && !listening) {
+                return false
+            }
+            if (filter === 3 && !(listening && c.scope !== "local")) {
                 return false
             }
             const proc = c.pid !== null ? owners[c.pid]?.proc.name ?? "" : ""
@@ -53,6 +61,11 @@ ColumnLayout {
 
     spacing: 0
 
+    function focusSearch() {
+        search.forceActiveFocus()
+        search.selectAll()
+    }
+
     function appName(c) {
         if (c._group !== undefined) {
             return c.name
@@ -61,7 +74,10 @@ ColumnLayout {
         if (c._child && o) {
             return o.proc.name
         }
-        return c.pid === null ? qsTr("No application (%1)").arg(c.user) : Tr.core(o?.group.name ?? "") || qsTr("PID %1").arg(c.pid)
+        if (c.pid === null) {
+            return c.user ? qsTr("No application (%1)").arg(c.user) : qsTr("No application")
+        }
+        return Tr.core(o?.group.name ?? "") || qsTr("PID %1").arg(c.pid)
     }
 
     // Sockets fold under their application; unknown ones under their user.
@@ -79,6 +95,8 @@ ColumnLayout {
             group: first.pid !== null ? owners[first.pid]?.group ?? null : null,
             pid: null, protocol: "", ipv6: false, local: "", local_port: 0, remote: "", remote_port: 0,
             state: "", user: first.user,
+            // The widest reach of the application's sockets.
+            scope: ["all", "internet", "lan", "local"].find(r => list.some(c => c.scope === r)) ?? "",
         }
     }
 
@@ -101,10 +119,20 @@ ColumnLayout {
     }
 
     function endpoint(address, port) {
-        if (address === "") {
-            return ""
+        if (address === "" || port === 0) {
+            return address
         }
         return (address.includes(":") ? "[" + address + "]" : address) + ":" + port
+    }
+
+    function scopeName(scope) {
+        switch (scope) {
+        case "all": return qsTr("All interfaces")
+        case "local": return qsTr("This computer")
+        case "lan": return qsTr("Local network")
+        case "internet": return qsTr("Internet")
+        }
+        return ""
     }
 
     function stateName(c) {
@@ -134,7 +162,8 @@ ColumnLayout {
         title: qsTr("Connections")
 
         QQC2.ComboBox {
-            model: [qsTr("All"), qsTr("Connected"), qsTr("Listening")]
+            model: [qsTr("All"), qsTr("Connected"), qsTr("Listening"), qsTr("Open to the network"), qsTr("Unix sockets")]
+            implicitContentWidthPolicy: QQC2.ComboBox.WidestText
             currentIndex: page.filter
             onActivated: (i) => page.filter = i
         }
@@ -177,7 +206,7 @@ ColumnLayout {
         keyOf: c => c.id
         groupBy: c => page.groupOf(c)
         groupRow: (key, list) => page.groupRow(key, list)
-        expandAll: search.text.trim() !== ""
+        expandAll: search.text.trim() !== "" || page.filter === 3
         sortColumn: "app"
         placeholder: page.monitor.connections === "" ? "" : qsTr("No matching connection")
         Layout.fillWidth: true
@@ -187,10 +216,11 @@ ColumnLayout {
               text: c => c._group !== undefined ? qsTr("%1 (%2)").arg(c.name).arg(c.count) : page.appName(c),
               value: c => ((c._group !== undefined ? c.known : c.pid !== null) ? "" : "\uffff") + page.appName(c), dim: c => c._group !== undefined ? !c.known : c.pid === null },
             { key: "pid", title: qsTr("PID"), align: Text.AlignRight, text: c => c.pid ?? "", value: c => c.pid ?? -1 },
-            { key: "protocol", title: qsTr("Protocol"), text: c => c.protocol + (c.ipv6 ? "v6" : "") },
+            { key: "protocol", title: qsTr("Protocol"), text: c => c.protocol ? c.protocol + (c.ipv6 ? "v6" : "") : "" },
             { key: "local", title: qsTr("Local address"), text: c => page.endpoint(c.local, c.local_port) },
             { key: "remote", title: qsTr("Remote address"), text: c => page.endpoint(c.remote, c.remote_port) },
             { key: "state", title: qsTr("State"), text: c => page.stateName(c) },
+            { key: "scope", title: qsTr("Reach"), text: c => page.scopeName(c.scope ?? "") },
             { key: "user", title: qsTr("User"), width: 0, text: c => c.user },
         ]
         onActivated: (c) => {
@@ -238,6 +268,12 @@ ColumnLayout {
             enabled: menu.actionable
             onTriggered: page.journalRequested(page.appName(menu.row),
                 { pids: page.targetsOf(menu.row).split(",").map(t => Number(t.split(":")[0])), limit: 1000 })
+        }
+        QQC2.MenuItem {
+            text: qsTr("Copy row")
+            icon.source: Icons.of("copy", Kirigami.Theme.textColor)
+            enabled: menu.row !== null
+            onTriggered: table.copyRow(menu.row)
         }
         QQC2.MenuItem {
             text: qsTr("Go to details")
