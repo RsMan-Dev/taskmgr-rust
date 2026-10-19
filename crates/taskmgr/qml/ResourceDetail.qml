@@ -16,6 +16,7 @@ ColumnLayout {
     readonly property real inner: width - Kirigami.Units.gridUnit * 2
 
     signal chartMenuRequested()
+    signal actionRequested(var action)
 
     visible: r !== null
     spacing: Kirigami.Units.largeSpacing
@@ -176,6 +177,22 @@ ColumnLayout {
                         value: String(modelData[1])
                         Layout.fillWidth: true
                     }
+                }
+            }
+        }
+
+        Flow {
+            visible: (detail.r?.actions?.length ?? 0) > 0
+            spacing: Kirigami.Units.smallSpacing
+            Layout.fillWidth: true
+
+            Repeater {
+                model: detail.r?.actions ?? []
+                QQC2.Button {
+                    required property var modelData
+                    text: modelData.text
+                    icon.source: Icons.of(modelData.icon, Kirigami.Theme.textColor)
+                    onClicked: detail.actionRequested(modelData)
                 }
             }
         }

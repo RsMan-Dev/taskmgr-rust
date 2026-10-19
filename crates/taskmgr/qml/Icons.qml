@@ -47,6 +47,8 @@ QtObject {
         "sort-down": "arrow_sort_down",
         "search": "search",
         "info": "info",
+        "details": "info",
+        "eject": "arrow_eject",
         "warning": "warning",
         "cpu": "developer_board",
         "memory": "ram",

@@ -10,6 +10,7 @@ pub mod consumption;
 pub mod cpu;
 pub mod crashes;
 pub mod disk;
+pub mod eject;
 pub mod energy;
 pub mod fans;
 pub mod gpu;

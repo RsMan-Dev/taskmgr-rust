@@ -58,6 +58,9 @@ QtObject {
             [qsTr("Write speed"), Format.rate(d.write_bps)],
         ].concat(temperature !== null ? [[qsTr("Temperature"), Format.temperature(temperature)]] : [])
          .concat(h ? [[qsTr("Health"), healthText[h.status]]] : []),
+        actions: (h ? [{ id: "smart:" + d.name, text: qsTr("SMART details…"), icon: "details", label: d.model }] : [])
+            .concat(d.kind.includes("(USB)") || d.kind.includes("(removable)") || /^(sr|mmcblk)/.test(d.name)
+                    ? [{ id: "eject:" + d.name, text: qsTr("Eject"), icon: "eject", label: d.model }] : []),
         details: ResourceKit.details([
             [qsTr("Capacity"), Format.bytes(d.capacity)],
             [qsTr("Type"), Tr.core(d.kind)],

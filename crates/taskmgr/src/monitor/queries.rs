@@ -37,6 +37,24 @@ impl Monitor {
         );
     }
 
+    pub fn request_smart_details(mut self: Pin<&mut Self>, block: &QString) {
+        let block = block.to_string();
+        self.as_mut().set_smart_details(QString::default());
+        self.spawn(
+            move || json(&taskmgr_core::smart::details(&block)),
+            |o, v| o.set_smart_details(v),
+        );
+    }
+
+    pub fn eject_disk(mut self: Pin<&mut Self>, block: &QString) {
+        let block = block.to_string();
+        self.as_mut().set_eject_result(QString::default());
+        self.spawn(
+            move || json(&taskmgr_core::eject::eject(&Root::system(), &block)),
+            |o, v| o.set_eject_result(v),
+        );
+    }
+
     pub fn refresh_power(self: Pin<&mut Self>) {
         self.spawn(
             || json(&taskmgr_core::power::read(&Root::system())),

@@ -4,6 +4,10 @@
 use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
+
+mod details;
+
+pub use details::{SmartAttribute, SmartDetails, details};
 use zbus::Connection;
 use zbus::{ObjectPath, OwnedObjectPath, OwnedVariant, Variant};
 

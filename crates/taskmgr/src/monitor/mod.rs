@@ -41,6 +41,8 @@ pub mod qobject {
         #[qproperty(QString, process_details, cxx_name = "processDetails")]
         #[qproperty(QString, benchmark)]
         #[qproperty(QString, inventory)]
+        #[qproperty(QString, smart_details, cxx_name = "smartDetails")]
+        #[qproperty(QString, eject_result, cxx_name = "ejectResult")]
         #[qproperty(QString, benchmark_history, cxx_name = "benchmarkHistory")]
         type SystemMonitor = super::SystemMonitorRust;
 
@@ -110,6 +112,16 @@ pub mod qobject {
         #[cxx_name = "refreshInventory"]
         fn refresh_inventory(self: Pin<&mut SystemMonitor>);
 
+        /// Every SMART attribute of a block device, into smartDetails.
+        #[qinvokable]
+        #[cxx_name = "requestSmartDetails"]
+        fn request_smart_details(self: Pin<&mut SystemMonitor>, block: &QString);
+
+        /// Unmounts and powers off a drive; ejectResult names what blocks it.
+        #[qinvokable]
+        #[cxx_name = "ejectDisk"]
+        fn eject_disk(self: Pin<&mut SystemMonitor>, block: &QString);
+
         #[qinvokable]
         #[cxx_name = "startBenchmark"]
         fn start_benchmark(self: Pin<&mut SystemMonitor>, kind: &QString, option: &QString);
@@ -173,6 +185,8 @@ pub struct SystemMonitorRust {
     process_details: QString,
     benchmark: QString,
     inventory: QString,
+    smart_details: QString,
+    eject_result: QString,
     benchmark_history: QString,
     started: bool,
     bench_stop: Arc<AtomicBool>,

@@ -163,9 +163,21 @@ Item {
                     pageHeight: page.height
                     width: detailScroll.contentWidth
                     onChartMenuRequested: chartMenu.popup()
+                    onActionRequested: (a) => a.id.startsWith("smart:")
+                        ? smartDialog.show(a.id.slice(6), a.label) : ejectDialog.eject(a.id.slice(6), a.label)
                 }
             }
         }
+    }
+
+    SmartDialog {
+        id: smartDialog
+        monitor: page.monitor
+    }
+
+    EjectDialog {
+        id: ejectDialog
+        monitor: page.monitor
     }
 
     QQC2.Menu {
