@@ -48,6 +48,7 @@
           cargoLock.lockFile = ./Cargo.lock;
           cargoBuildFlags = [ "-p" "taskmgr" "-p" "taskmgr-core" "--bins" ];
           cargoTestFlags = [ "--workspace" ];
+          env.CXXFLAGS = "-Wno-sfinae-incomplete";
 
           nativeBuildInputs = [ pkgs.pkg-config pkgs.kdePackages.wrapQtAppsHook pkgs.kdePackages.qttools ];
           buildInputs = runtimeQt pkgs;
@@ -106,6 +107,8 @@
           RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
           # Debug C++ builds (cxx-qt) otherwise warn on every file.
           hardeningDisable = [ "fortify" ];
+          # GCC 16 warns inside Qt's own headers.
+          CXXFLAGS = "-Wno-sfinae-incomplete";
           shellHook = ''
             # cxx-qt needs one qmake prefix holding every linked module; set
             # here because qtbase's setup hook overrides QMAKE.

@@ -4,6 +4,7 @@
 mod actions;
 mod queries;
 mod sampling;
+pub mod startup;
 
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64};

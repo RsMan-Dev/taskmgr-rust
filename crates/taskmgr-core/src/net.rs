@@ -1,8 +1,6 @@
 //! Physical network adapters that are connected.
 
 use std::collections::HashMap;
-use std::ffi::CStr;
-use std::net::{Ipv4Addr, Ipv6Addr};
 
 use serde::Serialize;
 
@@ -36,34 +34,17 @@ fn adapter_name(root: &Root, iface: &str) -> Option<String> {
 
 fn addresses() -> HashMap<String, (Vec<String>, Vec<String>)> {
     let mut out: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
-    let mut head: *mut libc::ifaddrs = std::ptr::null_mut();
-    // SAFETY: nodes are only read before freeifaddrs.
-    unsafe {
-        if libc::getifaddrs(&raw mut head) != 0 {
-            return out;
+    let Ok(list) = nix::ifaddrs::getifaddrs() else {
+        return out;
+    };
+    for ifa in list {
+        let Some(addr) = ifa.address else { continue };
+        let entry = out.entry(ifa.interface_name).or_default();
+        if let Some(v4) = addr.as_sockaddr_in() {
+            entry.0.push(v4.ip().to_string());
+        } else if let Some(v6) = addr.as_sockaddr_in6() {
+            entry.1.push(v6.ip().to_string());
         }
-        let mut cur = head;
-        while let Some(ifa) = cur.as_ref() {
-            cur = ifa.ifa_next;
-            if ifa.ifa_addr.is_null() {
-                continue;
-            }
-            let name = CStr::from_ptr(ifa.ifa_name).to_string_lossy().into_owned();
-            match (*ifa.ifa_addr).sa_family as i32 {
-                libc::AF_INET => {
-                    let sa = ifa.ifa_addr.cast::<libc::sockaddr_in>().read_unaligned();
-                    let ip = Ipv4Addr::from(u32::from_be(sa.sin_addr.s_addr));
-                    out.entry(name).or_default().0.push(ip.to_string());
-                }
-                libc::AF_INET6 => {
-                    let sa = ifa.ifa_addr.cast::<libc::sockaddr_in6>().read_unaligned();
-                    let ip = Ipv6Addr::from(sa.sin6_addr.s6_addr);
-                    out.entry(name).or_default().1.push(ip.to_string());
-                }
-                _ => {}
-            }
-        }
-        libc::freeifaddrs(head);
     }
     out
 }

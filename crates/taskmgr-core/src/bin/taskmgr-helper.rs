@@ -3,38 +3,33 @@
 //! and exits when its standard input closes (the interface quit).
 
 use std::io::{Read, Write};
+use std::os::fd::AsRawFd;
 use std::time::{Duration, Instant};
 
 use taskmgr_core::netflow::Counters;
 use taskmgr_core::util::Root;
 
+use nix::sys::socket::{
+    AddressFamily, LinkAddr, MsgFlags, SockFlag, SockProtocol, SockType, recvmsg, setsockopt,
+    socket, sockopt,
+};
+use nix::sys::time::TimeVal;
+
 fn main() {
-    // SAFETY: plain socket syscalls on a descriptor owned by this function.
-    let fd = unsafe {
-        libc::socket(
-            libc::AF_PACKET,
-            libc::SOCK_DGRAM,
-            (libc::ETH_P_ALL as u16).to_be() as i32,
-        )
+    let socket = match socket(
+        AddressFamily::Packet,
+        SockType::Datagram,
+        SockFlag::empty(),
+        SockProtocol::EthAll,
+    ) {
+        Ok(fd) => fd,
+        Err(e) => {
+            eprintln!("taskmgr-helper: {e}");
+            std::process::exit(1);
+        }
     };
-    if fd < 0 {
-        eprintln!("taskmgr-helper: {}", std::io::Error::last_os_error());
-        std::process::exit(1);
-    }
-    let timeout = libc::timeval {
-        tv_sec: 0,
-        tv_usec: 200_000,
-    };
-    // SAFETY: valid fd and a correctly sized option value.
-    unsafe {
-        libc::setsockopt(
-            fd,
-            libc::SOL_SOCKET,
-            libc::SO_RCVTIMEO,
-            std::ptr::from_ref(&timeout).cast(),
-            std::mem::size_of::<libc::timeval>() as u32,
-        );
-    }
+    // Wakes up regularly to print even when no packet arrives.
+    let _ = setsockopt(&socket, sockopt::ReceiveTimeout, &TimeVal::new(0, 200_000));
     std::thread::spawn(|| {
         let mut sink = [0u8; 64];
         while std::io::stdin().read(&mut sink).is_ok_and(|n| n > 0) {}
@@ -45,31 +40,24 @@ fn main() {
     taskmgr_core::msr::ensure_module(&root);
     let loopback = std::fs::read_to_string("/sys/class/net/lo/ifindex")
         .ok()
-        .and_then(|s| s.trim().parse::<i32>().ok());
+        .and_then(|s| s.trim().parse::<usize>().ok());
     let mut counters = Counters::default();
     let mut buf = [0u8; 128];
     let mut last = Instant::now();
     loop {
-        // SAFETY: zeroed sockaddr_ll is valid; lengths match the buffers.
-        let mut addr: libc::sockaddr_ll = unsafe { std::mem::zeroed() };
-        let mut addr_len = std::mem::size_of::<libc::sockaddr_ll>() as libc::socklen_t;
         // MSG_TRUNC returns the real packet size while copying only headers.
-        let n = unsafe {
-            libc::recvfrom(
-                fd,
-                buf.as_mut_ptr().cast(),
-                buf.len(),
-                libc::MSG_TRUNC,
-                std::ptr::from_mut(&mut addr).cast(),
-                &raw mut addr_len,
-            )
-        };
-        if n > 0 && Some(addr.sll_ifindex) != loopback {
-            let len = n as usize;
+        let mut iov = [std::io::IoSliceMut::new(&mut buf)];
+        let received = recvmsg::<LinkAddr>(socket.as_raw_fd(), &mut iov, None, MsgFlags::MSG_TRUNC)
+            .ok()
+            .and_then(|m| Some((m.bytes, m.address?)));
+        if let Some((len, addr)) = received
+            && len > 0
+            && Some(addr.ifindex()) != loopback
+        {
             counters.add(
                 &buf[..len.min(buf.len())],
                 len,
-                addr.sll_pkttype == libc::PACKET_OUTGOING,
+                addr.pkttype() == libc::PACKET_OUTGOING,
             );
         }
         let elapsed = last.elapsed();

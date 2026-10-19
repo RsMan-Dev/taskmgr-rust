@@ -5,26 +5,30 @@ import QtQuick
 ListModel {
     id: model
 
+    // Mirror of the keys: ListModel.get() builds an object per call, far
+    // too slow to search hundreds of rows every second.
+    property var current: []
+
     function sync(keys) {
-        for (let i = 0; i < keys.length; i++) {
-            if (i < count && get(i).key === keys[i]) {
-                continue
-            }
-            let j = -1
-            for (let k = i + 1; k < count; k++) {
-                if (get(k).key === keys[i]) {
-                    j = k
-                    break
-                }
-            }
-            if (j >= 0) {
-                move(j, i, 1)
-            } else {
-                insert(i, { key: keys[i] })
+        const wanted = new Set(keys)
+        for (let i = current.length - 1; i >= 0; i--) {
+            if (!wanted.has(current[i])) {
+                remove(i)
+                current.splice(i, 1)
             }
         }
-        if (count > keys.length) {
-            remove(keys.length, count - keys.length)
+        for (let i = 0; i < keys.length; i++) {
+            if (current[i] === keys[i]) {
+                continue
+            }
+            const j = current.indexOf(keys[i], i + 1)
+            if (j >= 0) {
+                move(j, i, 1)
+                current.splice(i, 0, current.splice(j, 1)[0])
+            } else {
+                insert(i, { key: keys[i] })
+                current.splice(i, 0, keys[i])
+            }
         }
     }
 }

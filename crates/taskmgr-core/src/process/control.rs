@@ -1,5 +1,10 @@
 //! Actions on processes: signals and priority.
 
+use rustix::io::Errno;
+use rustix::process::{
+    Pid, PidfdFlags, kill_process, pidfd_open, pidfd_send_signal, setpriority_process,
+};
+
 use super::procfs::parse_stat;
 #[cfg(test)]
 use super::procfs::status_kb;
@@ -23,12 +28,13 @@ impl Signal {
         })
     }
 
-    fn number(self) -> i32 {
+    fn raw(self) -> rustix::process::Signal {
+        use rustix::process::Signal as S;
         match self {
-            Self::Terminate => libc::SIGTERM,
-            Self::Kill => libc::SIGKILL,
-            Self::Suspend => libc::SIGSTOP,
-            Self::Resume => libc::SIGCONT,
+            Self::Terminate => S::TERM,
+            Self::Kill => S::KILL,
+            Self::Suspend => S::STOP,
+            Self::Resume => S::CONT,
         }
     }
 }
@@ -69,40 +75,27 @@ impl Target {
 /// exited (or whose pid was reused) are skipped, not an error. A pidfd pins
 /// the process between the identity check and the signal.
 pub fn send(targets: &[Target], signal: Signal) -> bool {
-    let signal = signal.number();
     let mut ok = true;
     for t in targets {
-        // SAFETY: plain syscalls; the descriptor is closed right after use.
-        let fd = unsafe { libc::syscall(libc::SYS_pidfd_open, t.pid, 0) } as i32;
-        let result = if fd >= 0 {
-            let r = if t.still_same() {
-                unsafe {
-                    libc::syscall(
-                        libc::SYS_pidfd_send_signal,
-                        fd,
-                        signal,
-                        std::ptr::null::<libc::siginfo_t>(),
-                        0,
-                    )
-                }
-            } else {
-                0
-            };
-            unsafe { libc::close(fd) };
-            r
-        } else if std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
-            || !t.still_same()
+        if let Err(e) = send_one(*t, signal.raw())
+            && e != Errno::SRCH
         {
-            0
-        } else {
-            // Kernels before 5.3 have no pidfd.
-            unsafe { libc::kill(t.pid, signal) as i64 }
-        };
-        if result != 0 {
-            ok &= std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH);
+            ok = false;
         }
     }
     ok
+}
+
+fn send_one(t: Target, signal: rustix::process::Signal) -> Result<(), Errno> {
+    let pid = Pid::from_raw(t.pid).ok_or(Errno::SRCH)?;
+    match pidfd_open(pid, PidfdFlags::empty()) {
+        Ok(fd) if t.still_same() => pidfd_send_signal(&fd, signal),
+        Ok(_) => Ok(()),
+        Err(Errno::SRCH) => Ok(()),
+        // Kernels before 5.3 have no pidfd.
+        Err(_) if t.still_same() => kill_process(pid, signal),
+        Err(_) => Ok(()),
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -118,18 +111,12 @@ pub fn set_priority(target: Target, nice: i32) -> Result<(), PriorityError> {
     if !target.still_same() {
         return Err(PriorityError::Gone);
     }
-    let pid = target.pid;
-    // SAFETY: setpriority has no memory preconditions.
-    if unsafe { libc::setpriority(libc::PRIO_PROCESS, pid as libc::id_t, nice) } == 0 {
-        return Ok(());
-    }
-    match std::io::Error::last_os_error().raw_os_error() {
-        Some(libc::EPERM) | Some(libc::EACCES) => Err(PriorityError::Denied),
-        Some(libc::ESRCH) => Err(PriorityError::Gone),
-        _ => Err(PriorityError::Failed(
-            std::io::Error::last_os_error().to_string(),
-        )),
-    }
+    let pid = Pid::from_raw(target.pid).ok_or(PriorityError::Gone)?;
+    setpriority_process(Some(pid), nice).map_err(|e| match e {
+        Errno::PERM | Errno::ACCESS => PriorityError::Denied,
+        Errno::SRCH => PriorityError::Gone,
+        e => PriorityError::Failed(e.to_string()),
+    })
 }
 
 /// Same through pkexec and renice, for priorities only root may set.

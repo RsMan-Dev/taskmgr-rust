@@ -88,8 +88,7 @@ pub fn grant_access(root: &Root) -> Result<(), String> {
     if files.is_empty() {
         return Err("No RAPL counter on this machine.".to_owned());
     }
-    // SAFETY: getuid cannot fail.
-    let uid = unsafe { libc::getuid() };
+    let uid = rustix::process::getuid().as_raw();
     let status = std::process::Command::new(pkexec)
         .arg(chown)
         .arg(uid.to_string())

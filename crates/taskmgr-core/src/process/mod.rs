@@ -84,8 +84,7 @@ pub struct ProcessSampler {
 
 impl ProcessSampler {
     pub fn new(root: &Root) -> Self {
-        // SAFETY: sysconf has no preconditions.
-        let hz = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
+        let hz = rustix::param::clock_ticks_per_second();
         Self {
             users: Users::default(),
             catalog: Catalog::load(root),

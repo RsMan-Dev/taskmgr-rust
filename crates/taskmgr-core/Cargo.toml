@@ -7,7 +7,9 @@ license.workspace = true
 
 [dependencies]
 libc = "0.2.191"
+nix = { version = "0.31", default-features = false, features = ["net", "socket", "uio", "user"] }
 nvml-wrapper = "0.13.0"
+rustix = { version = "1.1.5", features = ["process", "param", "thread"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 zbus = { version = "6", default-features = false, features = ["default-rt", "service", "proxy"] }

@@ -236,7 +236,7 @@ ColumnLayout {
                     required property var modelData
                     column: modelData.key
                     title: modelData.title
-                    total: modelData.total
+                    total: columnSet.totals[modelData.key] ?? ""
                     tip: modelData.tip ?? ""
                     sorted: page.sortColumn === column
                     descending: page.sortDescending

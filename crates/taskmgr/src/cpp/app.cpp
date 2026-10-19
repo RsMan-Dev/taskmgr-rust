@@ -1,3 +1,5 @@
+#include "app.h"
+
 #include <QApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -17,6 +19,9 @@
 #include <csignal>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include <string>
+#include <vector>
 
 static int s_signalFds[2];
 
@@ -94,10 +99,17 @@ static void quitOnSignals(QCoreApplication &app)
     }
 }
 
-extern "C" int taskmgr_run(int argc, char **argv)
+int taskmgr_run(const rust::Vec<rust::String> &args)
 {
-    static int s_argc = argc;
-    QApplication app(s_argc, argv);
+    // QApplication keeps argc and argv for its whole life.
+    static std::vector<std::string> s_args(args.begin(), args.end());
+    static std::vector<char *> s_argv;
+    for (auto &a : s_args) {
+        s_argv.push_back(a.data());
+    }
+    s_argv.push_back(nullptr);
+    static int s_argc = static_cast<int>(s_args.size());
+    QApplication app(s_argc, s_argv.data());
     app.setApplicationName(QStringLiteral("taskmgr"));
     app.setOrganizationName(QStringLiteral("rsman"));
     app.setOrganizationDomain(QStringLiteral("rsman.fr"));

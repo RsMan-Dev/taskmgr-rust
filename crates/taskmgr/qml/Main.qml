@@ -56,6 +56,11 @@ QQC2.ApplicationWindow {
     property int currentPage: Prefs.startPage
     property string initialSelection: ""
     readonly property double openedAt: Date.now()
+
+    // Hidden pages get no data: they would recompute on every refresh.
+    function shown(page, value) {
+        return !mini && currentPage === page ? value : null
+    }
     property bool sidebarFolded: false
 
     // Mini mode: a small readout, optionally kept above other windows; F12
@@ -171,8 +176,8 @@ QQC2.ApplicationWindow {
         visible: window.mini
         anchors.fill: parent
         anchors.margins: Kirigami.Units.largeSpacing * scale
-        snapshot: window.snapshot
-        groups: window.processes
+        snapshot: window.mini ? window.snapshot : null
+        groups: window.mini ? window.processes : null
         pinned: Prefs.miniPinned
         scale: window.fullScreenMini ? 2 : 1
         onExpandRequested: {
@@ -264,12 +269,12 @@ QQC2.ApplicationWindow {
 
                 ProcessesPage {
                     onJournalRequested: (title, query) => journalDialog.show(title, query)
-                    groups: window.processes
-                    snapshot: window.snapshot
+                    groups: window.shown(0, window.processes)
+                    snapshot: window.shown(0, window.snapshot)
                     monitor: monitor
                 }
                 PerformancePage {
-                    snapshot: window.snapshot
+                    snapshot: window.shown(1, window.snapshot)
                     monitor: monitor
                     Component.onCompleted: {
                         const [key, option] = window.initialSelection.split("+")
@@ -282,7 +287,7 @@ QQC2.ApplicationWindow {
                 DetailsPage {
                     id: details
                     onJournalRequested: (title, query) => journalDialog.show(title, query)
-                    groups: window.processes
+                    groups: window.shown(2, window.processes)
                     monitor: monitor
                     logical: window.snapshot?.cpu.logical ?? 1
                 }
@@ -291,7 +296,7 @@ QQC2.ApplicationWindow {
                     active: window.currentPage === 3
                 }
                 UsersPage {
-                    groups: window.processes
+                    groups: window.shown(4, window.processes)
                     logical: window.snapshot?.cpu.logical ?? 1
                     onShowUser: (user) => {
                         details.query = user
@@ -306,7 +311,7 @@ QQC2.ApplicationWindow {
                 ConnectionsPage {
                     monitor: monitor
                     onJournalRequested: (title, query) => journalDialog.show(title, query)
-                    groups: window.processes
+                    groups: window.shown(6, window.processes)
                     active: window.currentPage === 6
                     onShowProcess: (pid) => {
                         details.query = String(pid)
@@ -322,7 +327,7 @@ QQC2.ApplicationWindow {
                 }
                 SystemPage {
                     info: window.systemInfo
-                    snapshot: window.snapshot
+                    snapshot: window.shown(8, window.snapshot)
                 }
                 SettingsPage {
                     pageNames: window.pages.slice(0, window.pages.length - 1).map(p => p.text)

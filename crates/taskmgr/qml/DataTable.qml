@@ -32,7 +32,30 @@ ColumnLayout {
     property real indentUnit: Kirigami.Units.gridUnit
     readonly property real chevron: groupBy ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0
     readonly property real fillMinimum: Kirigami.Units.gridUnit * 12
-    readonly property var widths: {
+    // Column widths only follow the content when rows come or go, or every
+    // few refreshes: measuring every cell each second stalls the window.
+    property var widths: ({})
+    property int refreshes: 0
+    property int measuredRows: -1
+    onColumnsChanged: measure()
+    onChevronChanged: measure()
+    onSortedChanged: {
+        const n = sorted?.length ?? 0
+        if (slots.count < n) {
+            const added = []
+            for (let i = slots.count; i < n; i++) {
+                added.push({})
+            }
+            slots.append(added)
+        } else if (slots.count > n) {
+            slots.remove(n, slots.count - n)
+        }
+        if (sorted.length !== measuredRows || ++refreshes % 5 === 0) {
+            measure()
+        }
+    }
+
+    function measure() {
         const out = {}
         const pad = Kirigami.Units.largeSpacing * 2
         for (const c of columns) {
@@ -40,7 +63,7 @@ ColumnLayout {
                 out[c.key] = c.width
                 continue
             }
-            const texts = new Set(c.widest ?? (groupBy ? sorted : rows).map(r => String(c.text(r))))
+            const texts = c.widest ?? longest((sorted ?? []).map(r => String(c.text(r))))
             let w = metrics.advanceWidth(c.title) + Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
             for (const t of texts) {
                 w = Math.max(w, metrics.advanceWidth(t))
@@ -48,7 +71,8 @@ ColumnLayout {
             const indent = c.key === columns[0].key ? chevron * 2 : 0
             out[c.key] = Math.min(Math.ceil(w) + pad + indent, c.maxWidth ?? Kirigami.Units.gridUnit * 18)
         }
-        return out
+        measuredRows = (sorted ?? []).length
+        widths = out
     }
     readonly property real fixedWidth: columns.reduce((a, c) => a + (widths[c.key] || 0), 0)
     readonly property real viewportWidth: list.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
@@ -107,7 +131,20 @@ ColumnLayout {
     signal activated(var row)
 
     spacing: 0
-    onSortedChanged: model.sync(sorted.map(rowKey))
+
+    // Measuring every cell on each refresh is the costly part of the
+    // table: only the longest few texts can be the widest.
+    function longest(texts) {
+        const out = []
+        for (const t of texts) {
+            if (out.length < 4 || t.length > out[out.length - 1].length) {
+                out.push(t)
+                out.sort((a, b) => b.length - a.length)
+                out.length = Math.min(out.length, 4)
+            }
+        }
+        return out
+    }
 
     function rowKey(r) {
         return r._group !== undefined ? "group:" + r._group : keyOf(r)
@@ -214,8 +251,11 @@ ColumnLayout {
         QQC2.ScrollBar.vertical: ThinScrollBar {}
         QQC2.ScrollBar.horizontal: ThinScrollBar {}
 
-        model: KeyedModel {
-            id: model
+        // Row n shows the n-th sorted entry: re-sorting only rebinds the
+        // visible delegates, and rows that come or go are added or removed
+        // at the end, so the view is never rebuilt.
+        model: ListModel {
+            id: slots
         }
 
         Keys.onUpPressed: table.moveSelection(-1)
@@ -224,8 +264,9 @@ ColumnLayout {
 
         delegate: QQC2.ItemDelegate {
             id: rowItem
-            required property string key
-            readonly property var row: table.index[key] ?? null
+            required property int index
+            readonly property var row: table.sorted[index] ?? null
+            readonly property string key: row ? table.rowKey(row) : ""
             width: table.tableWidth
             height: Kirigami.Units.gridUnit * 1.8
             padding: 0

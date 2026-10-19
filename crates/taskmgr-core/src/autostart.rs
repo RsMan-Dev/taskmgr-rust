@@ -22,24 +22,36 @@ pub struct AutostartEntry {
     pub path: String,
 }
 
-fn user_dir() -> PathBuf {
-    std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".config"))
-        .join("autostart")
+/// Autostart directories: the user's, then the system ones by priority.
+struct Dirs {
+    user: PathBuf,
+    system: Vec<String>,
 }
 
-fn system_dirs() -> Vec<String> {
-    let dirs = std::env::var("XDG_CONFIG_DIRS").unwrap_or_default();
-    let mut out: Vec<String> = dirs
-        .split(':')
-        .filter(|d| !d.is_empty())
-        .map(|d| format!("{d}/autostart"))
-        .collect();
-    if out.is_empty() {
-        out.push("/etc/xdg/autostart".to_owned());
+impl Dirs {
+    fn from_env() -> Self {
+        let config = std::env::var_os("XDG_CONFIG_HOME").map_or_else(
+            || PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".config"),
+            PathBuf::from,
+        );
+        let system = std::env::var("XDG_CONFIG_DIRS").unwrap_or_default();
+        Self::new(config, &system)
     }
-    out
+
+    fn new(config: PathBuf, system_dirs: &str) -> Self {
+        let mut system: Vec<String> = system_dirs
+            .split(':')
+            .filter(|d| !d.is_empty())
+            .map(|d| format!("{d}/autostart"))
+            .collect();
+        if system.is_empty() {
+            system.push("/etc/xdg/autostart".to_owned());
+        }
+        Self {
+            user: config.join("autostart"),
+            system,
+        }
+    }
 }
 
 fn keys(text: &str) -> BTreeMap<String, String> {
@@ -107,6 +119,10 @@ fn entry(
 }
 
 pub fn entries(root: &Root) -> Vec<AutostartEntry> {
+    entries_in(root, &Dirs::from_env())
+}
+
+fn entries_in(root: &Root, dirs: &Dirs) -> Vec<AutostartEntry> {
     let desktops: Vec<String> = std::env::var("XDG_CURRENT_DESKTOP")
         .unwrap_or_default()
         .split(':')
@@ -114,7 +130,7 @@ pub fn entries(root: &Root) -> Vec<AutostartEntry> {
         .collect();
     let locales = crate::catalog::locales();
     let mut by_id: BTreeMap<String, AutostartEntry> = BTreeMap::new();
-    for dir in system_dirs().iter().rev() {
+    for dir in dirs.system.iter().rev() {
         for f in root
             .list(dir)
             .into_iter()
@@ -129,7 +145,7 @@ pub fn entries(root: &Root) -> Vec<AutostartEntry> {
             }
         }
     }
-    let user = user_dir().to_string_lossy().into_owned();
+    let user = dirs.user.to_string_lossy().into_owned();
     for f in root
         .list(&user)
         .into_iter()
@@ -159,18 +175,23 @@ pub fn entries(root: &Root) -> Vec<AutostartEntry> {
 
 /// Rewrites or creates the user file so the entry is (not) started at login.
 pub fn set_enabled(root: &Root, id: &str, enabled: bool) -> std::io::Result<()> {
+    set_enabled_in(root, &Dirs::from_env(), id, enabled)
+}
+
+fn set_enabled_in(root: &Root, dirs: &Dirs, id: &str, enabled: bool) -> std::io::Result<()> {
     if id.contains('/') || !id.ends_with(".desktop") {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "bad id",
         ));
     }
-    let dir = user_dir();
-    std::fs::create_dir_all(&dir)?;
+    let dir = &dirs.user;
+    std::fs::create_dir_all(dir)?;
     let target = dir.join(id);
     let text = match std::fs::read_to_string(&target) {
         Ok(t) => t,
-        Err(_) => system_dirs()
+        Err(_) => dirs
+            .system
             .iter()
             .find_map(|d| root.read(format!("{d}/{id}")))
             .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "unknown entry"))?,
@@ -213,26 +234,22 @@ mod tests {
             "[Desktop Entry]\nName=Demo\nExec=demo\n",
         )
         .unwrap();
-        // SAFETY: no other test reads these variables.
-        unsafe {
-            std::env::set_var("XDG_CONFIG_DIRS", &system);
-            std::env::set_var("XDG_CONFIG_HOME", &user);
-        }
+        let dirs = Dirs::new(user, &system.to_string_lossy());
         let root = Root::system();
         let find = || {
-            entries(&root)
+            entries_in(&root, &dirs)
                 .into_iter()
                 .find(|e| e.id == "demo.desktop")
                 .unwrap()
         };
         assert!(find().enabled);
-        set_enabled(&root, "demo.desktop", false).unwrap();
+        set_enabled_in(&root, &dirs, "demo.desktop", false).unwrap();
         let off = find();
         assert!(!off.enabled && off.system);
         assert_eq!(off.name, "Demo");
-        set_enabled(&root, "demo.desktop", true).unwrap();
+        set_enabled_in(&root, &dirs, "demo.desktop", true).unwrap();
         assert!(find().enabled);
-        assert!(set_enabled(&root, "../x.desktop", true).is_err());
+        assert!(set_enabled_in(&root, &dirs, "../x.desktop", true).is_err());
         std::fs::remove_dir_all(base).unwrap();
     }
 

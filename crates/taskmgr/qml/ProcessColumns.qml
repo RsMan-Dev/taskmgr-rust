@@ -8,39 +8,68 @@ Item {
     id: root
 
     property var snapshot: null
-    readonly property int logical: snapshot?.cpu.logical ?? 1
-    readonly property var dedicatedGpus: snapshot ? snapshot.gpus.filter(g => g.dedicated) : []
-    readonly property var allColumns: {
-        const factor = Prefs.cpuPerCore ? logical : 1
+
+    // Header totals, the only part that changes with each sample.
+    readonly property var totals: {
         const s = snapshot
+        if (!s) {
+            return ({})
+        }
+        const out = {
+            cpu: Format.percent(s.cpu.usage * factor),
+            memory: Format.percent(s.memory.usage),
+            disk: Format.num(s.disks.reduce((a, d) => a + d.read_bps + d.write_bps, 0) / 1048576, 1) + " " + qsTr("MB/s"),
+            net: Format.bits(s.networks.reduce((a, n) => a + n.rx_bps + n.tx_bps, 0)),
+            threads: Format.num(s.cpu.threads, 0),
+        }
+        for (const g of s.gpus.filter(g => g.dedicated)) {
+            out["gpu" + g.index] = Format.percent(g.usage)
+            out["gpumem" + g.index] = g.memory_total ? Format.percent(g.memory_used / g.memory_total * 100) : ""
+        }
+        return out
+    }
+
+    // Rebuilt only when the processor count or the dedicated GPUs change,
+    // so rows keep their cells between samples.
+    readonly property string hardware: snapshot
+        ? snapshot.cpu.logical + "/" + snapshot.gpus.filter(g => g.dedicated).map(g => g.index + ":" + g.name).join("|") : ""
+    property int logical: 1
+    property var dedicatedGpus: []
+    readonly property int factor: Prefs.cpuPerCore ? logical : 1
+    onHardwareChanged: {
+        if (snapshot) {
+            logical = snapshot.cpu.logical
+            dedicatedGpus = snapshot.gpus.filter(g => g.dedicated).map(g => ({ index: g.index, name: g.name }))
+        }
+    }
+
+    readonly property var allColumns: {
+        const factor = root.factor
         const cols = [
-            { key: "cpu", title: qsTr("CPU"), total: s ? Format.percent(s.cpu.usage * factor) : "",
+            { key: "cpu", title: qsTr("CPU"),
               value: x => x.cpu * factor, reference: 25 * factor, text: v => Format.percent(v, 1),
               widest: [Format.percent(100 * factor, 1)] },
-            { key: "memory", title: qsTr("Memory"), total: s ? Format.percent(s.memory.usage) : "",
+            { key: "memory", title: qsTr("Memory"),
               value: x => x.memory, reference: 2 * 1024 * 1024 * 1024, text: v => Format.bytes(v), widest: bytesWidest },
             { key: "disk", title: qsTr("Disk"),
-              total: s ? Format.num(s.disks.reduce((a, d) => a + d.read_bps + d.write_bps, 0) / 1048576, 1) + " " + qsTr("MB/s") : "",
               value: x => x.disk_bps ?? -1, reference: 20 * 1024 * 1024,
               text: v => v < 0 ? "" : Format.num(v / 1048576, 1) + " " + qsTr("MB/s"),
               widest: [Format.num(999.9, 1) + " " + qsTr("MB/s")] },
             { key: "net", title: qsTr("Network"),
-              total: s ? Format.bits(s.networks.reduce((a, n) => a + n.rx_bps + n.tx_bps, 0)) : "",
               value: x => x.net ? x.net[0] + x.net[1] : -1, reference: 5 * 1024 * 1024,
               text: v => v < 0 ? "" : Format.bits(v), widest: [Format.bits(999e6 / 8), Format.bits(99.9e6 / 8)] },
             { key: "energy", title: qsTr("Energy"), tip: qsTr("Estimated from CPU and GPU use"),
-              total: "", value: x => energyScore(x), reference: 15, text: v => energyLevel(v),
+              value: x => energyScore(x), reference: 15, text: v => energyLevel(v),
               widest: [qsTr("Very low"), qsTr("Moderate"), qsTr("Very high")] },
         ]
         for (const g of dedicatedGpus) {
-            cols.push({ key: "gpu" + g.index, title: qsTr("GPU %1").arg(g.index), tip: g.name, total: Format.percent(g.usage),
+            cols.push({ key: "gpu" + g.index, title: qsTr("GPU %1").arg(g.index), tip: g.name,
                         value: x => x.gpu?.[g.index] ?? 0, reference: 50, text: v => Format.percent(v), widest: [Format.percent(100)] })
             cols.push({ key: "gpumem" + g.index, title: qsTr("GPU %1 mem.").arg(g.index), tip: g.name,
-                        total: g.memory_total ? Format.percent(g.memory_used / g.memory_total * 100) : "",
                         value: x => x.gpu_memory?.[g.index] ?? 0, reference: 4 * 1024 * 1024 * 1024, text: v => v > 0 ? Format.bytes(v) : "",
                         widest: bytesWidest })
         }
-        cols.push({ key: "threads", title: qsTr("Threads"), total: s ? Format.num(s.cpu.threads, 0) : "",
+        cols.push({ key: "threads", title: qsTr("Threads"),
                     value: x => x.threads ?? (x.processes ?? []).reduce((a, p) => a + p.threads, 0), reference: 1e9, text: v => Format.num(v, 0),
                     widest: [Format.num(99999, 0)] })
         for (const c of cols) {
