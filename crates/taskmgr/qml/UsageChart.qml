@@ -48,5 +48,7 @@ Rectangle {
         series: root.series
         maximum: root.maximum
         lineWidth: root.compact ? 1 : 1.5
+        capacity: Prefs.historyPoints
+        smooth: Prefs.smoothGraphs
     }
 }

@@ -10,8 +10,18 @@ QQC2.ItemDelegate {
     required property var resource
 
     property bool selected: false
+    signal menuRequested()
 
     padding: Kirigami.Units.smallSpacing * 2
+
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: card.menuRequested()
+    }
+    TapHandler {
+        acceptedDevices: PointerDevice.TouchScreen
+        onLongPressed: card.menuRequested()
+    }
 
     // A solid accent fill would hide the CPU graph, drawn in the accent colour.
     background: Rectangle {

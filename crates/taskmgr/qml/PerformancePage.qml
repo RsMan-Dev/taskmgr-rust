@@ -25,6 +25,25 @@ Item {
     })
 
     property string selectedKey: "cpu"
+    // Entries hidden from the list; all are shown while rearranging.
+    readonly property var hidden: Prefs.hiddenResources.split(",").filter(k => k !== "")
+    property bool showHidden: false
+
+    function moveResource(key, delta) {
+        const keys = keyList.split(",")
+        const i = keys.indexOf(key)
+        const j = i + delta
+        if (i < 0 || j < 0 || j >= keys.length) {
+            return
+        }
+        keys.splice(i, 1)
+        keys.splice(j, 0, key)
+        Prefs.resourceOrder = keys.join(",")
+    }
+
+    function toggleHidden(key) {
+        Prefs.hiddenResources = (hidden.includes(key) ? hidden.filter(k => k !== key) : hidden.concat([key])).join(",")
+    }
     // CPU graph: "overall", "logical", "clocks" (MHz per processor) or "numa".
     property string cpuView: "overall"
 
@@ -48,7 +67,7 @@ Item {
         if (!s) {
             return ""
         }
-        return ["cpu", "memory"]
+        const all = ["cpu", "memory"]
             .concat(s.disks.map(d => "disk:" + d.name))
             .concat(s.networks.map(n => "net:" + n.name))
             .concat(s.gpus.map(g => "gpu:" + g.pci_slot))
@@ -56,7 +75,13 @@ Item {
             .concat(s.fans.map(f => "fan:" + f.key))
             .concat(["consumption"])
             .concat(s.sensors.length > 0 ? ["sensors"] : [])
-            .join(",")
+        // The user's order first, new devices after in their natural place.
+        const order = Prefs.resourceOrder.split(",")
+        const rank = k => {
+            const i = order.indexOf(k)
+            return i < 0 ? order.length + all.indexOf(k) : i
+        }
+        return all.filter(k => showHidden || !hidden.includes(k)).sort((a, b) => rank(a) - rank(b)).join(",")
     }
 
     readonly property var selected: snapshot ? resource(selectedKey) ?? resource("cpu") : null
@@ -134,6 +159,11 @@ Item {
                         width: ListView.view.width - ListView.view.leftMargin - ListView.view.rightMargin
                         resource: page.resource(modelData) ?? { title: "", subtitle: "", summary: "", series: [], maximum: 100, color: "gray" }
                         selected: modelData === page.selectedKey
+                        opacity: page.hidden.includes(modelData) ? 0.45 : 1
+                        onMenuRequested: {
+                            resourceMenu.key = modelData
+                            resourceMenu.popup()
+                        }
                         onClicked: {
                             page.selectedKey = modelData
                             ListView.view.forceActiveFocus()
@@ -166,6 +196,43 @@ Item {
                     onActionRequested: (a) => a.id.startsWith("smart:")
                         ? smartDialog.show(a.id.slice(6), a.label) : ejectDialog.eject(a.id.slice(6), a.label)
                 }
+            }
+        }
+    }
+
+    QQC2.Menu {
+        id: resourceMenu
+        property string key: ""
+
+        QQC2.MenuItem {
+            text: page.hidden.includes(resourceMenu.key) ? qsTr("Show in the list") : qsTr("Hide from the list")
+            icon.source: Icons.of("hide", Kirigami.Theme.textColor)
+            enabled: resourceMenu.key !== "cpu"
+            onTriggered: page.toggleHidden(resourceMenu.key)
+        }
+        QQC2.MenuItem {
+            text: qsTr("Move up")
+            icon.source: Icons.of("sort-up", Kirigami.Theme.textColor)
+            onTriggered: page.moveResource(resourceMenu.key, -1)
+        }
+        QQC2.MenuItem {
+            text: qsTr("Move down")
+            icon.source: Icons.of("sort-down", Kirigami.Theme.textColor)
+            onTriggered: page.moveResource(resourceMenu.key, 1)
+        }
+        QQC2.MenuSeparator {}
+        QQC2.MenuItem {
+            text: qsTr("Show hidden entries")
+            checkable: true
+            checked: page.showHidden
+            enabled: page.hidden.length > 0 || page.showHidden
+            onTriggered: page.showHidden = !page.showHidden
+        }
+        QQC2.MenuItem {
+            text: qsTr("Reset the list")
+            onTriggered: {
+                Prefs.resourceOrder = ""
+                Prefs.hiddenResources = ""
             }
         }
     }

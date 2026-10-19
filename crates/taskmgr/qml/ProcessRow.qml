@@ -131,6 +131,7 @@ QQC2.ItemDelegate {
                 value: v
                 reference: modelData.reference
                 text: modelData.text(v)
+                zero: v <= 0
                 emphasized: row.isGroup
                 Layout.preferredWidth: modelData.width
                 Layout.fillHeight: true

@@ -9,7 +9,9 @@ ThinScrollView {
     required property var pageNames
 
     readonly property var languages: [["", qsTr("System language")], ["en", "English"], ["fr", "Français"]]
-    readonly property var intervals: [[500, qsTr("0.5 s")], [1000, qsTr("1 s")], [2000, qsTr("2 s")], [5000, qsTr("5 s")], [0, qsTr("Paused")]]
+    readonly property var intervals: [[250, qsTr("0.25 s")], [500, qsTr("0.5 s")], [1000, qsTr("1 s")], [2000, qsTr("2 s")],
+                                      [5000, qsTr("5 s")], [10000, qsTr("10 s")], [0, qsTr("Paused")]]
+    readonly property var points: [30, 60, 120, 300]
     property string startLanguage: ""
     property string startTheme: ""
     readonly property var themes: [["", qsTr("System")], ["light", qsTr("Light")], ["dark", qsTr("Dark")]]
@@ -85,6 +87,75 @@ ThinScrollView {
                 opacity: 0.7
                 wrapMode: Text.Wrap
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+            }
+            QQC2.CheckBox {
+                text: qsTr("Grey out values that are zero")
+                checked: Prefs.dimZeros
+                onToggled: Prefs.dimZeros = checked
+            }
+            QQC2.CheckBox {
+                text: qsTr("Show column separators")
+                checked: Prefs.columnSeparators
+                onToggled: Prefs.columnSeparators = checked
+            }
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: qsTr("Graphs")
+            }
+            QQC2.ComboBox {
+                Kirigami.FormData.label: qsTr("Points per graph:")
+                model: page.points.map(p => qsTr("%1 (%2)").arg(p).arg(Format.span(p * Math.max(Prefs.intervalMs, 250) / 1000)))
+                currentIndex: Math.max(0, page.points.indexOf(Prefs.historyPoints))
+                onActivated: (i) => Prefs.historyPoints = page.points[i]
+            }
+            QQC2.CheckBox {
+                text: qsTr("Smooth curves")
+                checked: Prefs.smoothGraphs
+                onToggled: Prefs.smoothGraphs = checked
+            }
+            QQC2.CheckBox {
+                text: qsTr("Show kernel times in the CPU graphs")
+                checked: Prefs.kernelTimes
+                onToggled: Prefs.kernelTimes = checked
+            }
+            QQC2.CheckBox {
+                text: qsTr("Scale network graphs to the link speed")
+                checked: Prefs.networkScaleLink
+                onToggled: Prefs.networkScaleLink = checked
+            }
+            QQC2.CheckBox {
+                Kirigami.FormData.label: qsTr("Network:")
+                text: qsTr("Also show VPN, bridges and virtual adapters")
+                checked: Prefs.showVirtualNetworks
+                onToggled: Prefs.showVirtualNetworks = checked
+            }
+            QQC2.Label {
+                Kirigami.FormData.label: qsTr("Performance list:")
+                text: qsTr("Right click an entry to hide it or move it.")
+                opacity: 0.7
+                wrapMode: Text.Wrap
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+            }
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: qsTr("Units")
+            }
+            QQC2.ComboBox {
+                Kirigami.FormData.label: qsTr("Sizes:")
+                model: [qsTr("Powers of 1024 (1 KB = 1024 B)"), qsTr("Powers of 1000 (1 kB = 1000 B)")]
+                currentIndex: Prefs.sizeBase10 ? 1 : 0
+                onActivated: (i) => Prefs.sizeBase10 = i === 1
+            }
+            QQC2.ComboBox {
+                Kirigami.FormData.label: qsTr("Network speed:")
+                model: [qsTr("Bits per second (Mb/s)"), qsTr("Bits, powers of 1024 (Mib/s)"), qsTr("Bytes per second (MB/s)")]
+                currentIndex: Prefs.networkBytes ? 2 : Prefs.networkBase2 ? 1 : 0
+                onActivated: (i) => {
+                    Prefs.networkBytes = i === 2
+                    Prefs.networkBase2 = i === 1
+                }
             }
 
             Kirigami.Separator {

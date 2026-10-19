@@ -134,6 +134,8 @@ QQC2.ApplicationWindow {
         id: monitor
         Component.onCompleted: {
             setInterval(Prefs.intervalMs)
+            setHistoryPoints(Prefs.historyPoints)
+            setVirtualNetworks(Prefs.showVirtualNetworks)
             start()
         }
     }
@@ -142,6 +144,12 @@ QQC2.ApplicationWindow {
         target: Prefs
         function onIntervalMsChanged() {
             monitor.setInterval(Prefs.intervalMs)
+        }
+        function onShowVirtualNetworksChanged() {
+            monitor.setVirtualNetworks(Prefs.showVirtualNetworks)
+        }
+        function onHistoryPointsChanged() {
+            monitor.setHistoryPoints(Prefs.historyPoints)
         }
     }
 
@@ -173,6 +181,44 @@ QQC2.ApplicationWindow {
     Shortcut {
         sequences: [StandardKey.Find]
         onActivated: stack.children[window.currentPage]?.focusSearch?.()
+    }
+    Repeater {
+        model: 9
+        Item {
+            required property int index
+            Shortcut {
+                sequence: "Ctrl+" + (index + 1)
+                onActivated: window.currentPage = index
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+,"
+        onActivated: window.currentPage = stack.children.length - 1
+    }
+    Shortcut {
+        property int paused: 1000
+        sequence: "Ctrl+P"
+        onActivated: {
+            if (Prefs.intervalMs > 0) {
+                paused = Prefs.intervalMs
+                Prefs.intervalMs = 0
+            } else {
+                Prefs.intervalMs = paused
+            }
+        }
+    }
+    Shortcut {
+        sequences: [StandardKey.HelpContents]
+        onActivated: shortcutsDialog.open()
+    }
+    Shortcut {
+        sequences: [StandardKey.Quit]
+        onActivated: Qt.quit()
+    }
+
+    ShortcutsDialog {
+        id: shortcutsDialog
     }
 
     JournalDialog {

@@ -37,7 +37,7 @@ ColumnLayout {
     }
     RowLayout {
         Caption {
-            text: qsTr("60 seconds")
+            text: Format.span(Prefs.historyPoints * Math.max(Prefs.intervalMs, 250) / 1000)
             Layout.fillWidth: true
         }
         Caption {

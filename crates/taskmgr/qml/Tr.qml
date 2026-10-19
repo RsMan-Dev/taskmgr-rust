@@ -167,6 +167,10 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "Unknown hypervisor"),
         QT_TRANSLATE_NOOP("core", "Graphics card"),
         QT_TRANSLATE_NOOP("core", "Sensors"),
+        QT_TRANSLATE_NOOP("core", "VPN"),
+        QT_TRANSLATE_NOOP("core", "Virtual"),
+        QT_TRANSLATE_NOOP("core", "Bluetooth"),
+        QT_TRANSLATE_NOOP("core", "Mobile broadband"),
         QT_TRANSLATE_NOOP("core", "UDisks2 does not know this drive."),
         QT_TRANSLATE_NOOP("core", "Unmounted; this drive cannot be powered off."),
     ]

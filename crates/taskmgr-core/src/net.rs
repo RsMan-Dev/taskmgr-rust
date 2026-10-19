@@ -54,16 +54,41 @@ fn addresses() -> HashMap<String, (Vec<String>, Vec<String>)> {
     out
 }
 
-/// Bridges, veth and tunnels have no `device` link.
-fn connected_adapters(root: &Root) -> Vec<String> {
+/// What an interface without hardware is, from its driver's naming.
+fn virtual_kind(name: &str) -> &'static str {
+    let starts = |p: &[&str]| p.iter().any(|x| name.starts_with(x));
+    if starts(&[
+        "tun",
+        "tap",
+        "wg",
+        "tailscale",
+        "zt",
+        "ppp",
+        "nordlynx",
+        "proton",
+        "ipsec",
+    ]) {
+        "VPN"
+    } else if starts(&["bnep"]) {
+        "Bluetooth"
+    } else if starts(&["wwan", "rmnet"]) {
+        "Mobile broadband"
+    } else {
+        "Virtual"
+    }
+}
+
+/// Adapters that are up. Bridges, veth and tunnels have no `device` link:
+/// they are listed only when asked for.
+fn connected_adapters(root: &Root, include_virtual: bool) -> Vec<String> {
     root.list("/sys/class/net")
         .into_iter()
         .filter(|n| {
-            root.exists(format!("/sys/class/net/{n}/device"))
-                && root
-                    .read_trimmed(format!("/sys/class/net/{n}/operstate"))
-                    .as_deref()
-                    == Some("up")
+            let up = root
+                .read_trimmed(format!("/sys/class/net/{n}/operstate"))
+                .is_some_and(|s| s == "up" || (include_virtual && s == "unknown"));
+            let physical = root.exists(format!("/sys/class/net/{n}/device"));
+            up && n != "lo" && (physical || include_virtual)
         })
         .collect()
 }
@@ -80,11 +105,13 @@ struct NetState {
 pub struct NetSampler {
     state: HashMap<String, NetState>,
     samples: u32,
+    /// Also VPN, bridges, containers and other interfaces without hardware.
+    pub include_virtual: bool,
 }
 
 impl NetSampler {
     pub fn sample(&mut self, root: &Root, secs: f64) -> Vec<NetSnapshot> {
-        let names = connected_adapters(root);
+        let names = connected_adapters(root, self.include_virtual);
         self.state.retain(|k, _| names.contains(k));
         let mut addrs = addresses();
         let refresh = self.samples.is_multiple_of(WIRELESS_EVERY);
@@ -114,9 +141,17 @@ impl NetSampler {
                 if wireless && (refresh || st.wireless.is_none()) {
                     st.wireless = Some(wireless::read(root, &name));
                 }
+                let physical = root.exists(format!("{base}/device"));
                 NetSnapshot {
                     wireless: st.wireless.clone(),
-                    kind: if wireless { "Wi-Fi" } else { "Ethernet" }.to_owned(),
+                    kind: if wireless {
+                        "Wi-Fi"
+                    } else if physical {
+                        "Ethernet"
+                    } else {
+                        virtual_kind(&name)
+                    }
+                    .to_owned(),
                     adapter: adapter_name(root, &name).unwrap_or_else(|| name.clone()),
                     link_mbps: root
                         .read_i64(format!("{base}/speed"))
@@ -135,5 +170,18 @@ impl NetSampler {
                 }
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn virtual_kinds() {
+        assert_eq!(virtual_kind("wg0"), "VPN");
+        assert_eq!(virtual_kind("tailscale0"), "VPN");
+        assert_eq!(virtual_kind("docker0"), "Virtual");
+        assert_eq!(virtual_kind("bnep0"), "Bluetooth");
     }
 }

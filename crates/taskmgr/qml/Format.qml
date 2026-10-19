@@ -12,12 +12,15 @@ QtObject {
         return v === null || v === undefined ? "—" : qsTr("%1%").arg(num(v, decimals ?? 0))
     }
 
-    // Binary units, like Windows does (octet symbols in French).
+    // Binary units like Windows (octet symbols in French), or powers of
+    // 1000 when chosen in the settings.
     function bytes(b) {
-        const units = [qsTr("B"), qsTr("KB"), qsTr("MB"), qsTr("GB"), qsTr("TB")]
+        const base = Prefs.sizeBase10 ? 1000 : 1024
+        const units = Prefs.sizeBase10 ? [qsTr("B"), qsTr("kB"), qsTr("MB"), qsTr("GB"), qsTr("TB")]
+                                       : [qsTr("B"), qsTr("KB"), qsTr("MB"), qsTr("GB"), qsTr("TB")]
         let i = 0
-        while (b >= 1024 && i < units.length - 1) {
-            b /= 1024
+        while (b >= base && i < units.length - 1) {
+            b /= base
             i++
         }
         return num(b, i === 0 || b >= 100 ? 0 : 1) + " " + units[i]
@@ -27,16 +30,25 @@ QtObject {
         return bytes(bps) + "/s"
     }
 
-    // Network throughput in bits per second.
+    // Network throughput, in bits per second unless the settings say bytes.
     function bits(bps) {
+        if (Prefs.networkBytes) {
+            return rate(bps)
+        }
+        const base = Prefs.networkBase2 ? 1024 : 1000
         let v = bps * 8
-        const units = ["b/s", "kb/s", "Mb/s", "Gb/s"]
+        const units = Prefs.networkBase2 ? ["b/s", "Kib/s", "Mib/s", "Gib/s"] : ["b/s", "kb/s", "Mb/s", "Gb/s"]
         let i = 0
-        while (v >= 1000 && i < units.length - 1) {
-            v /= 1000
+        while (v >= base && i < units.length - 1) {
+            v /= base
             i++
         }
         return num(v, i === 0 || v >= 100 ? 0 : 1) + " " + units[i]
+    }
+
+    // Time covered by a graph: "60 seconds", "5 minutes".
+    function span(secs) {
+        return secs < 120 ? qsTr("%1 seconds").arg(Math.round(secs)) : qsTr("%1 minutes").arg(num(secs / 60, secs % 60 ? 1 : 0))
     }
 
     function ghz(mhz) {

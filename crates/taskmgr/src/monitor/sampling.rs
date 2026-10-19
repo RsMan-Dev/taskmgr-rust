@@ -21,6 +21,7 @@ impl Monitor {
         let qt = self.qt_thread();
         let interval = self.interval_ms.clone();
         let processes_visible = self.processes_visible.clone();
+        let virtual_networks = self.virtual_networks.clone();
         let net = self.net.clone();
         thread::spawn(move || {
             let root = Root::system();
@@ -40,6 +41,7 @@ impl Monitor {
                     .map(|v| v.iter().sum::<f64>() / v.len() as f64);
                 let wanted = processes_visible.load(Ordering::Relaxed);
                 sampler.per_process = wanted;
+                sampler.virtual_networks = virtual_networks.load(Ordering::Relaxed);
                 let snapshot = sampler.sample();
                 let snapshot_json = json(&snapshot);
                 // The process list is the costly part: skipped while no
@@ -100,9 +102,17 @@ impl Monitor {
     }
 
     /// 0 pauses sampling.
+    pub fn set_history_points(&self, points: i32) {
+        taskmgr_core::util::set_history_len(usize::try_from(points).unwrap_or(60));
+    }
+
     pub fn set_interval(&self, milliseconds: i32) {
         self.interval_ms
             .store(u64::try_from(milliseconds).unwrap_or(0), Ordering::Relaxed);
+    }
+
+    pub fn set_virtual_networks(&self, shown: bool) {
+        self.virtual_networks.store(shown, Ordering::Relaxed);
     }
 
     pub fn set_processes_visible(&self, visible: bool) {

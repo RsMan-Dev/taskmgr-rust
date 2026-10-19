@@ -46,6 +46,16 @@ void SeriesPlot::setCapacity(int capacity)
     update();
 }
 
+void SeriesPlot::setSmooth(bool smooth)
+{
+    if (m_smooth == smooth) {
+        return;
+    }
+    m_smooth = smooth;
+    Q_EMIT smoothChanged();
+    update();
+}
+
 void SeriesPlot::paint(QPainter *painter)
 {
     const qreal w = width();
@@ -62,14 +72,20 @@ void SeriesPlot::paint(QPainter *painter)
         const QColor color = s.value(QStringLiteral("color")).value<QColor>();
         QPainterPath line;
         const qreal x0 = w - (values.size() - 1) * step;
+        QPointF prev;
         for (int i = 0; i < values.size(); ++i) {
             const qreal v = qBound(0.0, values[i].toDouble() / top, 1.0);
             const QPointF p(x0 + i * step, h - v * h);
             if (i == 0) {
                 line.moveTo(p);
+            } else if (m_smooth) {
+                // Horizontal tangents at each sample: no overshoot.
+                const qreal mid = (prev.x() + p.x()) / 2;
+                line.cubicTo(QPointF(mid, prev.y()), QPointF(mid, p.y()), p);
             } else {
                 line.lineTo(p);
             }
+            prev = p;
         }
         QPainterPath area = line;
         area.lineTo(w, h);

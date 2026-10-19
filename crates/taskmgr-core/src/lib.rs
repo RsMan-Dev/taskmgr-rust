@@ -74,6 +74,7 @@ pub struct Sampler {
     pub fallback_voltage: Option<f64>,
     /// Whether per-process GPU use is wanted (a process list is shown).
     pub per_process: bool,
+    pub virtual_networks: bool,
 }
 
 impl Sampler {
@@ -92,6 +93,7 @@ impl Sampler {
             readings: Default::default(),
             fallback_voltage: None,
             per_process: true,
+            virtual_networks: false,
             last: None,
             root,
         }
@@ -114,7 +116,10 @@ impl Sampler {
         let mut snapshot = Snapshot {
             cpu: self.cpu.sample(root, &chips, self.fallback_voltage),
             memory: self.memory.sample(root),
-            networks: self.networks.sample(root, secs),
+            networks: {
+                self.networks.include_virtual = self.virtual_networks;
+                self.networks.sample(root, secs)
+            },
             sensors: self.sensors.sample(root, &chips, &disks, &gpus),
             energy: self.energy.sample(root, secs),
             batteries,

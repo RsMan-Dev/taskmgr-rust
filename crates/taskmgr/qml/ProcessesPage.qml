@@ -11,8 +11,10 @@ ColumnLayout {
     required property var monitor
     property var processDetails: ({})
 
-    property string sortColumn: "name"
-    property bool sortDescending: false
+    property string sortColumn: Prefs.sortColumn
+    property bool sortDescending: Prefs.sortDescending
+    onSortColumnChanged: Prefs.sortColumn = sortColumn
+    onSortDescendingChanged: Prefs.sortDescending = sortDescending
     property var expanded: ({})
 
     signal journalRequested(string title, var query)

@@ -54,9 +54,19 @@ pub mod qobject {
         #[cxx_name = "setInterval"]
         fn set_interval(self: &SystemMonitor, milliseconds: i32);
 
+        /// Samples kept per graph.
+        #[qinvokable]
+        #[cxx_name = "setHistoryPoints"]
+        fn set_history_points(self: &SystemMonitor, points: i32);
+
         #[qinvokable]
         #[cxx_name = "setProcessesVisible"]
         fn set_processes_visible(self: &SystemMonitor, visible: bool);
+
+        /// Also sample VPN, bridges and other interfaces without hardware.
+        #[qinvokable]
+        #[cxx_name = "setVirtualNetworks"]
+        fn set_virtual_networks(self: &SystemMonitor, shown: bool);
 
         #[qinvokable]
         #[cxx_name = "enableNetworkMonitor"]
@@ -194,6 +204,7 @@ pub struct SystemMonitorRust {
     net: Arc<Mutex<Option<taskmgr_core::netflow::HelperData>>>,
     interval_ms: Arc<AtomicU64>,
     processes_visible: Arc<AtomicBool>,
+    virtual_networks: Arc<AtomicBool>,
 }
 
 type Monitor = qobject::SystemMonitor;

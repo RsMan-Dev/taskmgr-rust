@@ -82,13 +82,14 @@ QtObject {
     if (!n) {
         return null
     }
-    const rxTop = Format.niceMax(Math.max(...n.rx_history, 0), 128 * 1024)
-    const txTop = Format.niceMax(Math.max(...n.tx_history, 0), 128 * 1024)
     const w = n.wireless
     const linkMbps = n.link_mbps ?? (w?.bitrate_kbps ? w.bitrate_kbps / 1000 : null)
+    const linkTop = Prefs.networkScaleLink && linkMbps ? linkMbps * 1e6 / 8 : 0
+    const rxTop = linkTop || Format.niceMax(Math.max(...n.rx_history, 0), 128 * 1024)
+    const txTop = linkTop || Format.niceMax(Math.max(...n.tx_history, 0), 128 * 1024)
     const load = linkMbps ? Math.max(n.rx_bps, n.tx_bps) * 8 / (linkMbps * 1e6) * 100 : null
     return {
-        title: n.kind,
+        title: Tr.core(n.kind),
         subtitle: w?.ssid ?? n.name,
         summary: ResourceKit.summary(load !== null ? Format.percent(load) : "", qsTr("R %1  S %2").arg(Format.bits(n.rx_bps)).arg(Format.bits(n.tx_bps))),
         header: n.adapter,

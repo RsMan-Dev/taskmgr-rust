@@ -1,12 +1,23 @@
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde::{Serialize, Serializer};
 
-pub const HISTORY_LEN: usize = 60;
+/// Points kept per graph: a display setting, the one piece of process-wide
+/// state, so that every `History` follows it without being rebuilt.
+static HISTORY_LEN: AtomicUsize = AtomicUsize::new(60);
+
+pub fn set_history_len(points: usize) {
+    HISTORY_LEN.store(points.clamp(10, 600), Ordering::Relaxed);
+}
+
+pub fn history_len() -> usize {
+    HISTORY_LEN.load(Ordering::Relaxed)
+}
 
 /// A sensor whose read takes longer than this (NVMe drives answer each
 /// temperature read with a command, up to 10 ms) is only re-read every
@@ -149,7 +160,8 @@ pub struct History(VecDeque<f64>);
 
 impl History {
     pub fn push(&mut self, v: f64) {
-        if self.0.len() >= HISTORY_LEN {
+        let len = history_len();
+        while self.0.len() >= len {
             self.0.pop_front();
         }
         self.0.push_back(v);
@@ -208,7 +220,7 @@ mod tests {
         for i in 0..100 {
             h.push(i as f64);
         }
-        assert_eq!(h.0.len(), HISTORY_LEN);
+        assert_eq!(h.0.len(), history_len());
         assert_eq!(h.last(), 99.0);
         assert_eq!(h.0[0], 40.0);
     }
