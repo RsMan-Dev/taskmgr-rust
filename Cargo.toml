@@ -5,4 +5,5 @@ members = ["crates/taskmgr-core", "crates/taskmgr"]
 [workspace.package]
 license = "MIT"
 edition = "2024"
+rust-version = "1.88"
 version = "0.1.0"

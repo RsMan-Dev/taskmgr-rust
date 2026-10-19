@@ -39,7 +39,7 @@ fn addresses() -> HashMap<String, (Vec<String>, Vec<String>)> {
     let mut head: *mut libc::ifaddrs = std::ptr::null_mut();
     // SAFETY: nodes are only read before freeifaddrs.
     unsafe {
-        if libc::getifaddrs(&mut head) != 0 {
+        if libc::getifaddrs(&raw mut head) != 0 {
             return out;
         }
         let mut cur = head;
@@ -51,12 +51,12 @@ fn addresses() -> HashMap<String, (Vec<String>, Vec<String>)> {
             let name = CStr::from_ptr(ifa.ifa_name).to_string_lossy().into_owned();
             match (*ifa.ifa_addr).sa_family as i32 {
                 libc::AF_INET => {
-                    let sa = &*(ifa.ifa_addr as *const libc::sockaddr_in);
+                    let sa = ifa.ifa_addr.cast::<libc::sockaddr_in>().read_unaligned();
                     let ip = Ipv4Addr::from(u32::from_be(sa.sin_addr.s_addr));
                     out.entry(name).or_default().0.push(ip.to_string());
                 }
                 libc::AF_INET6 => {
-                    let sa = &*(ifa.ifa_addr as *const libc::sockaddr_in6);
+                    let sa = ifa.ifa_addr.cast::<libc::sockaddr_in6>().read_unaligned();
                     let ip = Ipv6Addr::from(sa.sin6_addr.s6_addr);
                     out.entry(name).or_default().1.push(ip.to_string());
                 }

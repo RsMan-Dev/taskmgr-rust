@@ -31,7 +31,7 @@ fn main() {
             fd,
             libc::SOL_SOCKET,
             libc::SO_RCVTIMEO,
-            &timeout as *const _ as *const libc::c_void,
+            std::ptr::from_ref(&timeout).cast(),
             std::mem::size_of::<libc::timeval>() as u32,
         );
     }
@@ -57,11 +57,11 @@ fn main() {
         let n = unsafe {
             libc::recvfrom(
                 fd,
-                buf.as_mut_ptr() as *mut libc::c_void,
+                buf.as_mut_ptr().cast(),
                 buf.len(),
                 libc::MSG_TRUNC,
-                &mut addr as *mut _ as *mut libc::sockaddr,
-                &mut addr_len,
+                std::ptr::from_mut(&mut addr).cast(),
+                &raw mut addr_len,
             )
         };
         if n > 0 && Some(addr.sll_ifindex) != loopback {

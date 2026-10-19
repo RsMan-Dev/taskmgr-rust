@@ -9,9 +9,12 @@ fn main() {
     files.sort();
     println!("cargo::rerun-if-changed=qml");
     let qml = files.into_iter().map(|p| {
-        let singleton = p
-            .file_stem()
-            .is_some_and(|s| matches!(s.to_str(), Some("Format" | "Tr" | "Prefs" | "Icons")));
+        let singleton = p.file_stem().is_some_and(|s| {
+            matches!(
+                s.to_str(),
+                Some("Format" | "Tr" | "Prefs" | "Icons" | "ResourceKit")
+            )
+        });
         QmlFile::from(p).singleton(singleton)
     });
 
@@ -20,12 +23,18 @@ fn main() {
         builder = builder.qrc(qrc);
     }
     builder = builder.qrc(icons());
+    // SAFETY: a warning switch changes no ABI. GCC 16 warns inside Qt headers.
+    builder = unsafe {
+        builder.cc_builder(|cc| {
+            cc.flag_if_supported("-Wno-sfinae-incomplete");
+        })
+    };
     builder
         .qt_module("Gui")
         .qt_module("Widgets")
         .qt_module("Quick")
         .qt_module("QuickControls2")
-        .file("src/monitor.rs")
+        .file("src/monitor/mod.rs")
         .cpp_file("src/cpp/app.cpp")
         .cpp_file("src/cpp/seriesplot.h")
         .cpp_file("src/cpp/seriesplot.cpp")
@@ -38,7 +47,7 @@ fn translations() -> Option<std::path::PathBuf> {
     let dir = std::path::Path::new("../../translations");
     println!("cargo::rerun-if-changed={}", dir.display());
     let out = std::path::PathBuf::from(std::env::var("OUT_DIR").ok()?);
-    let lrelease = std::env::var("LRELEASE").unwrap_or_else(|_| "lrelease".to_owned());
+    let lrelease = find_lrelease()?;
     let mut entries = String::new();
     for ts in std::fs::read_dir(dir)
         .ok()?
@@ -71,6 +80,32 @@ fn translations() -> Option<std::path::PathBuf> {
     )
     .ok()?;
     Some(qrc)
+}
+
+/// LRELEASE, else Qt's own tool directories (outside PATH on most
+/// distributions), else the names distributions give it.
+fn find_lrelease() -> Option<String> {
+    if let Ok(path) = std::env::var("LRELEASE") {
+        return Some(path);
+    }
+    let qmake = std::env::var("QMAKE").unwrap_or_else(|_| "qmake6".to_owned());
+    let dirs = ["QT_HOST_BINS", "QT_HOST_LIBEXECS", "QT_INSTALL_BINS"]
+        .iter()
+        .filter_map(|key| {
+            let out = std::process::Command::new(&qmake)
+                .args(["-query", key])
+                .output()
+                .ok()?;
+            Some(String::from_utf8(out.stdout).ok()?.trim().to_owned())
+        })
+        .map(|dir| format!("{dir}/lrelease"));
+    let names = ["lrelease", "lrelease-qt6", "lrelease6"].map(str::to_owned);
+    dirs.chain(names).find(|tool| {
+        std::process::Command::new(tool)
+            .arg("-version")
+            .output()
+            .is_ok_and(|o| o.status.success())
+    })
 }
 
 /// Bundled interface icons and the logo, served at `:/icons`. Each icon

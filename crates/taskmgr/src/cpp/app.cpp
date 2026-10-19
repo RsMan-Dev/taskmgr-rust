@@ -116,7 +116,9 @@ extern "C" int taskmgr_run(int argc, char **argv)
         const bool dark = theme == QLatin1String("dark")
             || (theme.isEmpty() && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
         // Fusion picks its own palette from the colour scheme.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         QGuiApplication::styleHints()->setColorScheme(dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+#endif
         app.setPalette(breezePalette(dark));
         // The AppImage bundles the few Breeze icons Kirigami asks for by name.
         QStringList iconPaths = QIcon::themeSearchPaths();

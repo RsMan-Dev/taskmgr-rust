@@ -10,8 +10,7 @@
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAll = f: nixpkgs.lib.genAttrs systems (s: f nixpkgs.legacyPackages.${s});
 
-      # QML modules and Qt plugins needed at runtime: the native KDE look
-      # (Breeze style, platform theme, icons) and the chart library.
+      # Runtime QML modules and Qt plugins for the native KDE look.
       runtimeQt = pkgs: with pkgs.kdePackages; [
         qtbase
         qtdeclarative
@@ -27,8 +26,7 @@
 
     in {
       packages = forAll (pkgs: {
-        # Same app for distributions without Nix: a pruned AppImage (Fusion
-        # style, software rendering), see packaging/appimage.sh.
+        # For distributions without Nix, see packaging/appimage.sh.
         appimage = pkgs.runCommand "taskmgr-appimage" {
           nativeBuildInputs = [ pkgs.patchelf pkgs.squashfsTools pkgs.glibc.bin pkgs.binutils ];
           APP = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/.taskmgr-wrapped";
@@ -53,8 +51,7 @@
 
           nativeBuildInputs = [ pkgs.pkg-config pkgs.kdePackages.wrapQtAppsHook pkgs.kdePackages.qttools ];
           buildInputs = runtimeQt pkgs;
-          # The session's QML paths point at the desktop's own Kirigami, which
-          # may be built against another Qt and would shadow ours.
+          # The desktop's own Kirigami may be built against another Qt.
           qtWrapperArgs = [ "--unset" "QML2_IMPORT_PATH" "--unset" "QML_IMPORT_PATH" ];
 
           preBuild = ''
@@ -75,8 +72,7 @@
       });
 
 
-      # Static core binaries (examples + network helper), no Qt: runs on any
-      # Linux of the same architecture. Used to collect data on servers.
+      # Static core binaries without Qt, to collect data on other machines.
       probes = forAll (pkgs:
         let
           probe = p: p.pkgsStatic.rustPlatform.buildRustPackage {
@@ -110,12 +106,9 @@
           RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
           # Debug C++ builds (cxx-qt) otherwise warn on every file.
           hardeningDisable = [ "fortify" ];
-          # Replace (not extend) the session paths: the desktop's own plugins
-          # may be built against a different Qt and fail to load.
           shellHook = ''
-            # cxx-qt finds Qt modules through qmake: it needs a single prefix
-            # holding every module we link (Qml and Quick live outside
-            # qtbase). Set here because qtbase's setup hook overrides QMAKE.
+            # cxx-qt needs one qmake prefix holding every linked module; set
+            # here because qtbase's setup hook overrides QMAKE.
             export QMAKE="${pkgs.qt6.env "taskmgr-qt" (with pkgs.qt6; [ qtdeclarative qtwayland qtsvg ])}/bin/qmake"
             export QT_PLUGIN_PATH="${pkgs.lib.makeSearchPath "lib/qt-6/plugins" (runtimeQt pkgs)}"
             export QML_IMPORT_PATH="${pkgs.lib.makeSearchPath "lib/qt-6/qml" (runtimeQt pkgs)}"

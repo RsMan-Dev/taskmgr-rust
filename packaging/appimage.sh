@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
-# Builds a self-contained AppImage holding only what the app loads: the
-# binary, the shared libraries it resolves to (glibc included, started
-# through the bundled loader), a few Qt plugins and the QML modules it
-# imports. Called by the flake (`nix build .#appimage`), which sets:
-#   APP       unwrapped taskmgr binary
-#   HELPER    static taskmgr-helper
-#   QTBASE QTDECL QTWAYLAND QTSVG KIRIGAMI BREEZE   package prefixes
-#   EXTRA     libraries opened at run time by plugins (xcb-cursor)
-#   RUNTIME   AppImage type2 runtime
-#   SRC       source tree (desktop file, icon)
-#   out       output directory
+# Self-contained AppImage with only what the app loads: binary, resolved
+# libraries (glibc and its loader included), Qt plugins and QML modules.
+# Run by `nix build .#appimage`, which sets the paths used below.
 set -euo pipefail
 
 dir=$PWD/AppDir
@@ -60,7 +52,6 @@ for m in QtQml QtCore QtQuick/Window QtQuick/Layouts QtQuick/Templates QtQuick/S
          QtQuick/Controls/impl QtQuick/Controls/Basic QtQuick/Controls/Fusion; do
     copy_tree "$qml/$m" "$dir/usr/qml/$m"
 done
-# Module roots without their optional submodules (styles, effects, ...).
 for m in QtQuick QtQuick/Controls; do
     find "$qml/$m" -maxdepth 1 -type f -exec cp -L {} "$dir/usr/qml/$m/" \;
 done
@@ -74,8 +65,7 @@ sed -i 's/activeTextColor: palette.highlightedText/activeTextColor: palette.high
     "$dir/usr/qml/org/kde/kirigami/styles/Fusion/Theme.qml"
 find "$dir/usr/qml" \( -name '*.qmltypes' -o -name '*.debug' \) -delete
 
-# Icons Kirigami controls ask for by name; application icons come from the
-# host's hicolor theme, which Breeze inherits.
+# Icons Kirigami asks for by name; app icons come from the host.
 for theme in breeze breeze-dark; do
     t=$BREEZE/share/icons/$theme
     mkdir -p "$dir/usr/share/icons/$theme"
@@ -88,7 +78,6 @@ for theme in breeze breeze-dark; do
     done
 done
 
-# Shared libraries of every ELF file, resolved from the store.
 interp=$(patchelf --print-interpreter "$APP")
 cp -L "$interp" "$lib/"
 for l in $EXTRA; do cp -L "$l" "$lib/"; done
@@ -122,7 +111,7 @@ if [ -n "\$XDG_RUNTIME_DIR" ] && [ -O "\$XDG_RUNTIME_DIR" ]; then
     export TASKMGR_HELPER="\$helper"
 fi
 # Host directories last, for libraries opened at run time (NVML).
-hostlibs=/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/run/opengl-driver/lib
+hostlibs=/usr/lib/\$(uname -m)-linux-gnu:/usr/lib64:/usr/lib:/run/opengl-driver/lib
 exec "\$here/usr/lib/$loader" --argv0 "\$0" --library-path "\$here/usr/lib:\$hostlibs" "\$here/usr/bin/taskmgr" "\$@"
 EOF
 chmod 755 "$dir/AppRun"
@@ -133,5 +122,6 @@ ln -s fr.rsman.taskmgr-rust.svg "$dir/.DirIcon"
 
 mksquashfs "$dir" image.squashfs -root-owned -noappend -comp zstd -Xcompression-level 19 -quiet
 mkdir -p "$out"
-cat "$RUNTIME" image.squashfs > "$out/taskmgr-x86_64.AppImage"
-chmod 755 "$out/taskmgr-x86_64.AppImage"
+arch=$(uname -m)
+cat "$RUNTIME" image.squashfs > "$out/taskmgr-$arch.AppImage"
+chmod 755 "$out/taskmgr-$arch.AppImage"
