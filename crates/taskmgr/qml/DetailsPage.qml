@@ -157,16 +157,16 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         columns: [
-            { key: "name", title: qsTr("Name"), width: page.unit * 13, text: r => r.name, dim: r => r.state === "T" },
-            { key: "pid", title: qsTr("PID"), width: page.unit * 4.5, text: r => r.pid, value: r => r.pid, align: Qt.AlignRight },
-            { key: "state", title: qsTr("Status"), width: page.unit * 7, text: r => page.stateName(r.state) },
-            { key: "user", title: qsTr("User"), width: page.unit * 6, text: r => r.user },
-            { key: "cpu", title: qsTr("CPU"), width: page.unit * 6, value: r => r.cpu,
+            { key: "name", title: qsTr("Name"), maxWidth: page.unit * 16, text: r => r.name, dim: r => r.state === "T" },
+            { key: "pid", title: qsTr("PID"), text: r => r.pid, value: r => r.pid, align: Qt.AlignRight, widest: ["4194304"] },
+            { key: "state", title: qsTr("Status"), text: r => page.stateName(r.state) },
+            { key: "user", title: qsTr("User"), text: r => r.user },
+            { key: "cpu", title: qsTr("CPU"), value: r => r.cpu, widest: [Format.percent(100 * (Prefs.cpuPerCore ? page.logical : 1), 1)],
               text: r => Format.percent(r.cpu * (Prefs.cpuPerCore ? page.logical : 1), 1), align: Qt.AlignRight },
-            { key: "memory", title: qsTr("Memory"), width: page.unit * 5.5, value: r => r.memory, text: r => Format.bytes(r.memory), align: Qt.AlignRight },
-            { key: "threads", title: qsTr("Threads"), width: page.unit * 4.5, value: r => r.threads, text: r => r.threads, align: Qt.AlignRight },
-            { key: "nice", title: qsTr("Priority"), width: page.unit * 8, value: r => r.nice, text: r => page.priorityName(r.nice) },
-            { key: "app", title: qsTr("Application"), width: page.unit * 9, text: r => r.app },
+            { key: "memory", title: qsTr("Memory"), widest: [Format.bytes(999 * 1048576), Format.bytes(99.9 * 1073741824)], value: r => r.memory, text: r => Format.bytes(r.memory), align: Qt.AlignRight },
+            { key: "threads", title: qsTr("Threads"), widest: ["99999"], value: r => r.threads, text: r => r.threads, align: Qt.AlignRight },
+            { key: "nice", title: qsTr("Priority"), value: r => r.nice, text: r => page.priorityName(r.nice) },
+            { key: "app", title: qsTr("Application"), maxWidth: page.unit * 12, text: r => r.app },
             { key: "command", title: qsTr("Command line"), width: 0, text: r => r.command || "[" + r.name + "]" },
         ]
         onContextMenuRequested: (row, item, position) => {

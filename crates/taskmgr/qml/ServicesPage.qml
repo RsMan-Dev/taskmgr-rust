@@ -164,11 +164,11 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         columns: [
-            { key: "name", title: qsTr("Name"), width: page.unit * 15, text: r => r.name.replace(/\.service$/, ""),
+            { key: "name", title: qsTr("Name"), maxWidth: page.unit * 16, text: r => r.name.replace(/\.service$/, ""),
               dim: r => r.active !== "active" },
-            { key: "state", title: qsTr("Status"), width: page.unit * 6.5, text: r => page.stateName(r.active) },
-            { key: "startup", title: qsTr("Startup"), width: page.unit * 6.5, text: r => page.startupName(r.file_state) },
-            { key: "scope", title: qsTr("Type"), width: page.unit * 6, text: r => r.user ? qsTr("User") : qsTr("System") },
+            { key: "state", title: qsTr("Status"), text: r => page.stateName(r.active) },
+            { key: "startup", title: qsTr("Startup"), text: r => page.startupName(r.file_state) },
+            { key: "scope", title: qsTr("Type"), text: r => r.user ? qsTr("User") : qsTr("System") },
             { key: "description", title: qsTr("Description"), width: 0, text: r => r.description },
         ]
         onActivated: (row) => page.act(row.active === "active" ? "restart" : "start")

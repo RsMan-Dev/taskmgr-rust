@@ -9,7 +9,6 @@ QQC2.ItemDelegate {
     required property var entry
     property bool selected: false
     property bool expanded: false
-    property real columnWidth: Kirigami.Units.gridUnit * 6
     property var columns: []
 
     signal toggleRequested()
@@ -132,7 +131,7 @@ QQC2.ItemDelegate {
                 reference: modelData.reference
                 text: modelData.text(v)
                 emphasized: row.isGroup
-                Layout.preferredWidth: row.columnWidth
+                Layout.preferredWidth: modelData.width
                 Layout.fillHeight: true
             }
         }

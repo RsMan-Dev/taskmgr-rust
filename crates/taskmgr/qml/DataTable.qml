@@ -3,8 +3,9 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// Flat sortable table. `columns`: { key, title, width (0: fills), text(row),
-// value(row) for sorting, align, dim(row) }. `rows`: plain objects.
+// Flat sortable table. `columns`: { key, title, width (0: fills, absent:
+// fits the content), text(row), value(row) for sorting, align, dim(row),
+// widest: sample texts for numbers }. `rows`: plain objects.
 ColumnLayout {
     id: table
 
@@ -18,7 +19,24 @@ ColumnLayout {
 
     readonly property var selectedRow: index[selectedKey] ?? null
     readonly property real fillMinimum: Kirigami.Units.gridUnit * 12
-    readonly property real fixedWidth: columns.reduce((a, c) => a + (c.width || 0), 0)
+    readonly property var widths: {
+        const out = {}
+        const pad = Kirigami.Units.largeSpacing * 2
+        for (const c of columns) {
+            if (c.width !== undefined) {
+                out[c.key] = c.width
+                continue
+            }
+            const texts = new Set(c.widest ?? rows.map(r => String(c.text(r))))
+            let w = metrics.advanceWidth(c.title) + Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
+            for (const t of texts) {
+                w = Math.max(w, metrics.advanceWidth(t))
+            }
+            out[c.key] = Math.min(Math.ceil(w) + pad, c.maxWidth ?? Kirigami.Units.gridUnit * 18)
+        }
+        return out
+    }
+    readonly property real fixedWidth: columns.reduce((a, c) => a + (widths[c.key] || 0), 0)
     readonly property real viewportWidth: list.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
     readonly property real tableWidth: Math.max(viewportWidth, fixedWidth + fillMinimum)
     readonly property real fillWidth: tableWidth - fixedWidth
@@ -72,7 +90,12 @@ ColumnLayout {
     }
 
     function cellWidth(c) {
-        return c.width || table.fillWidth
+        return widths[c.key] || table.fillWidth
+    }
+
+    FontMetrics {
+        id: metrics
+        font: Kirigami.Theme.defaultFont
     }
 
     Item {
