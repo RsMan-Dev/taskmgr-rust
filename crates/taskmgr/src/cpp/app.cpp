@@ -3,7 +3,9 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QPalette>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTranslator>
 #include <QTimer>
 #include <QSocketNotifier>
@@ -13,6 +15,33 @@
 #include <unistd.h>
 
 static int s_signalFds[2];
+
+static QPalette schemePalette(const QString &path)
+{
+    QSettings ini(path, QSettings::IniFormat);
+    const auto color = [&ini](const QString &group, const QString &key) {
+        const QStringList rgb = ini.value(group + QLatin1Char('/') + key).toStringList();
+        return rgb.size() >= 3 ? QColor(rgb[0].toInt(), rgb[1].toInt(), rgb[2].toInt()) : QColor();
+    };
+    QPalette p;
+    p.setColor(QPalette::Window, color(QStringLiteral("Colors:Window"), QStringLiteral("BackgroundNormal")));
+    p.setColor(QPalette::WindowText, color(QStringLiteral("Colors:Window"), QStringLiteral("ForegroundNormal")));
+    p.setColor(QPalette::Base, color(QStringLiteral("Colors:View"), QStringLiteral("BackgroundNormal")));
+    p.setColor(QPalette::AlternateBase, color(QStringLiteral("Colors:View"), QStringLiteral("BackgroundAlternate")));
+    p.setColor(QPalette::Text, color(QStringLiteral("Colors:View"), QStringLiteral("ForegroundNormal")));
+    p.setColor(QPalette::Button, color(QStringLiteral("Colors:Button"), QStringLiteral("BackgroundNormal")));
+    p.setColor(QPalette::ButtonText, color(QStringLiteral("Colors:Button"), QStringLiteral("ForegroundNormal")));
+    p.setColor(QPalette::Highlight, color(QStringLiteral("Colors:Selection"), QStringLiteral("BackgroundNormal")));
+    p.setColor(QPalette::HighlightedText, color(QStringLiteral("Colors:Selection"), QStringLiteral("ForegroundNormal")));
+    p.setColor(QPalette::ToolTipBase, color(QStringLiteral("Colors:Tooltip"), QStringLiteral("BackgroundNormal")));
+    p.setColor(QPalette::ToolTipText, color(QStringLiteral("Colors:Tooltip"), QStringLiteral("ForegroundNormal")));
+    p.setColor(QPalette::Link, color(QStringLiteral("Colors:View"), QStringLiteral("ForegroundLink")));
+    p.setColor(QPalette::PlaceholderText, color(QStringLiteral("Colors:View"), QStringLiteral("ForegroundInactive")));
+    p.setColor(QPalette::Disabled, QPalette::Text, color(QStringLiteral("Colors:View"), QStringLiteral("ForegroundInactive")));
+    p.setColor(QPalette::Disabled, QPalette::WindowText, color(QStringLiteral("Colors:Window"), QStringLiteral("ForegroundInactive")));
+    p.setColor(QPalette::Disabled, QPalette::ButtonText, color(QStringLiteral("Colors:Button"), QStringLiteral("ForegroundInactive")));
+    return p;
+}
 
 // Only write() is async-signal-safe: the event loop does the actual quit.
 static void onSignal(int)
@@ -49,8 +78,22 @@ extern "C" int taskmgr_run(int argc, char **argv)
     app.setWindowIcon(QIcon(QStringLiteral(":/icons/logo.svg")));
     QIcon::setFallbackThemeName(QStringLiteral("breeze"));
 
-    // "general/language": empty follows the system, "en" or "fr" forces it.
-    const QString language = QSettings().value(QStringLiteral("general/language")).toString();
+    // "prefs/theme": "light" or "dark" applies a Breeze colour scheme to
+    // this application only, the way KColorSchemeManager does: Kirigami reads
+    // the scheme from the property, widgets from the palette.
+    const QString theme = QSettings().value(QStringLiteral("prefs/theme")).toString();
+    if (theme == QLatin1String("light") || theme == QLatin1String("dark")) {
+        const QString scheme = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
+            theme == QLatin1String("light") ? QStringLiteral("color-schemes/BreezeLight.colors")
+                                            : QStringLiteral("color-schemes/BreezeDark.colors"));
+        if (!scheme.isEmpty()) {
+            app.setProperty("KDE_COLOR_SCHEME_PATH", scheme);
+            app.setPalette(schemePalette(scheme));
+        }
+    }
+
+    // "prefs/language": empty follows the system, "en" or "fr" forces it.
+    const QString language = QSettings().value(QStringLiteral("prefs/language")).toString();
     static QTranslator translator;
     const bool loaded = language.isEmpty()
         ? translator.load(QLocale(), QStringLiteral("taskmgr"), QStringLiteral("_"), QStringLiteral(":/i18n"))

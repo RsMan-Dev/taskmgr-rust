@@ -193,3 +193,46 @@ impl Drop for WindowWatcher {
         let _ = std::fs::remove_file(&self.path);
     }
 }
+
+/// Keeps this process's windows above others (or not) through a one-shot
+/// KWin script: Wayland gives clients no "always on top" request.
+/// Returns false when KWin scripting is not available.
+pub fn keep_above(above: bool) -> bool {
+    let pid = std::process::id();
+    let name = format!("taskmgr-keepabove-{pid}");
+    let path = format!("{}.keepabove.js", script_path().trim_end_matches(".js"));
+    let code = format!(
+        "workspace.windowList().filter(w => w.pid == {pid}).forEach(w => w.keepAbove = {above});"
+    );
+    if std::fs::write(&path, code).is_err() {
+        return false;
+    }
+    let scripting = (
+        Some("org.kde.KWin"),
+        "/Scripting",
+        Some("org.kde.kwin.Scripting"),
+    );
+    let ok = zbus::block_on(async {
+        let conn = Connection::session().await.ok()?;
+        let (d, p, i) = scripting;
+        let _ = conn
+            .call_method(d, p, i, "unloadScript", &(name.as_str(),))
+            .await;
+        let reply = conn
+            .call_method(d, p, i, "loadScript", &(path.as_str(), name.as_str()))
+            .await
+            .ok()?;
+        let id: i32 = reply.body().deserialize().ok()?;
+        let script = format!("/Scripting/Script{id}");
+        conn.call_method(d, script.as_str(), Some("org.kde.kwin.Script"), "run", &())
+            .await
+            .ok()?;
+        let _ = conn
+            .call_method(d, p, i, "unloadScript", &(name.as_str(),))
+            .await;
+        Some(())
+    })
+    .is_some();
+    let _ = std::fs::remove_file(&path);
+    ok
+}

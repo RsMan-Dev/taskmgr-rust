@@ -9,8 +9,8 @@ QQC2.ApplicationWindow {
 
     width: Kirigami.Units.gridUnit * 56
     height: Kirigami.Units.gridUnit * 38
-    minimumWidth: Kirigami.Units.gridUnit * 36
-    minimumHeight: Kirigami.Units.gridUnit * 24
+    minimumWidth: Kirigami.Units.gridUnit * (mini ? 14 : 36)
+    minimumHeight: Kirigami.Units.gridUnit * (mini ? 12 : 24)
     visible: true
     title: qsTr("Task Manager")
 
@@ -23,6 +23,7 @@ QQC2.ApplicationWindow {
         { text: qsTr("Performance"), icon: "nav-performance" },
         { text: qsTr("Details"), icon: "nav-details" },
         { text: qsTr("Startup apps"), icon: "nav-startup" },
+        { text: qsTr("Users"), icon: "nav-users" },
         { text: qsTr("Services"), icon: "nav-services" },
         { text: qsTr("System"), icon: "nav-system" },
         { text: qsTr("Settings"), icon: "nav-settings" },
@@ -30,6 +31,67 @@ QQC2.ApplicationWindow {
     property int currentPage: Prefs.startPage
     property string initialSelection: ""
     property bool sidebarFolded: false
+
+    // Mini mode: a small readout, optionally kept above other windows; F12
+    // shows it full screen, Escape comes back.
+    property bool mini: false
+    property bool fullScreenMini: false
+    property bool miniBeforeFullScreen: false
+    property size normalSize: Qt.size(width, height)
+
+    function enterMini() {
+        if (mini) {
+            return
+        }
+        normalSize = Qt.size(width, height)
+        mini = true
+        width = Kirigami.Units.gridUnit * 20
+        height = Kirigami.Units.gridUnit * 24
+        applyPin()
+    }
+
+    function leaveMini() {
+        mini = false
+        applyPin()
+        width = normalSize.width
+        height = normalSize.height
+    }
+
+    function applyPin() {
+        const above = mini && Prefs.miniPinned && !fullScreenMini
+        monitor.setKeepAbove(above)
+        // X11 honours the hint; on Wayland the KWin script above does it.
+        if (Qt.platform.pluginName === "xcb") {
+            flags = above ? (flags | Qt.WindowStaysOnTopHint) : (flags & ~Qt.WindowStaysOnTopHint)
+        }
+    }
+
+    Shortcut {
+        sequence: "F12"
+        onActivated: {
+            if (window.fullScreenMini) {
+                return
+            }
+            window.miniBeforeFullScreen = window.mini
+            window.enterMini()
+            window.fullScreenMini = true
+            window.applyPin()
+            window.showFullScreen()
+        }
+    }
+    Shortcut {
+        sequence: "Escape"
+        enabled: window.fullScreenMini
+        onActivated: {
+            window.showNormal()
+            window.fullScreenMini = false
+            if (!window.miniBeforeFullScreen) {
+                window.leaveMini()
+            } else {
+                window.applyPin()
+            }
+        }
+    }
     property bool sidebarOpenedNarrow: false
     readonly property bool narrow: width < Kirigami.Units.gridUnit * 46
     readonly property bool sidebarCollapsed: narrow ? !sidebarOpenedNarrow : sidebarFolded
@@ -50,8 +112,15 @@ QQC2.ApplicationWindow {
     }
 
     // The process list is only sampled while a page shows it.
-    onCurrentPageChanged: monitor.setProcessesVisible(currentPage === 0 || currentPage === 2)
-    Component.onCompleted: monitor.setProcessesVisible(currentPage === 0 || currentPage === 2)
+    readonly property bool processesShown: mini || [0, 2, 4].includes(currentPage)
+    onProcessesShownChanged: monitor.setProcessesVisible(processesShown)
+    Component.onCompleted: {
+        monitor.setProcessesVisible(processesShown)
+        if (initialSelection === "mini") {
+            enterMini()
+        }
+        details.tree = initialSelection === "tree"
+    }
 
     component NavButton: QQC2.ItemDelegate {
         required property var modelData
@@ -68,7 +137,29 @@ QQC2.ApplicationWindow {
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
     }
 
+    MiniView {
+        visible: window.mini
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.largeSpacing * scale
+        snapshot: window.snapshot
+        groups: window.processes
+        pinned: Prefs.miniPinned
+        scale: window.fullScreenMini ? 2 : 1
+        onExpandRequested: {
+            if (window.fullScreenMini) {
+                window.showNormal()
+                window.fullScreenMini = false
+            }
+            window.leaveMini()
+        }
+        onPinToggled: {
+            Prefs.miniPinned = !Prefs.miniPinned
+            window.applyPin()
+        }
+    }
+
     RowLayout {
+        visible: !window.mini
         anchors.fill: parent
         spacing: 0
 
@@ -109,6 +200,18 @@ QQC2.ApplicationWindow {
 
             Item { Layout.fillHeight: true }
 
+            QQC2.ItemDelegate {
+                Layout.fillWidth: true
+                text: qsTr("Mini mode")
+                icon.source: Icons.of("minimize")
+                icon.color: Kirigami.Theme.textColor
+                display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
+                onClicked: window.enterMini()
+                QQC2.ToolTip.text: qsTr("Mini mode (F12: full screen)")
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+            }
+
             NavButton {
                 modelData: window.pages[window.pages.length - 1]
                 index: window.pages.length - 1
@@ -144,10 +247,11 @@ QQC2.ApplicationWindow {
                         if (key) {
                             selectedKey = key
                         }
-                        logicalProcessors = option === "logical"
+                        cpuView = option || "overall"
                     }
                 }
                 DetailsPage {
+                    id: details
                     groups: window.processes
                     monitor: monitor
                     logical: window.snapshot?.cpu.logical ?? 1
@@ -156,9 +260,17 @@ QQC2.ApplicationWindow {
                     monitor: monitor
                     active: window.currentPage === 3
                 }
+                UsersPage {
+                    groups: window.processes
+                    logical: window.snapshot?.cpu.logical ?? 1
+                    onShowUser: (user) => {
+                        details.query = user
+                        window.currentPage = 2
+                    }
+                }
                 ServicesPage {
                     monitor: monitor
-                    active: window.currentPage === 4
+                    active: window.currentPage === 5
                 }
                 SystemPage {
                     info: window.systemInfo

@@ -46,6 +46,11 @@ pub mod qobject {
         #[cxx_name = "enableNetworkMonitor"]
         fn enable_network_monitor(self: Pin<&mut SystemMonitor>);
 
+        /// Asks KWin to keep the window above others (Wayland).
+        #[qinvokable]
+        #[cxx_name = "setKeepAbove"]
+        fn set_keep_above(self: &SystemMonitor, above: bool);
+
         #[qinvokable]
         #[cxx_name = "requestEnergyAccess"]
         fn request_energy_access(self: Pin<&mut SystemMonitor>);
@@ -193,6 +198,10 @@ impl qobject::SystemMonitor {
                 }
             }
         });
+    }
+
+    pub fn set_keep_above(&self, above: bool) {
+        thread::spawn(move || taskmgr_core::windows::keep_above(above));
     }
 
     pub fn set_interval(&self, milliseconds: i32) {

@@ -11,9 +11,14 @@ QQC2.ScrollView {
     readonly property var languages: [["", qsTr("System language")], ["en", "English"], ["fr", "Français"]]
     readonly property var intervals: [[500, qsTr("0.5 s")], [1000, qsTr("1 s")], [2000, qsTr("2 s")], [5000, qsTr("5 s")], [0, qsTr("Paused")]]
     property string startLanguage: ""
+    property string startTheme: ""
+    readonly property var themes: [["", qsTr("System")], ["light", qsTr("Light")], ["dark", qsTr("Dark")]]
 
     contentWidth: availableWidth
-    Component.onCompleted: startLanguage = Prefs.language
+    Component.onCompleted: {
+        startLanguage = Prefs.language
+        startTheme = Prefs.theme
+    }
 
     ColumnLayout {
         width: page.availableWidth
@@ -35,6 +40,19 @@ QQC2.ScrollView {
             }
             QQC2.Label {
                 visible: Prefs.language !== page.startLanguage
+                text: qsTr("Takes effect at the next start.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+            }
+
+            QQC2.ComboBox {
+                Kirigami.FormData.label: qsTr("Theme:")
+                model: page.themes.map(t => t[1])
+                currentIndex: Math.max(0, page.themes.findIndex(t => t[0] === Prefs.theme))
+                onActivated: (i) => Prefs.theme = page.themes[i][0]
+            }
+            QQC2.Label {
+                visible: Prefs.theme !== page.startTheme
                 text: qsTr("Takes effect at the next start.")
                 opacity: 0.7
                 font: Kirigami.Theme.smallFont

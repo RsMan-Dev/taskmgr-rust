@@ -20,10 +20,12 @@ Item {
         clock: "#f67400",
         voltage: "#fdbc4b",
         power: "#27ae60",
+        efficiency: "#1abc9c",
     })
 
     property string selectedKey: "cpu"
-    property bool logicalProcessors: false
+    // CPU graph: "overall", "logical" (one per processor) or "numa".
+    property string cpuView: "overall"
 
     // Changes only when a device comes or goes, so delegates and selection
     // survive updates.
@@ -56,6 +58,24 @@ Item {
             .filter(x => x !== "").join("  ")
     }
 
+    // Element-wise mean of histories (right-aligned, they may differ in length).
+    function average(histories) {
+        const n = Math.max(0, ...histories.map(h => h.length))
+        const out = []
+        for (let i = 0; i < n; i++) {
+            let sum = 0, k = 0
+            for (const h of histories) {
+                const v = h[h.length - n + i]
+                if (v !== undefined) {
+                    sum += v
+                    k++
+                }
+            }
+            out.push(k ? sum / k : 0)
+        }
+        return out
+    }
+
     function mini(label, value, values, maximum, accent, unavailable) {
         return { label: label, value: value, values: values ?? [], maximum: maximum, accent: accent, unavailable: unavailable ?? "" }
     }
@@ -78,6 +98,8 @@ Item {
                 maximumLabel: "100 %",
                 series: [series(c.history, colors.cpu)],
                 cores: c.core_history,
+                coreTypes: c.core_types,
+                numa: c.numa.map(list => average(list.map(i => c.core_history[i] ?? []))),
                 energy: true,
                 charts: [
                     mini(qsTr("Temperature"), Format.temperature(c.temperature), ch.temperature, 100, colors.temperature,
@@ -93,7 +115,8 @@ Item {
                     [qsTr("Threads"), Format.num(c.threads, 0)],
                     [qsTr("Up time"), Format.uptime(c.uptime_secs)],
                     [qsTr("Temperature"), Format.temperature(c.temperature)],
-                ].concat(s.energy.package_watts !== null ? [[qsTr("Power"), Format.watts(s.energy.package_watts)]] : []),
+                ].concat(s.energy.package_watts !== null ? [[qsTr("Power"), Format.watts(s.energy.package_watts)]] : [])
+                 .concat(c.throttle_count !== null ? [[qsTr("Thermal throttling"), Format.num(c.throttle_count, 0)]] : []),
                 details: details([
                     [qsTr("Max speed"), c.max_mhz ? Format.ghz(c.max_mhz) : null],
                     [qsTr("Sockets"), c.sockets],
@@ -117,13 +140,19 @@ Item {
                 maximumLabel: Format.bytes(m.total),
                 series: [series(m.history, colors.memory)],
                 dimms: m.dimms,
+                composition: { used: m.used, cached: m.cached, free: m.free, total: m.total },
+                charts: m.pressure !== null ? [
+                    mini(qsTr("Memory pressure"), Format.percent(m.pressure, 1), m.pressure_history, 10, colors.memory),
+                ] : undefined,
                 stats: [
                     [qsTr("In use"), Format.bytes(m.used)],
                     [qsTr("Available"), Format.bytes(m.available)],
                     [qsTr("Committed"), Format.bytes(m.committed)],
                     [qsTr("Cached"), Format.bytes(m.cached)],
                     [qsTr("Swap"), m.swap_total ? Format.bytes(m.swap_used) + " / " + Format.bytes(m.swap_total) : qsTr("None")],
-                ],
+                ].concat(m.zram_original ? [[qsTr("Compressed (zram)"), qsTr("%1 in %2").arg(Format.bytes(m.zram_original))
+                    .arg(Format.bytes(m.zram_compressed))]] : [])
+                 .concat(m.pressure !== null ? [[qsTr("Pressure"), Format.percent(m.pressure, 1)]] : []),
                 details: details([
                     [qsTr("Speed"), speed ? qsTr("%1 MT/s").arg(speed) : null],
                     [qsTr("Type"), m.dimms.length > 0 ? m.dimms[0].kind : null],
@@ -195,6 +224,8 @@ Item {
                 stats: [
                     [qsTr("Receive"), Format.bits(n.rx_bps)],
                     [qsTr("Send"), Format.bits(n.tx_bps)],
+                    [qsTr("Received in total"), Format.bytes(n.rx_total)],
+                    [qsTr("Sent in total"), Format.bytes(n.tx_total)],
                 ].concat(load !== null ? [[qsTr("Link utilization"), Format.percent(load)]] : []),
                 details: details([
                     [qsTr("Adapter"), n.adapter],
@@ -236,7 +267,8 @@ Item {
                          g.voltage_mv === null ? noVoltage : ""),
                     mini(qsTr("Power"), Format.watts(g.power_watts) + (g.power_limit_watts ? " / " + Format.watts(g.power_limit_watts) : ""),
                          ch.power, g.power_limit_watts ?? 1, colors.power, g.power_watts === null ? qsTr("Not measured") : ""),
-                ],
+                ].concat(g.encoder !== null ? [mini(qsTr("Video encode"), Format.percent(g.encoder), ch.encoder, 100, colors.gpu)] : [])
+                 .concat(g.decoder !== null ? [mini(qsTr("Video decode"), Format.percent(g.decoder), ch.decoder, 100, colors.gpu)] : []),
                 stats: [
                     [qsTr("Utilization"), Format.percent(g.usage)],
                     [qsTr("Dedicated memory"), mem ?? "—"],
@@ -444,7 +476,7 @@ Item {
 
                         ChartBlock {
                             id: mainChart
-                            visible: !detail.r?.sensors && !(detail.r?.cores && page.logicalProcessors)
+                            visible: !detail.r?.sensors && !(detail.r?.cores && page.cpuView !== "overall")
                             chart: detail.r
                             accent: detail.r?.color ?? "gray"
                             chartHeight: Math.max(Kirigami.Units.gridUnit * 7, page.height * (detail.r?.secondChart || detail.r?.charts ? 0.3 : 0.42))
@@ -452,15 +484,24 @@ Item {
                             onContextMenuRequested: (position) => chartMenu.popup()
                         }
 
+                        MemoryComposition {
+                            visible: !!detail.r?.composition
+                            composition: detail.r?.composition ?? null
+                            accent: page.colors.memory
+                            Layout.fillWidth: true
+                        }
+
                         // Windows-style "logical processors" view of the CPU.
                         ColumnLayout {
-                            visible: !!detail.r?.cores && page.logicalProcessors
+                            visible: !!detail.r?.cores && page.cpuView !== "overall"
                             spacing: Kirigami.Units.smallSpacing / 2
                             Layout.fillWidth: true
 
                             RowLayout {
                                 Caption {
-                                    text: qsTr("% utilization per logical processor")
+                                    text: page.cpuView === "numa" ? qsTr("% utilization per NUMA node")
+                                        : qsTr("% utilization per logical processor")
+                                        + ((detail.r?.coreTypes?.length ?? 0) > 0 ? "  " + qsTr("(P: performance cores, E: efficiency cores in green)") : "")
                                     Layout.fillWidth: true
                                 }
                                 Caption {
@@ -469,7 +510,8 @@ Item {
                             }
                             GridLayout {
                                 id: coreGrid
-                                readonly property int count: detail.r?.cores?.length ?? 0
+                                readonly property var lines: (page.cpuView === "numa" ? detail.r?.numa : detail.r?.cores) ?? []
+                                readonly property int count: lines.length
                                 columns: Math.max(1, Math.ceil(Math.sqrt(count * 2)))
                                 columnSpacing: Kirigami.Units.smallSpacing
                                 rowSpacing: Kirigami.Units.smallSpacing
@@ -480,13 +522,15 @@ Item {
                                     UsageChart {
                                         required property int index
                                         compact: true
-                                        series: [{ values: detail.r?.cores?.[index] ?? [], color: page.colors.cpu }]
-                                        accent: page.colors.cpu
+                                        readonly property bool efficient: page.cpuView === "logical" && detail.r?.coreTypes?.[index] === "E"
+                                        series: [{ values: coreGrid.lines[index] ?? [], color: accent }]
+                                        accent: efficient ? page.colors.efficiency : page.colors.cpu
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Math.max(Kirigami.Units.gridUnit * 2.5,
                                             page.height * 0.42 / Math.ceil(coreGrid.count / coreGrid.columns))
 
-                                        QQC2.ToolTip.text: qsTr("Processor %1").arg(index)
+                                        QQC2.ToolTip.text: page.cpuView === "numa" ? qsTr("NUMA node %1").arg(index)
+                                            : qsTr("Processor %1").arg(index) + (detail.r?.coreTypes?.[index] ? " (" + detail.r.coreTypes[index] + ")" : "")
                                         QQC2.ToolTip.visible: coreHover.hovered
                                         HoverHandler {
                                             id: coreHover
@@ -593,16 +637,24 @@ Item {
             height: visible ? implicitHeight : 0
             text: qsTr("Overall utilization")
             checkable: true
-            checked: !page.logicalProcessors
-            onTriggered: page.logicalProcessors = false
+            checked: page.cpuView === "overall"
+            onTriggered: page.cpuView = "overall"
         }
         QQC2.MenuItem {
             visible: !!page.selected?.cores
             height: visible ? implicitHeight : 0
             text: qsTr("Logical processors")
             checkable: true
-            checked: page.logicalProcessors
-            onTriggered: page.logicalProcessors = true
+            checked: page.cpuView === "logical"
+            onTriggered: page.cpuView = "logical"
+        }
+        QQC2.MenuItem {
+            visible: (page.selected?.numa?.length ?? 0) > 1
+            height: visible ? implicitHeight : 0
+            text: qsTr("NUMA nodes")
+            checkable: true
+            checked: page.cpuView === "numa"
+            onTriggered: page.cpuView = "numa"
         }
         QQC2.MenuSeparator {
             visible: !!page.selected?.cores

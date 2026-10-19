@@ -11,6 +11,7 @@ ColumnLayout {
     required property var monitor
     property int logical: 1
 
+    property alias query: search.text
     property string message: ""
     property var pendingPriority: null
 
@@ -23,6 +24,41 @@ ColumnLayout {
         [10, qsTr("Low")],
         [19, qsTr("Idle")],
     ]
+
+    property bool tree: false
+
+    // Depth-first order under each parent, children sorted by pid.
+    function treeOrder(list) {
+        const byPid = {}
+        const children = {}
+        for (const p of list) {
+            byPid[p.pid] = p
+        }
+        const roots = []
+        for (const p of list) {
+            if (byPid[p.ppid]) {
+                if (!children[p.ppid]) {
+                    children[p.ppid] = []
+                }
+                children[p.ppid].push(p)
+            } else {
+                roots.push(p)
+            }
+        }
+        const out = []
+        const walk = (p, depth) => {
+            out.push(Object.assign({ depth: depth }, p))
+            for (const c of (children[p.pid] ?? []).sort((a, b) => a.pid - b.pid)) {
+                walk(c, depth + 1)
+            }
+        }
+        for (const r of roots.sort((a, b) => a.pid - b.pid)) {
+            walk(r, 0)
+        }
+        return out
+    }
+
+    readonly property var shown: tree ? treeOrder(processes) : processes
 
     readonly property var processes: {
         const out = []
@@ -105,6 +141,18 @@ ColumnLayout {
             Layout.maximumWidth: page.unit * 16
             Layout.minimumWidth: page.unit * 6
         }
+        QQC2.ToolButton {
+            text: qsTr("Tree")
+            icon.source: Icons.of("tree")
+            icon.color: Kirigami.Theme.textColor
+            display: QQC2.AbstractButton.IconOnly
+            checkable: true
+            checked: page.tree
+            onToggled: page.tree = checked
+            QQC2.ToolTip.text: qsTr("Show processes as a tree (parent, children)")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
         QQC2.Button {
             display: page.width < page.unit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
             text: qsTr("End task")
@@ -152,7 +200,8 @@ ColumnLayout {
 
     DataTable {
         id: table
-        rows: page.processes
+        rows: page.shown
+        ordered: page.tree
         keyOf: row => String(row.pid)
         sortColumn: "cpu"
         sortDescending: true
@@ -160,7 +209,8 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         columns: [
-            { key: "name", title: qsTr("Name"), maxWidth: page.unit * 16, text: r => r.name, dim: r => r.state === "T" },
+            { key: "name", title: qsTr("Name"), maxWidth: page.unit * 20, text: r => r.name, dim: r => r.state === "T",
+              indent: r => page.tree ? (r.depth ?? 0) * page.unit : 0 },
             { key: "pid", title: qsTr("PID"), text: r => r.pid, value: r => r.pid, align: Qt.AlignRight, widest: ["4194304"] },
             { key: "state", title: qsTr("Status"), text: r => page.stateName(r.state) },
             { key: "user", title: qsTr("User"), text: r => r.user },

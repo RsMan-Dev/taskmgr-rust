@@ -16,6 +16,8 @@ ColumnLayout {
     property bool sortDescending: false
     property string selectedKey: ""
     property string placeholder: ""
+    // Keeps `rows` in the given order (tree view) instead of sorting.
+    property bool ordered: false
 
     readonly property var selectedRow: index[selectedKey] ?? null
     readonly property real fillMinimum: Kirigami.Units.gridUnit * 12
@@ -44,7 +46,7 @@ ColumnLayout {
     readonly property var sorted: {
         const col = columns.find(c => c.key === sortColumn)
         const list = rows.slice()
-        if (col) {
+        if (col && !ordered) {
             const v = col.value ?? col.text
             list.sort((a, b) => {
                 const x = v(a), y = v(b)
@@ -130,7 +132,7 @@ ColumnLayout {
                             horizontalAlignment: cell.modelData.align === Qt.AlignRight ? Text.AlignRight : Text.AlignLeft
                         }
                         Kirigami.Icon {
-                            visible: table.sortColumn === cell.modelData.key
+                            visible: !table.ordered && table.sortColumn === cell.modelData.key
                             source: Icons.of(table.sortDescending ? "sort-down" : "sort-up")
                             isMask: true
                             color: Kirigami.Theme.textColor
@@ -203,7 +205,7 @@ ColumnLayout {
                         required property var modelData
                         width: table.cellWidth(modelData)
                         height: rowItem.height
-                        leftPadding: Kirigami.Units.largeSpacing
+                        leftPadding: Kirigami.Units.largeSpacing + (rowItem.row && modelData.indent ? modelData.indent(rowItem.row) : 0)
                         rightPadding: Kirigami.Units.largeSpacing
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: modelData.align === Qt.AlignRight ? Text.AlignRight : Text.AlignLeft

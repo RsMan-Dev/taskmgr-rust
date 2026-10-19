@@ -42,6 +42,9 @@ ColumnLayout {
               total: s ? Format.bits(s.networks.reduce((a, n) => a + n.rx_bps + n.tx_bps, 0)) : "",
               value: x => x.net ? x.net[0] + x.net[1] : -1, reference: 5 * 1024 * 1024,
               text: v => v < 0 ? "" : Format.bits(v), widest: [Format.bits(999e6 / 8), Format.bits(99.9e6 / 8)] },
+            { key: "energy", title: qsTr("Energy"), tip: qsTr("Estimated from CPU and GPU use"),
+              total: "", value: x => energyScore(x), reference: 15, text: v => energyLevel(v),
+              widest: [qsTr("Very low"), qsTr("Moderate"), qsTr("Very high")] },
         ]
         for (const g of dedicatedGpus) {
             cols.push({ key: "gpu" + g.index, title: qsTr("GPU %1").arg(g.index), tip: g.name, total: Format.percent(g.usage),
@@ -59,11 +62,29 @@ ColumnLayout {
         }
         return cols
     }
-    readonly property var columns: allColumns.filter(c => !Prefs.hiddenList.includes(c.key))
+    readonly property var columns: allColumns.filter(c => !Prefs.isHidden(c.key))
     readonly property var bytesWidest: [Format.bytes(999 * 1048576), Format.bytes(99.9 * 1073741824)]
 
     // Sized on the widest value the column can show (not the current one),
     // so widths stay put while numbers change.
+    // Like Windows' "power usage": a level, not watts, since per-process
+    // energy cannot be measured without root.
+    function energyScore(x) {
+        let gpu = 0
+        for (const k in x.gpu ?? {}) {
+            gpu += x.gpu[k]
+        }
+        return x.cpu + gpu * 0.5
+    }
+
+    function energyLevel(score) {
+        if (score < 0.1) return qsTr("Very low")
+        if (score < 1) return qsTr("Low")
+        if (score < 5) return qsTr("Moderate")
+        if (score < 15) return qsTr("High")
+        return qsTr("Very high")
+    }
+
     function fit(c) {
         const values = Math.max(...c.widest.map(t => Math.max(bigMetrics.advanceWidth(t), boldMetrics.advanceWidth(t))))
         const title = metrics.advanceWidth(c.title) + Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
@@ -232,7 +253,7 @@ ColumnLayout {
     Kirigami.InlineMessage {
         readonly property string access: page.monitor.networkAccess
         readonly property bool failed: access !== "" && access !== "pending" && access !== "active"
-        visible: !Prefs.hiddenList.includes("net") && access !== "active"
+        visible: !Prefs.isHidden("net") && access !== "active"
         type: failed ? Kirigami.MessageType.Error : Kirigami.MessageType.Information
         text: access === "pending" ? qsTr("Waiting for the administrator password…")
             : failed ? Tr.core(access)
@@ -446,7 +467,7 @@ ColumnLayout {
                 required property var modelData
                 text: modelData.title + (modelData.tip ? "  (" + modelData.tip + ")" : "")
                 checkable: true
-                checked: !Prefs.hiddenList.includes(modelData.key)
+                checked: !Prefs.isHidden(modelData.key)
                 onTriggered: Prefs.toggleColumn(modelData.key)
             }
         }

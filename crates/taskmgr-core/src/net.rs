@@ -19,6 +19,9 @@ pub struct NetSnapshot {
     pub ipv6: Vec<String>,
     pub rx_bps: f64,
     pub tx_bps: f64,
+    /// Bytes since the interface came up.
+    pub rx_total: u64,
+    pub tx_total: u64,
     pub rx_history: History,
     pub tx_history: History,
 }
@@ -130,6 +133,8 @@ impl NetSampler {
                     ipv6,
                     rx_bps,
                     tx_bps,
+                    rx_total: cur.0,
+                    tx_total: cur.1,
                     rx_history: st.rx.clone(),
                     tx_history: st.tx.clone(),
                     name,

@@ -20,6 +20,22 @@ pub struct CpuInfo {
     pub max_mhz: Option<f64>,
     pub virtualization: Option<String>,
     pub caches: Vec<CacheLevel>,
+    /// Per logical processor on hybrid Intel CPUs: "P" or "E"; empty otherwise.
+    pub core_types: Vec<String>,
+    /// Logical processors of each NUMA node; empty with a single node.
+    pub numa: Vec<Vec<usize>>,
+}
+
+/// "0-3,8,10-11" to [0, 1, 2, 3, 8, 10, 11].
+fn cpu_list(s: &str) -> Vec<usize> {
+    s.trim()
+        .split(',')
+        .filter_map(|r| match r.split_once('-') {
+            Some((a, b)) => Some((a.parse().ok()?..=b.parse().ok()?).collect::<Vec<usize>>()),
+            None => r.parse().ok().map(|v| vec![v]),
+        })
+        .flatten()
+        .collect()
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -34,6 +50,8 @@ pub struct CpuSnapshot {
     pub uptime_secs: u64,
     pub temperature: Option<f64>,
     pub voltage: Option<f64>,
+    /// Intel thermal throttling events since boot, when the kernel counts them.
+    pub throttle_count: Option<u64>,
     pub core_history: Vec<History>,
     pub charts: Charts,
 }
@@ -178,6 +196,39 @@ pub fn info(root: &Root) -> CpuInfo {
         max_mhz,
         virtualization,
         caches: caches(root),
+        core_types: {
+            let p = root
+                .read("/sys/devices/cpu_core/cpus")
+                .map(|s| cpu_list(&s))
+                .unwrap_or_default();
+            let e = root
+                .read("/sys/devices/cpu_atom/cpus")
+                .map(|s| cpu_list(&s))
+                .unwrap_or_default();
+            if e.is_empty() {
+                Vec::new()
+            } else {
+                (0..logical)
+                    .map(|i| if p.contains(&i) { "P" } else { "E" }.to_owned())
+                    .collect()
+            }
+        },
+        numa: {
+            let nodes: Vec<Vec<usize>> = root
+                .list("/sys/devices/system/node")
+                .into_iter()
+                .filter(|n| {
+                    n.strip_prefix("node")
+                        .is_some_and(|i| i.parse::<u32>().is_ok())
+                })
+                .filter_map(|n| {
+                    root.read(format!("/sys/devices/system/node/{n}/cpulist"))
+                        .map(|s| cpu_list(&s))
+                })
+                .filter(|l| !l.is_empty())
+                .collect();
+            if nodes.len() > 1 { nodes } else { Vec::new() }
+        },
     }
 }
 
@@ -338,6 +389,16 @@ impl CpuSampler {
             uptime_secs,
             temperature,
             voltage,
+            throttle_count: {
+                let counts: Vec<u64> = (0..self.info.logical)
+                    .filter_map(|i| {
+                        root.read_u64(format!(
+                            "/sys/devices/system/cpu/cpu{i}/thermal_throttle/core_throttle_count"
+                        ))
+                    })
+                    .collect();
+                (!counts.is_empty()).then(|| counts.iter().sum())
+            },
             core_history: self.cores.clone(),
             charts: self.charts.clone(),
         }
@@ -367,6 +428,11 @@ mod tests {
             Some("ARM Cortex-A73")
         );
         assert_eq!(arm_core_name("0x99", "0x1"), None);
+    }
+
+    #[test]
+    fn cpu_lists() {
+        assert_eq!(cpu_list("0-3,8,10-11\n"), vec![0, 1, 2, 3, 8, 10, 11]);
     }
 
     #[test]

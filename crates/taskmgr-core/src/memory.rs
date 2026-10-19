@@ -2,6 +2,38 @@ use serde::Serialize;
 
 use crate::util::{History, Root};
 
+fn pressure(root: &Root) -> Option<f64> {
+    root.read("/proc/pressure/memory")?
+        .lines()
+        .find_map(|l| l.strip_prefix("some "))?
+        .split_whitespace()
+        .find_map(|kv| kv.strip_prefix("avg10="))?
+        .parse()
+        .ok()
+}
+
+/// Sum of `orig_data_size` and `mem_used_total` over zram devices.
+fn zram(root: &Root) -> Option<(u64, u64)> {
+    let mut total = None;
+    for dev in root
+        .list("/sys/block")
+        .into_iter()
+        .filter(|d| d.starts_with("zram"))
+    {
+        let stat = root.read(format!("/sys/block/{dev}/mm_stat"))?;
+        let f: Vec<u64> = stat
+            .split_whitespace()
+            .filter_map(|v| v.parse().ok())
+            .collect();
+        if let (Some(orig), Some(used)) = (f.first(), f.get(2)) {
+            let t = total.get_or_insert((0, 0));
+            t.0 += orig;
+            t.1 += used;
+        }
+    }
+    total.filter(|t| t.0 > 0)
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct MemorySnapshot {
     pub total: u64,
@@ -14,6 +46,13 @@ pub struct MemorySnapshot {
     pub swap_used: u64,
     pub usage: f64,
     pub history: History,
+    pub free: u64,
+    /// Share of time some task waited for memory (PSI "some avg10", %).
+    pub pressure: Option<f64>,
+    pub pressure_history: History,
+    /// zram swap: data stored and the memory it actually takes.
+    pub zram_original: Option<u64>,
+    pub zram_compressed: Option<u64>,
     pub dimms: Vec<Dimm>,
     pub slots: usize,
 }
@@ -99,6 +138,7 @@ fn field(meminfo: &str, key: &str) -> u64 {
 #[derive(Default)]
 pub struct MemorySampler {
     history: History,
+    pressure_history: History,
     dimms: Option<(Vec<Dimm>, usize)>,
 }
 
@@ -115,6 +155,11 @@ impl MemorySampler {
         };
         self.history.push(usage);
         let (dimms, slots) = self.dimms.get_or_insert_with(|| dimms(root)).clone();
+        let pressure = pressure(root);
+        if let Some(p) = pressure {
+            self.pressure_history.push(p);
+        }
+        let zram = zram(root);
         let swap_total = field(&m, "SwapTotal");
         MemorySnapshot {
             total,
@@ -127,6 +172,11 @@ impl MemorySampler {
             swap_used: swap_total.saturating_sub(field(&m, "SwapFree")),
             usage,
             history: self.history.clone(),
+            free: field(&m, "MemFree"),
+            pressure,
+            pressure_history: self.pressure_history.clone(),
+            zram_original: zram.map(|z| z.0),
+            zram_compressed: zram.map(|z| z.1),
             dimms,
             slots,
         }

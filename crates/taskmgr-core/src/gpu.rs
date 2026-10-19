@@ -210,6 +210,8 @@ impl GpuSampler {
                 st.charts.push("memory_clock", g.memory_mhz);
                 st.charts.push("voltage", g.voltage_mv);
                 st.charts.push("power", g.power_watts);
+                st.charts.push("encoder", g.encoder);
+                st.charts.push("decoder", g.decoder);
                 g.charts = st.charts.clone();
                 st.usage.push(g.usage.unwrap_or(0.0));
                 if let (Some(u), Some(t)) = (g.memory_used, g.memory_total) {
