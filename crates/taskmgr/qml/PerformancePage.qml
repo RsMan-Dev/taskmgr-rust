@@ -582,6 +582,7 @@ Item {
                             QQC2.ComboBox {
                                 readonly property var profiles: detail.r?.profile?.profiles ?? []
                                 model: profiles.map(p => page.profileNames[p] ?? p)
+                                implicitContentWidthPolicy: QQC2.ComboBox.WidestText
                                 currentIndex: profiles.indexOf(detail.r?.profile?.profile ?? "")
                                 onActivated: (i) => page.monitor.setPowerProfile(profiles[i])
                             }
