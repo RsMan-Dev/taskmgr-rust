@@ -40,6 +40,7 @@ pub mod qobject {
         #[qproperty(QString, journal)]
         #[qproperty(QString, process_details, cxx_name = "processDetails")]
         #[qproperty(QString, benchmark)]
+        #[qproperty(QString, inventory)]
         #[qproperty(QString, benchmark_history, cxx_name = "benchmarkHistory")]
         type SystemMonitor = super::SystemMonitorRust;
 
@@ -104,6 +105,11 @@ pub mod qobject {
         #[cxx_name = "requestJournal"]
         fn request_journal(self: Pin<&mut SystemMonitor>, query: &QString, tag: &QString);
 
+        /// Hardware inventory tree (dmidecode-like), read on demand.
+        #[qinvokable]
+        #[cxx_name = "refreshInventory"]
+        fn refresh_inventory(self: Pin<&mut SystemMonitor>);
+
         #[qinvokable]
         #[cxx_name = "startBenchmark"]
         fn start_benchmark(self: Pin<&mut SystemMonitor>, kind: &QString, option: &QString);
@@ -166,6 +172,7 @@ pub struct SystemMonitorRust {
     journal: QString,
     process_details: QString,
     benchmark: QString,
+    inventory: QString,
     benchmark_history: QString,
     started: bool,
     bench_stop: Arc<AtomicBool>,

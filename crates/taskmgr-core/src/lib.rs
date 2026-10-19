@@ -14,6 +14,7 @@ pub mod energy;
 pub mod gpu;
 pub mod hwmon;
 pub mod identity;
+pub mod inventory;
 pub mod journal;
 pub mod memory;
 pub mod msr;

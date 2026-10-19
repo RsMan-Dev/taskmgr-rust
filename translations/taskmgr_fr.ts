@@ -1721,6 +1721,74 @@
     </message>
 </context>
 <context>
+    <name>HardwareTree</name>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="23"/>
+        <source>Power saver</source>
+        <translation>Économie d&apos;énergie</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="24"/>
+        <source>Balanced</source>
+        <translation>Équilibré</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="25"/>
+        <source>Performance</source>
+        <translation>Performances</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="92"/>
+        <source>%1 MT/s</source>
+        <translation>%1 MT/s</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="96"/>
+        <source>%1 RPM</source>
+        <translation>%1 tr/min</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="152"/>
+        <source>Search the hardware</source>
+        <translation>Rechercher dans le matériel</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="157"/>
+        <source>Power profile</source>
+        <translation>Profil d&apos;énergie</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="178"/>
+        <source>Reading the hardware…</source>
+        <translation>Lecture du matériel…</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="178"/>
+        <source>Nothing matches</source>
+        <translation>Aucun résultat</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="182"/>
+        <source>Component</source>
+        <translation>Composant</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="186"/>
+        <source>Value</source>
+        <translation>Valeur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="187"/>
+        <source>Min.</source>
+        <translation>Min.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/HardwareTree.qml" line="189"/>
+        <source>Max.</source>
+        <translation>Max.</translation>
+    </message>
+</context>
+<context>
     <name>JournalDialog</name>
     <message>
         <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="70"/>
@@ -2238,84 +2306,6 @@
     </message>
 </context>
 <context>
-    <name>SensorTree</name>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="18"/>
-        <source>Power saver</source>
-        <translation>Économie d&apos;énergie</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="19"/>
-        <source>Balanced</source>
-        <translation>Équilibré</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="20"/>
-        <source>Performance</source>
-        <translation>Performances</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="26"/>
-        <source>Memory</source>
-        <translation>Mémoire</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="42"/>
-        <source>%1 RPM</source>
-        <translation>%1 tr/min</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="85"/>
-        <source>Power profile</source>
-        <translation>Profil d&apos;énergie</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="96"/>
-        <source>Driver: %1</source>
-        <translation>Pilote : %1</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="97"/>
-        <source>Governor: %1</source>
-        <translation>Gouverneur : %1</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="98"/>
-        <source>Energy preference: %1</source>
-        <translation>Préférence énergétique : %1</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="99"/>
-        <source>Performance held back: %1</source>
-        <translation>Performances limitées : %1</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="115"/>
-        <source>Reading the sensors…</source>
-        <translation>Lecture des capteurs…</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="119"/>
-        <source>Sensor</source>
-        <translation>Capteur</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="121"/>
-        <source>Value</source>
-        <translation>Valeur</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="123"/>
-        <source>Min.</source>
-        <translation>Min.</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/SensorTree.qml" line="125"/>
-        <source>Max.</source>
-        <translation>Max.</translation>
-    </message>
-</context>
-<context>
     <name>SensorsView</name>
     <message>
         <location filename="../crates/taskmgr/qml/SensorsView.qml" line="97"/>
@@ -2643,27 +2633,27 @@
 <context>
     <name>SystemPage</name>
     <message>
-        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="18"/>
+        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="25"/>
         <source>System</source>
         <translation>Système</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="23"/>
+        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="30"/>
         <source>Summary</source>
         <translation>Résumé</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="27"/>
+        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="34"/>
         <source>Details</source>
         <translation>Détails</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="32"/>
+        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="39"/>
         <source>Copied</source>
         <translation>Copié</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="32"/>
+        <location filename="../crates/taskmgr/qml/SystemPage.qml" line="39"/>
         <source>Copy</source>
         <translation>Copier</translation>
     </message>
@@ -3057,42 +3047,647 @@
         <translation>journalctl introuvable : pas de journal systemd.</translation>
     </message>
     <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="54"/>
+        <source>Architecture</source>
+        <translation>Architecture</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="55"/>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="56"/>
+        <source>Base speed</source>
+        <translation>Vitesse de base</translation>
+    </message>
+    <message>
         <location filename="../crates/taskmgr/qml/Tr.qml" line="57"/>
+        <source>Caches</source>
+        <translation>Caches</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="58"/>
+        <source>Capacity</source>
+        <translation>Capacité</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="59"/>
+        <source>Connector</source>
+        <translation>Connecteur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="60"/>
+        <source>Cores</source>
+        <translation>Cœurs</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="61"/>
+        <source>Data width</source>
+        <translation>Largeur de données</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="62"/>
+        <source>Date</source>
+        <translation>Date</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="63"/>
+        <source>Desktop</source>
+        <translation>Bureau</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="64"/>
+        <source>Detail</source>
+        <translation>Détail</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="65"/>
+        <source>Device</source>
+        <translation>Périphérique</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="66"/>
+        <source>Device name</source>
+        <translation>Nom de l&apos;appareil</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="67"/>
+        <source>Displays</source>
+        <translation>Écrans</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="68"/>
+        <source>Driver</source>
+        <translation>Pilote</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="69"/>
+        <source>Duplex</source>
+        <translation>Duplex</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="70"/>
+        <source>Error correction</source>
+        <translation>Correction d&apos;erreurs</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="71"/>
+        <source>Family</source>
+        <translation>Famille</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="72"/>
+        <source>File system</source>
+        <translation>Système de fichiers</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="73"/>
+        <source>Firmware</source>
+        <translation>Micrologiciel</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="74"/>
+        <source>Form factor</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="75"/>
+        <source>Graphics</source>
+        <translation>Graphismes</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="76"/>
+        <source>Instruction sets</source>
+        <translation>Jeux d&apos;instructions</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="77"/>
+        <source>Interface</source>
+        <translation>Interface</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="78"/>
+        <source>IPv4 address</source>
+        <translation>Adresse IPv4</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="79"/>
+        <source>IPv6 address</source>
+        <translation>Adresse IPv6</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="80"/>
+        <source>Label</source>
+        <translation>Étiquette</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="81"/>
+        <source>Link speed</source>
+        <translation>Vitesse de liaison</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="82"/>
+        <source>Logical processors</source>
+        <translation>Processeurs logiques</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="83"/>
+        <source>MAC address</source>
+        <translation>Adresse MAC</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="84"/>
+        <source>Manufacturer</source>
+        <translation>Fabricant</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="85"/>
+        <source>Manufacturer code</source>
+        <translation>Code fabricant</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="86"/>
+        <source>Maximum clock</source>
+        <translation>Fréquence maximale</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="87"/>
+        <source>Maximum memory clock</source>
+        <translation>Fréquence mémoire maximale</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="88"/>
+        <source>Maximum speed</source>
+        <translation>Vitesse maximale</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="89"/>
+        <source>Microcode</source>
+        <translation>Microcode</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="90"/>
+        <source>Minimum speed</source>
+        <translation>Vitesse minimale</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="91"/>
+        <source>Model</source>
+        <translation>Modèle</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="92"/>
+        <source>Model number</source>
+        <translation>Numéro de modèle</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="93"/>
+        <source>Network</source>
+        <translation>Réseau</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="94"/>
+        <source>NUMA nodes</source>
+        <translation>Nœuds NUMA</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="95"/>
+        <source>Operating system</source>
+        <translation>Système d&apos;exploitation</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="96"/>
+        <source>Partition name</source>
+        <translation>Nom de partition</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="97"/>
+        <source>Partitions</source>
+        <translation>Partitions</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="98"/>
+        <source>Part number</source>
+        <translation>Référence</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="99"/>
+        <source>PCI devices</source>
+        <translation>Périphériques PCI</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="100"/>
+        <source>PCI Express link</source>
+        <translation>Liaison PCI Express</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="101"/>
+        <source>PCI slot</source>
+        <translation>Emplacement PCI</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="102"/>
+        <source>Port</source>
+        <translation>Port</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="103"/>
+        <source>Power limit</source>
+        <translation>Limite de puissance</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="104"/>
+        <source>Processor</source>
+        <translation>Processeur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="105"/>
+        <source>Product</source>
+        <translation>Produit</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="106"/>
+        <source>Rank</source>
+        <translation>Rang</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="107"/>
+        <source>Revision</source>
+        <translation>Révision</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="108"/>
+        <source>Secure Boot</source>
+        <translation>Secure Boot</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="109"/>
+        <source>Serial number</source>
+        <translation>Numéro de série</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="110"/>
+        <source>Session</source>
+        <translation>Session</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="111"/>
+        <source>Shared by</source>
+        <translation>Partagé par</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="112"/>
+        <source>Size</source>
+        <translation>Taille</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="113"/>
+        <source>Slot</source>
+        <translation>Emplacement</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="114"/>
+        <source>Slots</source>
+        <translation>Emplacements</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="115"/>
+        <source>Sockets</source>
+        <translation>Sockets</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="116"/>
+        <source>Speed</source>
+        <translation>Vitesse</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="117"/>
+        <source>State</source>
+        <translation>État</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="118"/>
+        <source>Stepping</source>
+        <translation>Stepping</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="119"/>
+        <source>Storage</source>
+        <translation>Stockage</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="120"/>
+        <source>System</source>
+        <translation>Système</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="121"/>
+        <source>Type</source>
+        <translation>Type</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="122"/>
+        <source>Usable</source>
+        <translation>Utilisable</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="123"/>
+        <source>USB devices</source>
+        <translation>Périphériques USB</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="124"/>
+        <source>Vendor</source>
+        <translation>Fournisseur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="125"/>
+        <source>Version</source>
+        <translation>Version</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="126"/>
+        <source>Video memory</source>
+        <translation>Mémoire vidéo</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="127"/>
+        <source>Virtualization</source>
+        <translation>Virtualisation</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="128"/>
+        <source>Vulnerabilities</source>
+        <translation>Vulnérabilités</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="129"/>
+        <source>Year</source>
+        <translation>Année</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="130"/>
+        <source>Live readings</source>
+        <translation>Relevés en direct</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="131"/>
+        <source>Swap</source>
+        <translation>Swap</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="132"/>
+        <source>Maximum capacity</source>
+        <translation>Capacité maximale</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="133"/>
+        <source>Configured speed</source>
+        <translation>Vitesse configurée</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="134"/>
+        <source>Associativity</source>
+        <translation>Associativité</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="135"/>
+        <source>Line size</source>
+        <translation>Taille de ligne</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="136"/>
+        <source>Frequency driver</source>
+        <translation>Pilote de fréquence</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="137"/>
+        <source>Governor</source>
+        <translation>Gouverneur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="138"/>
+        <source>Logical sector</source>
+        <translation>Secteur logique</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="139"/>
+        <source>Physical sector</source>
+        <translation>Secteur physique</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="140"/>
+        <source>I/O scheduler</source>
+        <translation>Ordonnanceur d&apos;E/S</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="141"/>
+        <source>System disk</source>
+        <translation>Disque système</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="142"/>
+        <source>Video BIOS</source>
+        <translation>BIOS vidéo</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="143"/>
+        <source>All in one</source>
+        <translation>Tout-en-un</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="144"/>
+        <source>Convertible</source>
+        <translation>Convertible</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="145"/>
+        <source>Detachable</source>
+        <translation>Détachable</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="146"/>
+        <source>Laptop</source>
+        <translation>Ordinateur portable</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="147"/>
+        <source>Low profile desktop</source>
+        <translation>Bureau compact</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="148"/>
+        <source>Main server chassis</source>
+        <translation>Châssis de serveur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="149"/>
+        <source>Mini PC</source>
+        <translation>Mini PC</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="150"/>
+        <source>Mini tower</source>
+        <translation>Mini-tour</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="151"/>
+        <source>Notebook</source>
+        <translation>Ordinateur portable</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="152"/>
+        <source>Portable</source>
+        <translation>Portable</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="153"/>
+        <source>Rack mount chassis</source>
+        <translation>Châssis en rack</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="154"/>
+        <source>Stick PC</source>
+        <translation>PC clé</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="155"/>
+        <source>Sub notebook</source>
+        <translation>Ultraportable</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="156"/>
+        <source>Tablet</source>
+        <translation>Tablette</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="157"/>
+        <source>Tower</source>
+        <translation>Tour</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="158"/>
+        <source>Enabled</source>
+        <translation>Activé</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="159"/>
+        <source>Disabled</source>
+        <translation>Désactivé</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="160"/>
+        <source>Yes</source>
+        <translation>Oui</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="161"/>
+        <source>No</source>
+        <translation>Non</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="162"/>
+        <source>Empty</source>
+        <translation>Vide</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="163"/>
+        <source>Dedicated</source>
+        <translation>Dédié</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="164"/>
+        <source>Integrated</source>
+        <translation>Intégré</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="165"/>
+        <source>Chassis</source>
+        <translation>Châssis</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="166"/>
+        <source>Other</source>
+        <translation>Autre</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="170"/>
         <source>Sensor %1</source>
         <translation>Capteur %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="58"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="171"/>
         <source>Processor %1</source>
         <translation>Processeur %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="59"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="172"/>
         <source>Disk %1 (%2)</source>
         <translation>Disque %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="60"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="173"/>
         <source>Network card %1</source>
         <translation>Carte réseau %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="61"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="174"/>
         <source>Mount %1</source>
         <translation>Montage %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="62"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="175"/>
         <source>Docker container (%1)</source>
         <translation>Conteneur Docker (%1)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="63"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="176"/>
         <source>The command failed (%1).</source>
         <translation>La commande a échoué (%1).</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="64"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="177"/>
+        <source>GPU %1: %2</source>
+        <translation>GPU %1 : %2</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="178"/>
+        <source>Disk %1: %2</source>
+        <translation>Disque %1 : %2</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="179"/>
+        <source>L%1 data</source>
+        <translation>L%1 données</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="180"/>
+        <source>L%1 instruction</source>
+        <translation>L%1 instructions</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="181"/>
+        <source>%1 logical processors</source>
+        <translation>%1 processeurs logiques</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="182"/>
+        <source>%1-way</source>
+        <translation>%1 voies</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="183"/>
+        <source>Slot %1</source>
+        <translation>Emplacement %1</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="184"/>
+        <source>%1 (maximum %2)</source>
+        <translation>%1 (maximum %2)</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="185"/>
         <source>%1 (removable)</source>
         <translation>%1 (amovible)</translation>
     </message>

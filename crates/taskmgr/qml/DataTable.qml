@@ -10,6 +10,8 @@ import org.kde.kirigami as Kirigami
 // ({ through: [bool per depth], last }), one `indentUnit` per level.
 // `groupBy(row)` folds rows sharing a key under a row built by
 // `groupRow(key, rows)`, expanded with the chevron of the first column.
+// A first column with `expander(row)` (true: open, false: closed, null:
+// leaf) shows a chevron that emits `toggled(row)`: trees of any depth.
 ColumnLayout {
     id: table
 
@@ -32,7 +34,8 @@ ColumnLayout {
 
     readonly property var selectedRow: index[selectedKey] ?? null
     property real indentUnit: Kirigami.Units.gridUnit
-    readonly property real chevron: groupBy ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0
+    readonly property real chevron: groupBy || columns[0]?.expander
+        ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0
     readonly property real fillMinimum: Kirigami.Units.gridUnit * 12
     // Column widths only follow the content when rows come or go, or every
     // few refreshes: measuring every cell each second stalls the window.
@@ -130,6 +133,7 @@ ColumnLayout {
     }
 
     signal contextMenuRequested(var row, var item, point position)
+    signal toggled(var row)
     signal activated(var row)
 
     spacing: 0
@@ -364,14 +368,17 @@ ColumnLayout {
 
                         Kirigami.Icon {
                             readonly property var group: rowItem.row?._group
-                            visible: cellLabel.first && group !== undefined
-                            x: Kirigami.Units.largeSpacing
+                            readonly property var state: cellLabel.first && rowItem.row && cellLabel.modelData.expander
+                                ? cellLabel.modelData.expander(rowItem.row) : null
+                            readonly property bool open: group !== undefined ? table.isOpen(group) : state === true
+                            visible: cellLabel.first && (group !== undefined || (state !== null && state !== undefined))
+                            x: Kirigami.Units.largeSpacing + (rowItem.row && cellLabel.modelData.indent ? cellLabel.modelData.indent(rowItem.row) : 0)
                             anchors.verticalCenter: parent.verticalCenter
                             width: Kirigami.Units.iconSizes.small
                             height: width
-                            source: Icons.of(table.isOpen(group) ? "collapse" : "expand", Kirigami.Theme.textColor)
+                            source: Icons.of(open ? "collapse" : "expand", Kirigami.Theme.textColor)
                             TapHandler {
-                                onTapped: table.toggle(parent.group)
+                                onTapped: parent.group !== undefined ? table.toggle(parent.group) : table.toggled(rowItem.row)
                             }
                         }
                     }

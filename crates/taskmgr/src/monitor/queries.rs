@@ -25,6 +25,18 @@ impl Monitor {
         );
     }
 
+    pub fn refresh_inventory(self: Pin<&mut Self>) {
+        self.spawn(
+            || {
+                let root = Root::system();
+                let snapshot = taskmgr_core::Sampler::new(root.clone()).sample();
+                let info = taskmgr_core::system_info(&root);
+                json(&taskmgr_core::inventory::collect(&root, &snapshot, &info))
+            },
+            |o, v| o.set_inventory(v),
+        );
+    }
+
     pub fn refresh_power(self: Pin<&mut Self>) {
         self.spawn(
             || json(&taskmgr_core::power::read(&Root::system())),

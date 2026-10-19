@@ -23,8 +23,10 @@ Pages:
   trace when systemd-coredump recorded one.
 - **Benchmark**: CPU, memory and disk scores compared with the previous
   run, and a stability test for overclocking that counts miscalculations.
-- **System**: a summary of the machine, and every reading (clocks per
-  processor, temperatures, power, voltages, fans) with its min and max.
+- **System**: a summary of the machine, and a searchable hardware tree in
+  the spirit of dmidecode (firmware, board, processor and caches, memory
+  modules, graphics, disks and partitions, network, displays, audio, USB,
+  PCI), each component with its live readings and their min and max.
 
 Never run it as root. Optional data needs the administrator password once
 (per-process network, CPU voltage) or a udev rule (CPU power, see

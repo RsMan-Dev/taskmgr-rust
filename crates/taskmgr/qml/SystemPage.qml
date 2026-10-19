@@ -3,7 +3,8 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// System: a summary of the machine, and every live reading with its range.
+// System: a summary of the machine, and the hardware tree with live
+// readings.
 ColumnLayout {
     id: page
 
@@ -13,6 +14,12 @@ ColumnLayout {
     property bool active: false
 
     spacing: 0
+
+    function focusSearch() {
+        if (tabs.currentIndex === 1) {
+            tree.focusSearch()
+        }
+    }
 
     PageHeader {
         title: qsTr("System")
@@ -59,7 +66,7 @@ ColumnLayout {
             info: page.info
             snapshot: page.snapshot
         }
-        SensorTree {
+        HardwareTree {
             id: tree
             monitor: page.monitor
             readings: tabs.currentIndex === 1 ? page.snapshot?.readings ?? [] : []
