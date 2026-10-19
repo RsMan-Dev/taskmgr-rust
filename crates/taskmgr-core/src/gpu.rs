@@ -51,8 +51,11 @@ pub struct GpuProcess {
 }
 
 /// AMD APU graphics sit behind the 00:08.1 bridge, Intel's at 00:02.0.
-fn is_integrated(device_path: &str, pci_slot: &str) -> bool {
-    device_path.contains("/0000:00:08.1/") || pci_slot == "0000:00:02.0"
+/// Server management chips (ASPEED, Matrox G200) only drive a console.
+fn is_integrated(device_path: &str, pci_slot: &str, vendor_id: &str) -> bool {
+    device_path.contains("/0000:00:08.1/")
+        || pci_slot == "0000:00:02.0"
+        || matches!(vendor_id, "0x1a03" | "0x102b")
 }
 
 /// Highest level of `pp_dpm_sclk` style tables (`2: 2200Mhz *`).
@@ -144,12 +147,10 @@ impl GpuSampler {
                     .canonical(&dev)
                     .and_then(|p| Some(p.file_name()?.to_string_lossy().into_owned()))
                     .unwrap_or_default();
-                let vendor = vendor_name(
-                    &root
-                        .read_trimmed(format!("{dev}/vendor"))
-                        .unwrap_or_default(),
-                )
-                .to_owned();
+                let vendor_id = root
+                    .read_trimmed(format!("{dev}/vendor"))
+                    .unwrap_or_default();
+                let vendor = vendor_name(&vendor_id).to_owned();
                 let driver = root.link_name(format!("{dev}/driver")).unwrap_or_default();
                 let pci_model =
                     root.udev_property(&format!("+pci:{pci_slot}"), "ID_MODEL_FROM_DATABASE");
@@ -159,7 +160,7 @@ impl GpuSampler {
                     .unwrap_or_default();
                 let mut g = GpuSnapshot {
                     index,
-                    dedicated: !is_integrated(&device_path, &pci_slot),
+                    dedicated: !is_integrated(&device_path, &pci_slot, &vendor_id),
                     name: pci_model
                         .map(|m| marketing_name(&vendor, &m))
                         .unwrap_or_else(|| format!("{vendor} GPU")),
@@ -314,14 +315,12 @@ mod tests {
             dpm_max_mhz("0: 600Mhz\n1: 1100Mhz *\n2: 2200Mhz\n"),
             Some(2200.0)
         );
-        assert!(is_integrated(
-            "/sys/devices/pci0000:00/0000:00:08.1/0000:76:00.0",
-            "0000:76:00.0"
-        ));
-        assert!(!is_integrated(
-            "/sys/devices/pci0000:00/0000:00:01.1/0000:01:00.0",
-            "0000:01:00.0"
-        ));
+        let amd_apu = "/sys/devices/pci0000:00/0000:00:08.1/0000:76:00.0";
+        assert!(is_integrated(amd_apu, "0000:76:00.0", "0x1002"));
+        let nvidia = "/sys/devices/pci0000:00/0000:00:01.1/0000:01:00.0";
+        assert!(!is_integrated(nvidia, "0000:01:00.0", "0x10de"));
+        let aspeed = "/sys/devices/pci0000:00/0000:00:1c.0/0000:06:00.0";
+        assert!(is_integrated(aspeed, "0000:06:00.0", "0x1a03"));
     }
 
     #[test]

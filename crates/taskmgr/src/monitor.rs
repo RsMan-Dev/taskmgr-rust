@@ -26,6 +26,7 @@ pub mod qobject {
         #[qproperty(QString, autostart)]
         #[qproperty(QString, energy_request, cxx_name = "energyRequest")]
         #[qproperty(QString, action_result, cxx_name = "actionResult")]
+        #[qproperty(QString, network_access, cxx_name = "networkAccess")]
         type SystemMonitor = super::SystemMonitorRust;
 
         #[qinvokable]
@@ -39,6 +40,11 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "setProcessesVisible"]
         fn set_processes_visible(self: &SystemMonitor, visible: bool);
+
+        /// Starts the root helper for per-process network traffic.
+        #[qinvokable]
+        #[cxx_name = "enableNetworkMonitor"]
+        fn enable_network_monitor(self: Pin<&mut SystemMonitor>);
 
         #[qinvokable]
         #[cxx_name = "requestEnergyAccess"]
@@ -98,7 +104,9 @@ pub struct SystemMonitorRust {
     autostart: QString,
     energy_request: QString,
     action_result: QString,
+    network_access: QString,
     started: bool,
+    net: Arc<std::sync::Mutex<Option<taskmgr_core::netflow::Rates>>>,
     interval_ms: Arc<AtomicU64>,
     processes_visible: Arc<AtomicBool>,
 }
@@ -113,7 +121,9 @@ impl Default for SystemMonitorRust {
             autostart: QString::default(),
             energy_request: QString::default(),
             action_result: QString::default(),
+            network_access: QString::default(),
             started: false,
+            net: Arc::default(),
             interval_ms: Arc::new(AtomicU64::new(1000)),
             processes_visible: Arc::new(AtomicBool::new(true)),
         }
@@ -149,6 +159,7 @@ impl qobject::SystemMonitor {
         let qt_thread = self.qt_thread();
         let interval = self.interval_ms.clone();
         let processes_visible = self.processes_visible.clone();
+        let net = self.net.clone();
         thread::spawn(move || {
             let root = Root::system();
             let mut sampler = Sampler::new(root.clone());
@@ -163,11 +174,13 @@ impl qobject::SystemMonitor {
                 // page shows it.
                 let procs = processes_visible.load(Ordering::Relaxed).then(|| {
                     let windows = watcher.as_ref().and_then(|w| w.windows());
+                    let rates = net.lock().ok().and_then(|n| n.clone());
                     let groups = processes.sample(
                         &root,
                         started.duration_since(last).as_secs_f64(),
                         windows.as_ref(),
                         &snapshot.gpus,
+                        rates.as_ref(),
                     );
                     last = started;
                     serde_json::to_string(&groups).unwrap_or_default()
@@ -199,6 +212,28 @@ impl qobject::SystemMonitor {
 
     pub fn set_processes_visible(&self, visible: bool) {
         self.processes_visible.store(visible, Ordering::Relaxed);
+    }
+
+    /// `networkAccess`: "pending", then "active"; back to "" when the helper
+    /// stops, or the error message.
+    pub fn enable_network_monitor(mut self: Pin<&mut Self>) {
+        if matches!(
+            self.network_access.to_string().as_str(),
+            "pending" | "active"
+        ) {
+            return;
+        }
+        self.as_mut().set_network_access(QString::from("pending"));
+        let qt_thread = self.qt_thread();
+        let net = self.net.clone();
+        thread::spawn(move || {
+            let on_start = qt_thread.clone();
+            let r = taskmgr_core::netflow::run_helper(&net, move || {
+                let _ = on_start.queue(|o| o.set_network_access(QString::from("active")));
+            });
+            let state = r.err().unwrap_or_default();
+            let _ = qt_thread.queue(move |o| o.set_network_access(QString::from(&state)));
+        });
     }
 
     /// `energyRequest` becomes "pending", then "granted" or the error.

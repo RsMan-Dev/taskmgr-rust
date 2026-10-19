@@ -127,7 +127,7 @@ pub fn info(root: &Root) -> CpuInfo {
         .find_map(|f| root.read_u64(format!("/sys/devices/system/cpu/cpu0/cpufreq/{f}")))
         .map(|khz| khz as f64 / 1000.0);
     CpuInfo {
-        model: model.unwrap_or_else(|| "Processeur".to_owned()),
+        model: model.unwrap_or_else(|| "CPU".to_owned()),
         sockets: sockets.len().max(1),
         cores: if cores.is_empty() {
             logical

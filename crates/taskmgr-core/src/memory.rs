@@ -50,7 +50,13 @@ fn vendor_from_part(part: &str) -> Option<&'static str> {
 /// Memory slots from udev's dmi_memory_id, readable without root.
 fn dimms(root: &Root) -> (Vec<Dimm>, usize) {
     let known = |v: Option<String>| {
-        v.filter(|s| !matches!(s.as_str(), "Unknown" | "Not Specified" | "None"))
+        // Placeholders firmware leaves in SMBIOS tables.
+        v.filter(|s| {
+            !matches!(
+                s.as_str(),
+                "Unknown" | "Not Specified" | "None" | "<BAD INDEX>" | "Undefined" | "NO DIMM"
+            )
+        })
     };
     let prop =
         |i: usize, k: &str| known(root.udev_property("+dmi:id", &format!("MEMORY_DEVICE_{i}_{k}")));

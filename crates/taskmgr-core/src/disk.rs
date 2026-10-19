@@ -123,24 +123,37 @@ fn backing_disks(root: &Root, name: &str, out: &mut BTreeSet<String>) {
 
 /// Bind mounts nested under a mount of the same device are dropped.
 fn mounts_by_disk(root: &Root) -> BTreeMap<String, Vec<String>> {
-    let mounts = root.read("/proc/mounts").unwrap_or_default();
+    // mountinfo gives the subtree each mount shows: a mount whose subtree
+    // lies inside one already listed for the same device is a bind mount
+    // (/nix/store, Docker volumes) and is left out.
+    let info = root.read("/proc/self/mountinfo").unwrap_or_default();
     let mut by_source: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for line in mounts.lines() {
-        let mut f = line.split_whitespace();
-        let (Some(src), Some(target)) = (f.next(), f.next()) else {
+    let mut seen: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for line in info.lines() {
+        let f: Vec<&str> = line.split_whitespace().collect();
+        let Some(dash) = f.iter().position(|x| *x == "-") else {
+            continue;
+        };
+        let (Some(dev), Some(subtree), Some(target), Some(src)) =
+            (f.get(2), f.get(3), f.get(4), f.get(dash + 2))
+        else {
             continue;
         };
         if !src.starts_with("/dev/") {
             continue;
         }
-        let target = target.replace("\\040", " ");
-        let points = by_source.entry(src.to_owned()).or_default();
-        if !points
+        let roots = seen.entry((*dev).to_owned()).or_default();
+        let inside = roots
             .iter()
-            .any(|p| p == "/" || target.starts_with(&format!("{p}/")))
-        {
-            points.push(target);
+            .any(|r| r == "/" || subtree == r || subtree.starts_with(&format!("{r}/")));
+        if inside {
+            continue;
         }
+        roots.push((*subtree).to_owned());
+        by_source
+            .entry((*src).to_owned())
+            .or_default()
+            .push(target.replace("\\040", " "));
     }
     let mut out: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for (src, points) in by_source {

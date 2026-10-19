@@ -8,6 +8,7 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "Login session"),
         QT_TRANSLATE_NOOP("core", "Docker container"),
         QT_TRANSLATE_NOOP("core", "Kernel"),
+        QT_TRANSLATE_NOOP("core", "CPU"),
         QT_TRANSLATE_NOOP("core", "Application"),
         QT_TRANSLATE_NOOP("core", "Motherboard"),
         QT_TRANSLATE_NOOP("core", "ACPI (thermal zone)"),
@@ -25,6 +26,7 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "Authorization denied or cancelled."),
         QT_TRANSLATE_NOOP("core", "renice not found."),
         QT_TRANSLATE_NOOP("core", "Invalid unit name."),
+        QT_TRANSLATE_NOOP("core", "taskmgr-nethelper not found."),
     ]
 
     readonly property var patterns: [
@@ -32,6 +34,7 @@ QtObject {
         [/^Disk (\d+) \((.*)\)$/, QT_TRANSLATE_NOOP("core", "Disk %1 (%2)")],
         [/^Network card (.+)$/, QT_TRANSLATE_NOOP("core", "Network card %1")],
         [/^Mount (.+)$/, QT_TRANSLATE_NOOP("core", "Mount %1")],
+        [/^Docker container \((.+)\)$/, QT_TRANSLATE_NOOP("core", "Docker container (%1)")],
         [/^The command failed \((.*)\)\.$/, QT_TRANSLATE_NOOP("core", "The command failed (%1).")],
         [/^(.+) \(removable\)$/, QT_TRANSLATE_NOOP("core", "%1 (removable)")],
     ]

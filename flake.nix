@@ -30,7 +30,7 @@
           version = "0.1.0";
           src = self;
           cargoLock.lockFile = ./Cargo.lock;
-          cargoBuildFlags = [ "-p" "taskmgr" ];
+          cargoBuildFlags = [ "-p" "taskmgr" "-p" "taskmgr-core" "--bins" ];
           cargoTestFlags = [ "--workspace" ];
 
           nativeBuildInputs = [ pkgs.pkg-config pkgs.kdePackages.wrapQtAppsHook pkgs.kdePackages.qttools ];
@@ -54,6 +54,27 @@
           };
         };
       });
+
+      # Static core binaries (examples + network helper), no Qt: runs on any
+      # Linux of the same architecture. Used to collect data on servers.
+      probes = forAll (pkgs:
+        let
+          probe = p: p.pkgsStatic.rustPlatform.buildRustPackage {
+            pname = "taskmgr-probe";
+            version = "0.1.0";
+            src = self;
+            cargoLock.lockFile = ./Cargo.lock;
+            cargoBuildFlags = [ "-p" "taskmgr-core" "--examples" "--bins" ];
+            doCheck = false;
+            postInstall = ''
+              find target -path '*/release/examples/*' -maxdepth 4 -type f -executable ! -name '*-*' \
+                -exec install -Dm755 -t $out/bin {} \;
+            '';
+          };
+        in {
+          native = probe pkgs;
+          aarch64 = probe pkgs.pkgsCross.aarch64-multiplatform;
+        });
 
       devShells = forAll (pkgs: {
         default = pkgs.mkShell {

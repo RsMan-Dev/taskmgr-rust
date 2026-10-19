@@ -37,6 +37,10 @@ ColumnLayout {
               total: s ? Format.num(s.disks.reduce((a, d) => a + d.read_bps + d.write_bps, 0) / 1048576, 1) + " " + qsTr("MB/s") : "",
               value: x => x.disk_bps ?? -1, reference: 20 * 1024 * 1024,
               text: v => v < 0 ? "" : Format.num(v / 1048576, 1) + " " + qsTr("MB/s") },
+            { key: "net", title: qsTr("Network"),
+              total: s ? Format.bits(s.networks.reduce((a, n) => a + n.rx_bps + n.tx_bps, 0)) : "",
+              value: x => x.net ? x.net[0] + x.net[1] : -1, reference: 5 * 1024 * 1024,
+              text: v => v < 0 ? "" : Format.bits(v) },
         ]
         for (const g of dedicatedGpus) {
             cols.push({ key: "gpu" + g.index, title: qsTr("GPU %1").arg(g.index), tip: g.name, total: Format.percent(g.usage),
@@ -188,6 +192,33 @@ ColumnLayout {
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
+    }
+
+    Kirigami.InlineMessage {
+        readonly property string access: page.monitor.networkAccess
+        readonly property bool failed: access !== "" && access !== "pending" && access !== "active"
+        visible: !Prefs.hiddenList.includes("net") && access !== "active"
+        type: failed ? Kirigami.MessageType.Error : Kirigami.MessageType.Information
+        text: access === "pending" ? qsTr("Waiting for the administrator password…")
+            : failed ? Tr.core(access)
+            : qsTr("The Network column measures each process's traffic and needs administrator rights.")
+        actions: [
+            Kirigami.Action {
+                text: qsTr("Enable…")
+                icon.name: "security-high"
+                enabled: page.monitor.networkAccess !== "pending"
+                onTriggered: page.monitor.enableNetworkMonitor()
+            },
+            Kirigami.Action {
+                text: qsTr("Hide the column")
+                icon.name: "view-hidden"
+                onTriggered: Prefs.toggleColumn("net")
+            }
+        ]
+        Layout.fillWidth: true
+        Layout.leftMargin: Kirigami.Units.gridUnit
+        Layout.rightMargin: Kirigami.Units.gridUnit
+        Layout.bottomMargin: Kirigami.Units.smallSpacing
     }
 
     Kirigami.InlineMessage {

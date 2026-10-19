@@ -26,6 +26,9 @@ pub struct ProcessRow {
     pub exe: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub windows: Vec<String>,
+    /// Received and sent bytes per second; only while the root helper runs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub net: Option<(f64, f64)>,
     /// Keyed by GPU index, dedicated GPUs only.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub gpu: BTreeMap<usize, f64>,
@@ -44,6 +47,7 @@ pub struct ProcessGroup {
     pub memory: u64,
     pub disk_bps: Option<f64>,
     pub windows: Vec<String>,
+    pub net: Option<(f64, f64)>,
     pub gpu: BTreeMap<usize, f64>,
     pub gpu_memory: BTreeMap<usize, u64>,
     pub processes: Vec<ProcessRow>,
@@ -190,6 +194,7 @@ impl ProcessSampler {
         secs: f64,
         windows: Option<&HashMap<u32, Vec<Window>>>,
         gpus: &[GpuSnapshot],
+        net: Option<&HashMap<u32, (f64, f64)>>,
     ) -> Vec<ProcessGroup> {
         let mut gpu_use: HashMap<u32, Vec<(usize, f64, Option<u64>)>> = HashMap::new();
         for g in gpus.iter().filter(|g| g.dedicated) {
@@ -277,6 +282,7 @@ impl ProcessSampler {
                     .ok()
                     .map(|p| p.to_string_lossy().into_owned()),
                 windows: Vec::new(),
+                net: net.map(|n| n.get(&pid).copied().unwrap_or((0.0, 0.0))),
                 gpu: gpu_use
                     .get(&pid)
                     .map(|v| v.iter().map(|(i, u, _)| (*i, *u)).collect())
@@ -313,6 +319,7 @@ impl ProcessSampler {
                     memory: 0,
                     disk_bps: None,
                     windows: Vec::new(),
+                    net: None,
                     gpu: BTreeMap::new(),
                     gpu_memory: BTreeMap::new(),
                     processes: Vec::new(),
@@ -328,6 +335,11 @@ impl ProcessSampler {
                 g.disk_bps = Some(g.disk_bps.unwrap_or(0.0) + d);
             }
             g.windows.extend(row.windows.iter().cloned());
+            if let Some((rx, tx)) = row.net {
+                let (grx, gtx) = g.net.get_or_insert((0.0, 0.0));
+                *grx += rx;
+                *gtx += tx;
+            }
             for (i, u) in &row.gpu {
                 *g.gpu.entry(*i).or_default() += u;
             }
@@ -348,6 +360,12 @@ impl ProcessSampler {
                     .map_or_else(|| "Application".to_owned(), |p| p.name.clone());
             }
             g.processes.sort_by_key(|p| p.pid);
+            if g.key.starts_with("system:docker-") {
+                let pids: Vec<u32> = g.processes.iter().map(|p| p.pid).collect();
+                if let Some(main) = g.processes.iter().find(|p| !pids.contains(&p.ppid)) {
+                    g.name = format!("Docker container ({})", main.name);
+                }
+            }
             // Like Windows: an application is something with a window.
             if windows.is_some() {
                 g.kind = match (g.kind, g.windows.is_empty()) {
@@ -613,6 +631,7 @@ mod tests {
                 disk_bps: None,
                 threads: 1,
                 command: String::new(),
+                net: None,
                 ppid,
                 user: String::new(),
                 state: 'S',

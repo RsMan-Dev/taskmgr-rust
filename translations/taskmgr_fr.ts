@@ -803,108 +803,133 @@
         <translation>Mo/s</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="42" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="40" />
+        <source>Network</source>
+        <translation>Réseau</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="46" />
         <source>GPU %1</source>
         <translation>GPU %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="44" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="48" />
         <source>GPU %1 mem.</source>
         <translation>Mém. GPU %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="48" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="52" />
         <source>Threads</source>
         <translation>Threads</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="56" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="60" />
         <source>Apps</source>
         <translation>Applications</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="57" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="61" />
         <source>Background processes</source>
         <translation>Processus en arrière-plan</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="58" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="62" />
         <source>System processes</source>
         <translation>Processus système</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="137" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="141" />
         <source>Access denied: this process belongs to another user or to the system.</source>
         <translation>Accès refusé : ce processus appartient à un autre utilisateur ou au système.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="161" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="165" />
         <source>Processes</source>
         <translation>Processus</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="165" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="169" />
         <source>Search a name or PID</source>
         <translation>Rechercher un nom ou un PID</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="173" />
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="334" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="177" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="365" />
         <source>End task</source>
         <translation>Fin de tâche</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="177" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="181" />
         <source>Asks the process to quit (SIGTERM)</source>
         <translation>Demande au processus de se terminer (SIGTERM)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="183" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="187" />
         <source>Kill</source>
         <translation>Tuer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="187" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="191" />
         <source>Stops the process at once, without giving it time to save (SIGKILL)</source>
         <translation>Arrête le processus immédiatement, sans lui laisser le temps de sauvegarder (SIGKILL)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="218" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="202" />
+        <source>Waiting for the administrator password…</source>
+        <translation>En attente du mot de passe administrateur…</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="204" />
+        <source>The Network column measures each process's traffic and needs administrator rights.</source>
+        <translation>La colonne Réseau mesure le trafic de chaque processus et demande les droits administrateur.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="207" />
+        <source>Enable…</source>
+        <translation>Activer…</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="213" />
+        <source>Hide the column</source>
+        <translation>Masquer la colonne</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="249" />
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="320" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="351" />
         <source>No matching process</source>
         <translation>Aucun processus ne correspond</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="339" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="370" />
         <source>Kill task</source>
         <translation>Tuer la tâche</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="347" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="378" />
         <source>Collapse</source>
         <translation>Réduire</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="347" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="378" />
         <source>Expand</source>
         <translation>Développer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="352" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="383" />
         <source>Copy command line</source>
         <translation>Copier la ligne de commande</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="384" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="415" />
         <source>CPU as % of one core (like top)</source>
         <translation>Processeur en % d'un cœur (comme top)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="402" />
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="433" />
         <source>Right click: choose columns</source>
         <translation>Clic droit : choisir les colonnes</translation>
     </message>
@@ -1356,116 +1381,131 @@
     </message>
     <message>
         <location filename="../crates/taskmgr/qml/Tr.qml" line="11" />
+        <source>CPU</source>
+        <translation>Processeur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="12" />
         <source>Application</source>
         <translation>Application</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="12" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="13" />
         <source>Motherboard</source>
         <translation>Carte mère</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="13" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="14" />
         <source>ACPI (thermal zone)</source>
         <translation>ACPI (zone thermique)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="14" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="15" />
         <source>Tctl (control)</source>
         <translation>Tctl (contrôle)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="15" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="16" />
         <source>Die</source>
         <translation>Die</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="16" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="17" />
         <source>Package</source>
         <translation>Boîtier</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="17" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="18" />
         <source>Edge</source>
         <translation>Bord</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="18" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="19" />
         <source>Junction</source>
         <translation>Jonction</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="19" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="20" />
         <source>Memory</source>
         <translation>Mémoire</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="20" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="21" />
         <source>SD card</source>
         <translation>Carte SD</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="21" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="22" />
         <source>Optical</source>
         <translation>Optique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="22" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="23" />
         <source>pkexec not found (polkit package).</source>
         <translation>pkexec est introuvable (paquet polkit).</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="23" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="24" />
         <source>chown not found.</source>
         <translation>chown est introuvable.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="24" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="25" />
         <source>No RAPL counter on this machine.</source>
         <translation>Aucun compteur RAPL sur cette machine.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="25" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="26" />
         <source>Authorization denied or cancelled.</source>
         <translation>Autorisation refusée ou annulée.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="26" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="27" />
         <source>renice not found.</source>
         <translation>renice est introuvable.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="27" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="28" />
         <source>Invalid unit name.</source>
         <translation>Nom d'unité invalide.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="31" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="29" />
+        <source>taskmgr-nethelper not found.</source>
+        <translation>taskmgr-nethelper est introuvable.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="33" />
         <source>Sensor %1</source>
         <translation>Capteur %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="32" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="34" />
         <source>Disk %1 (%2)</source>
         <translation>Disque %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="33" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="35" />
         <source>Network card %1</source>
         <translation>Carte réseau %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="34" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="36" />
         <source>Mount %1</source>
         <translation>Montage %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="35" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="37" />
+        <source>Docker container (%1)</source>
+        <translation>Conteneur Docker (%1)</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="38" />
         <source>The command failed (%1).</source>
         <translation>La commande a échoué (%1).</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="36" />
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="39" />
         <source>%1 (removable)</source>
         <translation>%1 (amovible)</translation>
     </message>

@@ -11,6 +11,7 @@ pub mod hwmon;
 pub mod identity;
 pub mod memory;
 pub mod net;
+pub mod netflow;
 pub mod process;
 pub mod sensors;
 pub mod services;

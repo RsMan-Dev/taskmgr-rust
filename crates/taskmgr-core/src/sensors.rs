@@ -92,7 +92,7 @@ impl SensorSampler {
             } else if let Some(g) = gpu {
                 (format!("GPU {} ({})", g.index, g.name), "gpu")
             } else if matches!(chip.name.as_str(), "k10temp" | "zenpower" | "coretemp") {
-                ("Processeur".to_owned(), "cpu")
+                ("CPU".to_owned(), "cpu")
             } else if BOARD_CHIPS.iter().any(|b| chip.name.starts_with(b)) {
                 ("Motherboard".to_owned(), "board")
             } else if chip.name == "acpitz" {
