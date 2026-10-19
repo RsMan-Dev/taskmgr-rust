@@ -1,12 +1,15 @@
 //! System sampling for taskmgr: CPU, memory, disks, network and GPUs, read
 //! from `/proc` and `/sys` without root.
 
+pub mod catalog;
 pub mod cpu;
 pub mod disk;
 pub mod gpu;
 pub mod hwmon;
+pub mod identity;
 pub mod memory;
 pub mod net;
+pub mod process;
 pub mod sysinfo;
 pub mod util;
 
@@ -14,6 +17,7 @@ use std::time::Instant;
 
 use serde::Serialize;
 
+pub use process::{ProcessGroup, ProcessSampler};
 pub use sysinfo::{SystemInfo, system_info};
 pub use util::Root;
 

@@ -11,6 +11,7 @@ pub struct SystemInfo {
     pub architecture: String,
     pub desktop: Option<String>,
     pub session: Option<String>,
+    pub vendor: Option<String>,
     pub manufacturer: Option<String>,
     pub product: Option<String>,
     pub board: Option<String>,
@@ -29,18 +30,19 @@ fn os_release(root: &Root) -> Option<String> {
         .map(|v| v.trim_matches('"').to_owned())
 }
 
-/// Vendor and name joined, skipping the placeholders firmware vendors leave.
+/// Skips the placeholders firmware vendors leave.
+fn dmi(root: &Root, field: &str) -> Option<String> {
+    root.read_trimmed(format!("/sys/class/dmi/id/{field}"))
+        .filter(|v| {
+            let l = v.to_lowercase();
+            !(l.contains("to be filled")
+                || l.contains("default string")
+                || l == "system product name")
+        })
+}
+
 fn dmi_pair(root: &Root, vendor: &str, name: &str) -> Option<String> {
-    let clean = |f: &str| {
-        root.read_trimmed(format!("/sys/class/dmi/id/{f}"))
-            .filter(|v| {
-                let l = v.to_lowercase();
-                !(l.contains("to be filled")
-                    || l.contains("default string")
-                    || l == "system product name")
-            })
-    };
-    match (clean(vendor), clean(name)) {
+    match (dmi(root, vendor), dmi(root, name)) {
         (Some(v), Some(n)) => Some(format!("{v} {n}")),
         (v, n) => v.or(n),
     }
@@ -74,6 +76,7 @@ pub fn system_info(root: &Root) -> SystemInfo {
         architecture: std::env::consts::ARCH.to_owned(),
         desktop: env("XDG_CURRENT_DESKTOP"),
         session: env("XDG_SESSION_TYPE"),
+        vendor: dmi(root, "sys_vendor"),
         manufacturer: dmi_pair(root, "sys_vendor", "product_name"),
         product: root.read_trimmed("/sys/class/dmi/id/product_family"),
         board: dmi_pair(root, "board_vendor", "board_name"),

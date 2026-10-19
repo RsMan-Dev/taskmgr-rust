@@ -16,8 +16,9 @@ QQC2.ApplicationWindow {
 
     readonly property var snapshot: monitor.snapshot !== "" ? JSON.parse(monitor.snapshot) : null
     readonly property var systemInfo: monitor.info !== "" ? JSON.parse(monitor.info) : null
+    readonly property var processes: monitor.processes !== "" ? JSON.parse(monitor.processes) : null
 
-    property int currentPage: 1
+    property int currentPage: 0
     property bool sidebarCollapsed: false
 
     SystemMonitor {
@@ -93,7 +94,11 @@ QQC2.ApplicationWindow {
                 anchors.fill: parent
                 currentIndex: window.currentPage
 
-                ProcessesPage {}
+                ProcessesPage {
+                    groups: window.processes
+                    snapshot: window.snapshot
+                    monitor: monitor
+                }
                 PerformancePage {
                     snapshot: window.snapshot
                 }

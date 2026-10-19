@@ -1,0 +1,30 @@
+import QtQuick
+import QtQuick.Controls as QQC2
+import org.kde.kirigami as Kirigami
+
+// Tinted like the Windows heat map, in the theme's warning hue.
+Rectangle {
+    property real value: 0
+    property real reference: 1
+    property alias text: label.text
+    property bool emphasized: false
+
+    readonly property real load: Math.min(1, Math.max(0, value / reference))
+
+    color: Qt.alpha(Kirigami.Theme.neutralTextColor, load > 0.01 ? 0.06 + 0.4 * Math.sqrt(load) : 0)
+
+    Behavior on color {
+        ColorAnimation { duration: Kirigami.Units.longDuration }
+    }
+
+    QQC2.Label {
+        id: label
+        anchors.fill: parent
+        anchors.rightMargin: Kirigami.Units.largeSpacing
+        horizontalAlignment: Text.AlignRight
+        verticalAlignment: Text.AlignVCenter
+        font.weight: parent.emphasized ? Font.DemiBold : Font.Normal
+        font.features: { "tnum": 1 }
+        elide: Text.ElideLeft
+    }
+}

@@ -16,6 +16,7 @@ Status: early prototype. See `docs/` for design notes.
 nix develop          # Rust toolchain, Qt 6, Kirigami
 cargo run -p taskmgr
 cargo run -p taskmgr-core --example snapshot   # raw measurements as JSON
+cargo run -p taskmgr-core --example processes  # processes grouped by application
 ```
 
 Layout:

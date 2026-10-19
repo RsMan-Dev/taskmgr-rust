@@ -256,141 +256,151 @@ Item {
         }
     }
 
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        QQC2.ScrollView {
-            Layout.preferredWidth: Kirigami.Units.gridUnit * 15
-            Layout.fillWidth: false
+        PageHeader {
+            title: "Performances"
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
             Layout.fillHeight: true
-            QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
+            spacing: 0
 
-            ListView {
-                id: list
-                model: page.keyList === "" ? [] : page.keyList.split(",")
-                spacing: Kirigami.Units.smallSpacing
-                topMargin: Kirigami.Units.largeSpacing
-                leftMargin: Kirigami.Units.largeSpacing
-                rightMargin: Kirigami.Units.largeSpacing
-                bottomMargin: Kirigami.Units.largeSpacing
-                clip: true
-                // Selection follows the key, not ListView.currentIndex: the
-                // view resets its index whenever a device comes or goes.
-                currentIndex: -1
-                activeFocusOnTab: true
+            QQC2.ScrollView {
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 15
+                Layout.fillWidth: false
+                Layout.fillHeight: true
+                QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
 
-                function step(delta) {
-                    const keys = model
-                    const i = Math.max(0, keys.indexOf(page.selectedKey)) + delta
-                    if (i >= 0 && i < keys.length) {
-                        page.selectedKey = keys[i]
-                        positionViewAtIndex(i, ListView.Contain)
+                ListView {
+                    id: list
+                    model: page.keyList === "" ? [] : page.keyList.split(",")
+                    spacing: Kirigami.Units.smallSpacing
+                    topMargin: Kirigami.Units.largeSpacing
+                    leftMargin: Kirigami.Units.largeSpacing
+                    rightMargin: Kirigami.Units.largeSpacing
+                    bottomMargin: Kirigami.Units.largeSpacing
+                    clip: true
+                    // Selection follows the key, not ListView.currentIndex: the
+                    // view resets its index whenever a device comes or goes.
+                    currentIndex: -1
+                    activeFocusOnTab: true
+
+                    function step(delta) {
+                        const keys = model
+                        const i = Math.max(0, keys.indexOf(page.selectedKey)) + delta
+                        if (i >= 0 && i < keys.length) {
+                            page.selectedKey = keys[i]
+                            positionViewAtIndex(i, ListView.Contain)
+                        }
                     }
-                }
-                Keys.onUpPressed: step(-1)
-                Keys.onDownPressed: step(1)
+                    Keys.onUpPressed: step(-1)
+                    Keys.onDownPressed: step(1)
 
-                delegate: ResourceCard {
-                    required property string modelData
-                    required property int index
-                    width: ListView.view.width - ListView.view.leftMargin - ListView.view.rightMargin
-                    resource: page.resource(modelData) ?? { title: "", subtitle: "", summary: "", series: [], maximum: 100, color: "gray" }
-                    selected: modelData === page.selectedKey
-                    onClicked: {
-                        page.selectedKey = modelData
-                        ListView.view.forceActiveFocus()
+                    delegate: ResourceCard {
+                        required property string modelData
+                        required property int index
+                        width: ListView.view.width - ListView.view.leftMargin - ListView.view.rightMargin
+                        resource: page.resource(modelData) ?? { title: "", subtitle: "", summary: "", series: [], maximum: 100, color: "gray" }
+                        selected: modelData === page.selectedKey
+                        onClicked: {
+                            page.selectedKey = modelData
+                            ListView.view.forceActiveFocus()
+                        }
                     }
                 }
             }
-        }
 
-        Kirigami.Separator {
-            Layout.fillHeight: true
-        }
+            Kirigami.Separator {
+                Layout.fillHeight: true
+            }
 
-        QQC2.ScrollView {
-            id: detailScroll
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            contentWidth: availableWidth
+            QQC2.ScrollView {
+                id: detailScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                contentWidth: availableWidth
 
-            ColumnLayout {
-                id: detail
-                readonly property var r: page.selected
-                visible: r !== null
-                width: detailScroll.availableWidth
-                spacing: Kirigami.Units.largeSpacing
+                ColumnLayout {
+                    id: detail
+                    readonly property var r: page.selected
+                    visible: r !== null
+                    width: detailScroll.availableWidth
+                    spacing: Kirigami.Units.largeSpacing
 
-                // Outer margins: a ColumnLayout has none of its own.
-                Item { Layout.preferredHeight: Kirigami.Units.smallSpacing }
+                    // Outer margins: a ColumnLayout has none of its own.
+                    Item { Layout.preferredHeight: Kirigami.Units.smallSpacing }
 
-                RowLayout {
-                    Layout.leftMargin: Kirigami.Units.gridUnit
-                    Layout.rightMargin: Kirigami.Units.gridUnit
-                    Kirigami.Heading {
-                        text: detail.r?.title ?? ""
-                        level: 1
-                    }
-                    QQC2.Label {
-                        text: detail.r?.header ?? ""
-                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.2
-                        horizontalAlignment: Text.AlignRight
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
-                }
-
-                ChartBlock {
-                    chart: detail.r
-                    accent: detail.r?.color ?? "gray"
-                    chartHeight: Math.max(Kirigami.Units.gridUnit * 8, page.height * (detail.r?.secondChart ? 0.32 : 0.45))
-                }
-
-                ChartBlock {
-                    visible: !!detail.r?.secondChart
-                    chart: detail.r?.secondChart ?? null
-                    accent: detail.r?.color ?? "gray"
-                    chartHeight: Math.max(Kirigami.Units.gridUnit * 5, page.height * 0.18)
-                }
-
-                // Live values and static details side by side, stacked when narrow.
-                GridLayout {
-                    columns: detail.width > Kirigami.Units.gridUnit * 34 ? 2 : 1
-                    columnSpacing: Kirigami.Units.gridUnit * 2
-                    rowSpacing: Kirigami.Units.gridUnit
-                    Layout.leftMargin: Kirigami.Units.gridUnit
-                    Layout.rightMargin: Kirigami.Units.gridUnit
-                    Layout.bottomMargin: Kirigami.Units.gridUnit
-
-                    GridLayout {
-                        columns: 2
-                        columnSpacing: Kirigami.Units.gridUnit * 2
-                        rowSpacing: Kirigami.Units.largeSpacing
-                        Layout.alignment: Qt.AlignTop
-
-                        Repeater {
-                            model: detail.r?.stats ?? []
-                            Stat {
-                                required property var modelData
-                                label: modelData[0]
-                                value: modelData[1]
-                            }
+                    RowLayout {
+                        Layout.leftMargin: Kirigami.Units.gridUnit
+                        Layout.rightMargin: Kirigami.Units.gridUnit
+                        Kirigami.Heading {
+                            text: detail.r?.title ?? ""
+                            level: 1
+                        }
+                        QQC2.Label {
+                            text: detail.r?.header ?? ""
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.2
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                     }
 
-                    ColumnLayout {
-                        spacing: Kirigami.Units.smallSpacing
-                        Layout.alignment: Qt.AlignTop
-                        Layout.fillWidth: true
+                    ChartBlock {
+                        chart: detail.r
+                        accent: detail.r?.color ?? "gray"
+                        chartHeight: Math.max(Kirigami.Units.gridUnit * 8, page.height * (detail.r?.secondChart ? 0.32 : 0.45))
+                    }
 
-                        Repeater {
-                            model: detail.r?.details ?? []
-                            DetailRow {
-                                required property var modelData
-                                label: modelData[0]
-                                value: String(modelData[1])
-                                Layout.fillWidth: true
+                    ChartBlock {
+                        visible: !!detail.r?.secondChart
+                        chart: detail.r?.secondChart ?? null
+                        accent: detail.r?.color ?? "gray"
+                        chartHeight: Math.max(Kirigami.Units.gridUnit * 5, page.height * 0.18)
+                    }
+
+                    // Live values and static details side by side, stacked when narrow.
+                    GridLayout {
+                        columns: detail.width > Kirigami.Units.gridUnit * 34 ? 2 : 1
+                        columnSpacing: Kirigami.Units.gridUnit * 2
+                        rowSpacing: Kirigami.Units.gridUnit
+                        Layout.leftMargin: Kirigami.Units.gridUnit
+                        Layout.rightMargin: Kirigami.Units.gridUnit
+                        Layout.bottomMargin: Kirigami.Units.gridUnit
+
+                        GridLayout {
+                            columns: 2
+                            columnSpacing: Kirigami.Units.gridUnit * 2
+                            rowSpacing: Kirigami.Units.largeSpacing
+                            Layout.alignment: Qt.AlignTop
+
+                            Repeater {
+                                model: detail.r?.stats ?? []
+                                Stat {
+                                    required property var modelData
+                                    label: modelData[0]
+                                    value: modelData[1]
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            spacing: Kirigami.Units.smallSpacing
+                            Layout.alignment: Qt.AlignTop
+                            Layout.fillWidth: true
+
+                            Repeater {
+                                model: detail.r?.details ?? []
+                                DetailRow {
+                                    required property var modelData
+                                    label: modelData[0]
+                                    value: String(modelData[1])
+                                    Layout.fillWidth: true
+                                }
                             }
                         }
                     }
