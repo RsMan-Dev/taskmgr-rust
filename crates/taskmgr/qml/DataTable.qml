@@ -6,6 +6,8 @@ import org.kde.kirigami as Kirigami
 // Flat sortable table. `columns`: { key, title, width (0: fills, absent:
 // fits the content), text(row), value(row) for sorting, align, dim(row),
 // widest: sample texts for numbers }. `rows`: plain objects.
+// A column with `guides` draws tree lines from row.depth and row.guide
+// ({ through: [bool per depth], last }), one `indentUnit` per level.
 // `groupBy(row)` folds rows sharing a key under a row built by
 // `groupRow(key, rows)`, expanded with the chevron of the first column.
 ColumnLayout {
@@ -23,8 +25,11 @@ ColumnLayout {
     property var groupBy: null
     property var groupRow: null
     property var expanded: ({})
+    // Shows every group open (while searching) without touching `expanded`.
+    property bool expandAll: false
 
     readonly property var selectedRow: index[selectedKey] ?? null
+    property real indentUnit: Kirigami.Units.gridUnit
     readonly property real chevron: groupBy ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0
     readonly property real fillMinimum: Kirigami.Units.gridUnit * 12
     readonly property var widths: {
@@ -82,7 +87,7 @@ ColumnLayout {
         const out = []
         for (const h of order(heads)) {
             out.push(h)
-            if (h._group !== undefined && expanded[h._group]) {
+            if (h._group !== undefined && isOpen(h._group)) {
                 for (const r of order(h._rows.slice())) {
                     out.push(Object.assign({}, r, { _child: true }))
                 }
@@ -106,6 +111,10 @@ ColumnLayout {
 
     function rowKey(r) {
         return r._group !== undefined ? "group:" + r._group : keyOf(r)
+    }
+
+    function isOpen(group) {
+        return expandAll || !!expanded[group]
     }
 
     function toggle(group) {
@@ -202,8 +211,8 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
-        QQC2.ScrollBar.horizontal: QQC2.ScrollBar {}
+        QQC2.ScrollBar.vertical: ThinScrollBar {}
+        QQC2.ScrollBar.horizontal: ThinScrollBar {}
 
         model: KeyedModel {
             id: model
@@ -260,6 +269,34 @@ ColumnLayout {
                         text: rowItem.row ? String(modelData.text(rowItem.row)) : ""
                         opacity: rowItem.row && modelData.dim && modelData.dim(rowItem.row) ? 0.55 : 1
 
+                        // Tree guide lines.
+                        Repeater {
+                            model: cellLabel.modelData.guides && rowItem.row?.guide ? rowItem.row.depth : 0
+                            Item {
+                                required property int index
+                                readonly property int level: index + 1
+                                readonly property bool own: level === rowItem.row.depth
+                                readonly property real lineX: Kirigami.Units.largeSpacing + (level - 1) * table.indentUnit + table.indentUnit / 2
+                                readonly property color ink: Qt.alpha(Kirigami.Theme.textColor, 0.3)
+                                anchors.fill: parent
+                                Rectangle {
+                                    visible: parent.own || rowItem.row.guide.through[parent.level]
+                                    x: parent.lineX
+                                    width: 1
+                                    height: parent.own && rowItem.row.guide.last ? parent.height / 2 : parent.height
+                                    color: parent.ink
+                                }
+                                Rectangle {
+                                    visible: parent.own
+                                    x: parent.lineX
+                                    y: Math.round(parent.height / 2)
+                                    width: table.indentUnit / 2 - 2
+                                    height: 1
+                                    color: parent.ink
+                                }
+                            }
+                        }
+
                         Kirigami.Icon {
                             readonly property var group: rowItem.row?._group
                             visible: cellLabel.first && group !== undefined
@@ -267,7 +304,7 @@ ColumnLayout {
                             anchors.verticalCenter: parent.verticalCenter
                             width: Kirigami.Units.iconSizes.small
                             height: width
-                            source: Icons.of(table.expanded[group] ? "collapse" : "expand", Kirigami.Theme.textColor)
+                            source: Icons.of(table.expandAll || table.expanded[group] ? "collapse" : "expand", Kirigami.Theme.textColor)
                             TapHandler {
                                 onTapped: table.toggle(parent.group)
                             }

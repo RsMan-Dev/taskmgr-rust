@@ -16,6 +16,8 @@ QtObject {
         "nav-services": "puzzle_piece",
         "nav-users": "people",
         "nav-connections": "globe",
+        "nav-crashes": "bug",
+        "journal": "document_text",
         "tree": "text_bullet_list_tree",
         "nav-system": "desktop",
         "nav-settings": "settings",

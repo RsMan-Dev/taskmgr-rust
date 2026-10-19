@@ -27,6 +27,8 @@ ColumnLayout {
 
     property bool tree: false
 
+    signal journalRequested(string title, var query)
+
     // Depth-first order under each parent, children sorted by pid.
     function treeOrder(list) {
         const byPid = {}
@@ -45,15 +47,16 @@ ColumnLayout {
                 roots.push(p)
             }
         }
+        // `through[i]`: the ancestor at depth i has later siblings, so its
+        // guide line continues past this row.
         const out = []
-        const walk = (p, depth) => {
-            out.push(Object.assign({ depth: depth }, p))
-            for (const c of (children[p.pid] ?? []).sort((a, b) => a.pid - b.pid)) {
-                walk(c, depth + 1)
-            }
+        const walk = (p, depth, through, last) => {
+            out.push(Object.assign({ depth: depth, guide: { through: through, last: last } }, p))
+            const kids = (children[p.pid] ?? []).sort((a, b) => a.pid - b.pid)
+            kids.forEach((c, i) => walk(c, depth + 1, through.concat([!last]), i === kids.length - 1))
         }
         for (const r of roots.sort((a, b) => a.pid - b.pid)) {
-            walk(r, 0)
+            walk(r, 0, [], true)
         }
         return out
     }
@@ -206,7 +209,7 @@ ColumnLayout {
         Layout.fillHeight: true
         columns: [
             { key: "name", title: qsTr("Name"), maxWidth: page.unit * 20, text: r => r.name, dim: r => r.state === "T",
-              indent: r => page.tree ? (r.depth ?? 0) * page.unit : 0 },
+              indent: r => page.tree ? (r.depth ?? 0) * page.unit : 0, guides: page.tree },
             { key: "pid", title: qsTr("PID"), text: r => r.pid, value: r => r.pid, align: Qt.AlignRight, widest: ["4194304"] },
             { key: "state", title: qsTr("Status"), text: r => page.stateName(r.state) },
             { key: "user", title: qsTr("User"), text: r => r.user },
@@ -259,6 +262,12 @@ ColumnLayout {
             }
         }
         QQC2.MenuSeparator {}
+        QQC2.MenuItem {
+            text: qsTr("Journal")
+            icon.source: Icons.of("journal", Kirigami.Theme.textColor)
+            enabled: !!menu.row
+            onTriggered: page.journalRequested(menu.row.name + " (" + menu.row.pid + ")", { pids: [menu.row.pid], limit: 1000 })
+        }
         QQC2.MenuItem {
             text: qsTr("Open file location")
             icon.source: Icons.of("open-folder", Kirigami.Theme.textColor)

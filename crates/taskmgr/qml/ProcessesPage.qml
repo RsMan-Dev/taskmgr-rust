@@ -13,6 +13,8 @@ ColumnLayout {
     property string sortColumn: "name"
     property bool sortDescending: false
     property var expanded: ({})
+
+    signal journalRequested(string title, var query)
     property string selectedKey: ""
     property string error: ""
 
@@ -334,8 +336,8 @@ ColumnLayout {
         contentWidth: page.tableWidth
         flickableDirection: Flickable.AutoFlickIfNeeded
 
-        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
-        QQC2.ScrollBar.horizontal: QQC2.ScrollBar {}
+        QQC2.ScrollBar.vertical: ThinScrollBar {}
+        QQC2.ScrollBar.horizontal: ThinScrollBar {}
 
         model: KeyedModel { id: rows }
 
@@ -432,6 +434,16 @@ ColumnLayout {
             text: menu.entry?.type === "group" && page.expanded[menu.entry.group.key] ? qsTr("Collapse") : qsTr("Expand")
             icon.source: Icons.of("collapse", Kirigami.Theme.textColor)
             onTriggered: page.setExpanded(menu.entry.group.key, !page.expanded[menu.entry.group.key])
+        }
+        QQC2.MenuItem {
+            text: qsTr("Journal")
+            icon.source: Icons.of("journal", Kirigami.Theme.textColor)
+            enabled: menu.entry?.type === "process" || menu.entry?.type === "group"
+            onTriggered: {
+                const list = menu.entry.type === "group" ? menu.entry.group.processes : [menu.entry.proc]
+                const name = menu.entry.type === "group" ? Tr.core(menu.entry.group.name) : menu.entry.proc.name
+                page.journalRequested(name, { pids: list.map(p => p.pid), limit: 1000 })
+            }
         }
         QQC2.MenuItem {
             text: qsTr("Copy command line")

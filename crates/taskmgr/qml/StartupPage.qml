@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 // Applications started at login (XDG autostart).
-QQC2.ScrollView {
+ThinScrollView {
     id: page
 
     required property var monitor

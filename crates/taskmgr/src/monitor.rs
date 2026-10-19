@@ -30,6 +30,8 @@ pub mod qobject {
         #[qproperty(QString, health)]
         #[qproperty(QString, connections)]
         #[qproperty(QString, power)]
+        #[qproperty(QString, crashes)]
+        #[qproperty(QString, journal)]
         type SystemMonitor = super::SystemMonitorRust;
 
         #[qinvokable]
@@ -85,6 +87,17 @@ pub mod qobject {
             action: &QString,
         );
 
+        /// `since_secs`: seconds since the epoch, 0 for everything kept.
+        #[qinvokable]
+        #[cxx_name = "refreshCrashes"]
+        fn refresh_crashes(self: Pin<&mut SystemMonitor>, since_secs: i64);
+
+        /// `query`: JSON of taskmgr_core::journal::Query; `tag` comes back
+        /// with the result so the viewer ignores stale answers.
+        #[qinvokable]
+        #[cxx_name = "requestJournal"]
+        fn request_journal(self: Pin<&mut SystemMonitor>, query: &QString, tag: &QString);
+
         #[qinvokable]
         #[cxx_name = "refreshPower"]
         fn refresh_power(self: Pin<&mut SystemMonitor>);
@@ -126,6 +139,8 @@ pub struct SystemMonitorRust {
     health: QString,
     connections: QString,
     power: QString,
+    crashes: QString,
+    journal: QString,
     started: bool,
     net: Arc<std::sync::Mutex<Option<taskmgr_core::netflow::HelperData>>>,
     interval_ms: Arc<AtomicU64>,
@@ -146,6 +161,8 @@ impl Default for SystemMonitorRust {
             health: QString::default(),
             connections: QString::default(),
             power: QString::default(),
+            crashes: QString::default(),
+            journal: QString::default(),
             started: false,
             net: Arc::default(),
             interval_ms: Arc::new(AtomicU64::new(1000)),
@@ -344,6 +361,35 @@ impl qobject::SystemMonitor {
                 o.as_mut().set_services(QString::from(&json));
                 o.set_action_result(result_json("service", r));
             });
+        });
+    }
+
+    pub fn refresh_crashes(self: Pin<&mut Self>, since_secs: i64) {
+        let qt_thread = self.qt_thread();
+        let since = (since_secs > 0).then(|| since_secs as u64 * 1_000_000);
+        thread::spawn(move || {
+            let value = match taskmgr_core::crashes::list(&Root::system(), since) {
+                Ok(list) => serde_json::json!({ "crashes": list, "error": "" }),
+                Err(e) => serde_json::json!({ "crashes": [], "error": e }),
+            };
+            let json = value.to_string();
+            let _ = qt_thread.queue(move |o| o.set_crashes(QString::from(&json)));
+        });
+    }
+
+    pub fn request_journal(self: Pin<&mut Self>, query: &QString, tag: &QString) {
+        let (query, tag) = (query.to_string(), tag.to_string());
+        let qt_thread = self.qt_thread();
+        thread::spawn(move || {
+            let result = serde_json::from_str::<taskmgr_core::journal::Query>(&query)
+                .map_err(|e| e.to_string())
+                .and_then(|q| taskmgr_core::journal::entries(&q));
+            let value = match result {
+                Ok(entries) => serde_json::json!({ "tag": tag, "entries": entries, "error": "" }),
+                Err(e) => serde_json::json!({ "tag": tag, "entries": [], "error": e }),
+            };
+            let json = value.to_string();
+            let _ = qt_thread.queue(move |o| o.set_journal(QString::from(&json)));
         });
     }
 

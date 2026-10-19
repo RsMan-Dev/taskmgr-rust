@@ -15,6 +15,7 @@ ColumnLayout {
     property string error: ""
 
     signal showProcess(int pid)
+    signal journalRequested(string title, var query)
 
     readonly property real unit: Kirigami.Units.gridUnit
     // pid -> { group, proc } from the process list.
@@ -176,6 +177,7 @@ ColumnLayout {
         keyOf: c => c.id
         groupBy: c => page.groupOf(c)
         groupRow: (key, list) => page.groupRow(key, list)
+        expandAll: search.text.trim() !== ""
         sortColumn: "app"
         placeholder: page.monitor.connections === "" ? "" : qsTr("No matching connection")
         Layout.fillWidth: true
@@ -225,9 +227,17 @@ ColumnLayout {
         QQC2.MenuItem {
             visible: menu.row?._group !== undefined
             height: visible ? implicitHeight : 0
-            text: table.expanded[menu.row?._group] ? qsTr("Collapse") : qsTr("Expand")
+            enabled: !table.expandAll
+            text: table.isOpen(menu.row?._group) ? qsTr("Collapse") : qsTr("Expand")
             icon.source: Icons.of("collapse", Kirigami.Theme.textColor)
             onTriggered: table.toggle(menu.row._group)
+        }
+        QQC2.MenuItem {
+            text: qsTr("Journal")
+            icon.source: Icons.of("journal", Kirigami.Theme.textColor)
+            enabled: menu.actionable
+            onTriggered: page.journalRequested(page.appName(menu.row),
+                { pids: page.targetsOf(menu.row).split(",").map(t => Number(t.split(":")[0])), limit: 1000 })
         }
         QQC2.MenuItem {
             text: qsTr("Go to details")

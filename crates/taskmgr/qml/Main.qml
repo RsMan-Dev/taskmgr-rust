@@ -49,11 +49,13 @@ QQC2.ApplicationWindow {
         { text: qsTr("Users"), icon: "nav-users" },
         { text: qsTr("Services"), icon: "nav-services" },
         { text: qsTr("Connections"), icon: "nav-connections" },
+        { text: qsTr("Crashes"), icon: "nav-crashes" },
         { text: qsTr("System"), icon: "nav-system" },
         { text: qsTr("Settings"), icon: "nav-settings" },
     ]
     property int currentPage: Prefs.startPage
     property string initialSelection: ""
+    readonly property double openedAt: Date.now()
     property bool sidebarFolded: false
 
     // Mini mode: a small readout, optionally kept above other windows; F12
@@ -160,6 +162,11 @@ QQC2.ApplicationWindow {
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
     }
 
+    JournalDialog {
+        id: journalDialog
+        monitor: monitor
+    }
+
     MiniView {
         visible: window.mini
         anchors.fill: parent
@@ -256,6 +263,7 @@ QQC2.ApplicationWindow {
                 currentIndex: window.currentPage
 
                 ProcessesPage {
+                    onJournalRequested: (title, query) => journalDialog.show(title, query)
                     groups: window.processes
                     snapshot: window.snapshot
                     monitor: monitor
@@ -273,6 +281,7 @@ QQC2.ApplicationWindow {
                 }
                 DetailsPage {
                     id: details
+                    onJournalRequested: (title, query) => journalDialog.show(title, query)
                     groups: window.processes
                     monitor: monitor
                     logical: window.snapshot?.cpu.logical ?? 1
@@ -291,16 +300,25 @@ QQC2.ApplicationWindow {
                 }
                 ServicesPage {
                     monitor: monitor
+                    onJournalRequested: (title, query) => journalDialog.show(title, query)
                     active: window.currentPage === 5
                 }
                 ConnectionsPage {
                     monitor: monitor
+                    onJournalRequested: (title, query) => journalDialog.show(title, query)
                     groups: window.processes
                     active: window.currentPage === 6
                     onShowProcess: (pid) => {
                         details.query = String(pid)
                         window.currentPage = 2
                     }
+                }
+                CrashesPage {
+                    monitor: monitor
+                    active: window.currentPage === 7
+                    openedAt: window.openedAt
+                    bootedAt: window.openedAt - (window.snapshot?.cpu.uptime_secs ?? 0) * 1000
+                    onJournalRequested: (title, query) => journalDialog.show(title, query)
                 }
                 SystemPage {
                     info: window.systemInfo

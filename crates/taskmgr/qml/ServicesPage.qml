@@ -14,6 +14,8 @@ ColumnLayout {
     property bool busy: false
     property int scope: 0
 
+    signal journalRequested(string title, var query)
+
     readonly property real unit: Kirigami.Units.gridUnit
     readonly property var services: {
         const all = page.monitor.services !== "" ? JSON.parse(page.monitor.services) : []
@@ -131,6 +133,16 @@ ColumnLayout {
             icon.source: Icons.of(enabledAtBoot ? "disable" : "enable", Kirigami.Theme.textColor)
             enabled: !page.busy && page.selected !== null && ["enabled", "disabled"].includes(page.selected.file_state)
             onClicked: page.act(enabledAtBoot ? "disable" : "enable")
+        }
+        Kirigami.Separator {
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.5
+        }
+        QQC2.Button {
+            text: qsTr("Journal")
+            icon.source: Icons.of("journal", Kirigami.Theme.textColor)
+            enabled: page.selected !== null
+            onClicked: page.journalRequested(page.selected.name.replace(/\.service$/, ""),
+                { unit: page.selected.name, user: page.selected.user, limit: 1000 })
         }
         QQC2.BusyIndicator {
             visible: page.busy

@@ -81,6 +81,7 @@ Item {
             .concat(s.networks.map(n => "net:" + n.name))
             .concat(s.gpus.map(g => "gpu:" + g.pci_slot))
             .concat(s.batteries.map(b => "battery:" + b.name))
+            .concat(["power"])
             .concat(s.sensors.length > 0 ? ["sensors"] : [])
             .join(",")
     }
@@ -102,6 +103,37 @@ Item {
     }
 
     // Element-wise mean of histories (right-aligned, they may differ in length).
+    function sum(histories) {
+        const n = Math.max(0, ...histories.map(h => h.length))
+        const out = []
+        for (let i = 0; i < n; i++) {
+            out.push(histories.reduce((a, h) => a + (h[h.length - n + i] ?? 0), 0))
+        }
+        return out
+    }
+
+    // Small charts per processor: usage, clock or NUMA node.
+    function processorGrid(c, view) {
+        const clocks = view === "clocks"
+        return {
+            lines: view === "numa" ? c.numa.map(list => average(list.map(i => c.core_history[i] ?? [])))
+                 : clocks ? c.core_mhz_history : c.core_history,
+            maximum: clocks ? cpuMaxMhz(c) : 100,
+            maximumLabel: clocks ? Format.ghz(cpuMaxMhz(c)) : "100 %",
+            caption: view === "numa" ? qsTr("% utilization per NUMA node")
+                : clocks ? qsTr("Frequency per logical processor")
+                : qsTr("% utilization per logical processor")
+                  + (c.core_types.length > 0 ? "  " + qsTr("(P: performance cores, E: efficiency cores in green)") : ""),
+            accent: clocks ? colors.clock : colors.cpu,
+            types: view === "numa" ? [] : c.core_types,
+            numa: view === "numa",
+        }
+    }
+
+    function cpuMaxMhz(c) {
+        return c.max_mhz ?? Math.max(1, ...c.core_mhz_history.map(h => Math.max(0, ...h)))
+    }
+
     function average(histories) {
         const n = Math.max(0, ...histories.map(h => h.length))
         const out = []
@@ -140,12 +172,11 @@ Item {
                 maximum: 100,
                 maximumLabel: "100 %",
                 series: [series(c.history, colors.cpu)],
-                cores: c.core_history,
-                clocks: c.core_mhz_history,
-                maxMhz: c.max_mhz ?? Math.max(1, ...c.core_mhz_history.map(h => Math.max(0, ...h))),
-                profile: page.power?.profile ? page.power : null,
-                coreTypes: c.core_types,
-                numa: c.numa.map(list => average(list.map(i => c.core_history[i] ?? []))),
+                cpu: true,
+                hasClocks: c.core_mhz_history.length > 0,
+                hasNuma: c.numa.length > 1,
+                grid: cpuView !== "overall" ? processorGrid(c, cpuView) : null,
+                gridReplacesChart: true,
                 energy: true,
                 charts: [
                     mini(qsTr("Temperature"), Format.temperature(c.temperature), ch.temperature, 100, colors.temperature,
@@ -175,10 +206,50 @@ Item {
                     [qsTr("Cores"), c.cores],
                     [qsTr("Logical processors"), c.logical],
                     [qsTr("Virtualization"), c.virtualization],
+                ].concat(c.caches.map(k => [qsTr("Cache %1").arg(k.name), Format.bytes(k.bytes)]))),
+            }
+        }
+        case "power": {
+            const c = s.cpu
+            const gpus = s.gpus.filter(g => g.power_watts !== null)
+            const cpuW = s.energy.package_watts
+            const known = [cpuW, ...gpus.map(g => g.power_watts)].filter(w => w !== null)
+            const total = known.length > 0 ? known.reduce((a, b) => a + b, 0) : null
+            const totalHistory = sum([s.energy.history ?? [], ...gpus.map(g => g.charts.power ?? [])])
+            const top = Format.niceMax(Math.max(...totalHistory, 0), 50)
+            const profile = page.power?.profile ? page.profileNames[page.power.profile] ?? page.power.profile : ""
+            const hottest = c.core_mhz_history.reduce((a, h) => Math.max(a, h[h.length - 1] ?? 0), 0)
+            return {
+                title: qsTr("Power and clocks"),
+                subtitle: profile,
+                summary: summary(total !== null ? Format.watts(total) : "", Format.ghz(c.mhz)),
+                header: total !== null && known.length > 1 ? qsTr("CPU + GPU") : "",
+                color: colors.power,
+                chartLabel: gpus.length > 0 ? qsTr("Measured power (all, CPU in blue)") : qsTr("CPU power"),
+                maximum: top,
+                maximumLabel: Format.watts(top),
+                series: [series(totalHistory, colors.power), series(s.energy.history ?? [], colors.cpu)],
+                energy: true,
+                profile: page.power?.profile ? page.power : null,
+                grid: c.core_mhz_history.length > 0 ? processorGrid(c, "clocks") : null,
+                charts: gpus.map(g => mini(qsTr("GPU %1").arg(g.index), Format.watts(g.power_watts), g.charts.power ?? [],
+                                           g.power_limit_watts ?? Math.max(1, ...(g.charts.power ?? [])), colors.gpu))
+                    .concat(s.batteries.filter(b => b.watts !== null).map(b => mini(qsTr("Battery"), Format.watts(b.watts),
+                                           b.watts_history, Math.max(1, ...b.watts_history), colors.power)))
+                    .concat(gpus.map(g => mini(qsTr("GPU %1 clock").arg(g.index), Format.mhz(g.core_mhz), g.charts.core_clock ?? [],
+                                               g.core_max_mhz ?? Math.max(1, ...(g.charts.core_clock ?? [])), colors.clock))),
+                stats: [
+                    [qsTr("Total"), total !== null ? Format.watts(total) : "—"],
+                    [qsTr("CPU"), cpuW !== null ? Format.watts(cpuW) : "—"],
+                ].concat(gpus.map(g => [qsTr("GPU %1").arg(g.index), Format.watts(g.power_watts)]))
+                 .concat([[qsTr("Average clock"), Format.ghz(c.mhz)], [qsTr("Fastest core"), Format.mhz(hottest)]]),
+                details: details([
+                    [qsTr("Power profile"), profile],
                     [qsTr("Frequency driver"), page.power?.driver],
                     [qsTr("Governor"), page.power?.governor],
                     [qsTr("Energy preference"), page.power?.epp],
-                ].concat(c.caches.map(k => [qsTr("Cache %1").arg(k.name), Format.bytes(k.bytes)]))),
+                    [qsTr("Max speed"), c.max_mhz ? Format.ghz(c.max_mhz) : null],
+                ]),
             }
         }
         case "battery": {
@@ -477,7 +548,7 @@ Item {
             Layout.fillHeight: true
             spacing: 0
 
-            QQC2.ScrollView {
+            ThinScrollView {
                 Layout.preferredWidth: Math.min(Kirigami.Units.gridUnit * 16, Math.max(Kirigami.Units.gridUnit * 11, page.width * 0.32))
                 Layout.fillWidth: false
                 Layout.fillHeight: true
@@ -525,7 +596,7 @@ Item {
                 Layout.fillHeight: true
             }
 
-            QQC2.ScrollView {
+            ThinScrollView {
                 id: detailScroll
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -603,7 +674,7 @@ Item {
 
                         ChartBlock {
                             id: mainChart
-                            visible: !detail.r?.sensors && !(detail.r?.cores && page.cpuView !== "overall")
+                            visible: !detail.r?.sensors && !(detail.r?.grid && detail.r?.gridReplacesChart)
                             chart: detail.r
                             accent: detail.r?.color ?? "gray"
                             chartHeight: Math.max(Kirigami.Units.gridUnit * 7, page.height * (detail.r?.secondChart || detail.r?.charts ? 0.3 : 0.42))
@@ -620,26 +691,24 @@ Item {
 
                         // Windows-style "logical processors" view of the CPU.
                         ColumnLayout {
-                            visible: !!detail.r?.cores && page.cpuView !== "overall"
+                            readonly property var grid: detail.r?.grid ?? null
+                            visible: grid !== null
                             spacing: Kirigami.Units.smallSpacing / 2
                             Layout.fillWidth: true
 
                             RowLayout {
                                 Caption {
-                                    text: page.cpuView === "numa" ? qsTr("% utilization per NUMA node")
-                                        : page.cpuView === "clocks" ? qsTr("Frequency per logical processor")
-                                        : qsTr("% utilization per logical processor")
-                                        + ((detail.r?.coreTypes?.length ?? 0) > 0 ? "  " + qsTr("(P: performance cores, E: efficiency cores in green)") : "")
+                                    text: parent.parent.grid?.caption ?? ""
                                     Layout.fillWidth: true
                                 }
                                 Caption {
-                                    text: page.cpuView === "clocks" ? Format.ghz(detail.r?.maxMhz ?? 0) : "100 %"
+                                    text: parent.parent.grid?.maximumLabel ?? ""
                                 }
                             }
                             GridLayout {
                                 id: coreGrid
-                                readonly property var lines: (page.cpuView === "numa" ? detail.r?.numa
-                                    : page.cpuView === "clocks" ? detail.r?.clocks : detail.r?.cores) ?? []
+                                readonly property var grid: parent.grid
+                                readonly property var lines: grid?.lines ?? []
                                 readonly property int count: lines.length
                                 columns: Math.max(1, Math.ceil(Math.sqrt(count * 2)))
                                 columnSpacing: Kirigami.Units.smallSpacing
@@ -651,23 +720,24 @@ Item {
                                     UsageChart {
                                         required property int index
                                         compact: true
-                                        readonly property bool efficient: page.cpuView !== "numa" && detail.r?.coreTypes?.[index] === "E"
+                                        readonly property string type: coreGrid.grid?.types?.[index] ?? ""
                                         series: [{ values: coreGrid.lines[index] ?? [], color: accent }]
-                                        maximum: page.cpuView === "clocks" ? detail.r?.maxMhz ?? 1 : 100
-                                        accent: efficient ? page.colors.efficiency : page.cpuView === "clocks" ? page.colors.clock : page.colors.cpu
+                                        maximum: coreGrid.grid?.maximum ?? 100
+                                        accent: type === "E" ? page.colors.efficiency : coreGrid.grid?.accent ?? page.colors.cpu
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Math.max(Kirigami.Units.gridUnit * 2.5,
-                                            page.height * 0.42 / Math.ceil(coreGrid.count / coreGrid.columns))
+                                            page.height * (detail.r?.gridReplacesChart ? 0.42 : 0.25) / Math.ceil(coreGrid.count / coreGrid.columns))
 
-                                        QQC2.ToolTip.text: page.cpuView === "numa" ? qsTr("NUMA node %1").arg(index)
-                                            : qsTr("Processor %1").arg(index) + (detail.r?.coreTypes?.[index] ? " (" + detail.r.coreTypes[index] + ")" : "")
+                                        QQC2.ToolTip.text: coreGrid.grid?.numa ? qsTr("NUMA node %1").arg(index)
+                                            : qsTr("Processor %1").arg(index) + (type ? " (" + type + ")" : "")
+                                            + (coreGrid.grid?.accent === page.colors.clock ? " : " + Format.mhz((coreGrid.lines[index] ?? []).slice(-1)[0] ?? 0) : "")
                                         QQC2.ToolTip.visible: coreHover.hovered
                                         HoverHandler {
                                             id: coreHover
                                         }
                                         TapHandler {
                                             acceptedButtons: Qt.RightButton
-                                            onTapped: chartMenu.popup()
+                                            onTapped: if (detail.r?.cpu) chartMenu.popup()
                                         }
                                     }
                                 }
@@ -766,7 +836,7 @@ Item {
         id: chartMenu
 
         QQC2.MenuItem {
-            visible: !!page.selected?.cores
+            visible: !!page.selected?.cpu
             height: visible ? implicitHeight : 0
             text: qsTr("Overall utilization")
             checkable: true
@@ -774,7 +844,7 @@ Item {
             onTriggered: page.cpuView = "overall"
         }
         QQC2.MenuItem {
-            visible: !!page.selected?.cores
+            visible: !!page.selected?.cpu
             height: visible ? implicitHeight : 0
             text: qsTr("Logical processors")
             checkable: true
@@ -782,7 +852,7 @@ Item {
             onTriggered: page.cpuView = "logical"
         }
         QQC2.MenuItem {
-            visible: (page.selected?.clocks?.length ?? 0) > 0
+            visible: !!page.selected?.hasClocks
             height: visible ? implicitHeight : 0
             text: qsTr("Frequency per processor")
             checkable: true
@@ -790,7 +860,7 @@ Item {
             onTriggered: page.cpuView = "clocks"
         }
         QQC2.MenuItem {
-            visible: (page.selected?.numa?.length ?? 0) > 1
+            visible: !!page.selected?.hasNuma
             height: visible ? implicitHeight : 0
             text: qsTr("NUMA nodes")
             checkable: true
@@ -798,7 +868,7 @@ Item {
             onTriggered: page.cpuView = "numa"
         }
         QQC2.MenuSeparator {
-            visible: !!page.selected?.cores
+            visible: !!page.selected?.cpu
             height: visible ? implicitHeight : 0
         }
         QQC2.MenuItem {
