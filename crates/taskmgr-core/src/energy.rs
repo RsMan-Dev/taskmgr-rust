@@ -67,8 +67,7 @@ pub(crate) fn find_program(name: &str, extra: &[&str]) -> Option<String> {
 /// (sysfs permissions are not persistent). pkexec asks for the password
 /// through the desktop's polkit agent. Blocks until the dialog is answered.
 pub fn grant_access(root: &Root) -> Result<(), String> {
-    let pkexec = find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
-        .ok_or("pkexec not found (polkit package).")?;
+    let mut pkexec = crate::admin::pkexec()?;
     let chown = find_program(
         "chown",
         &[
@@ -89,15 +88,11 @@ pub fn grant_access(root: &Root) -> Result<(), String> {
         return Err("No RAPL counter on this machine.".to_owned());
     }
     let uid = rustix::process::getuid().as_raw();
-    let status = std::process::Command::new(pkexec)
+    let status = pkexec
         .arg(chown)
         .arg(uid.to_string())
         .args(&files)
         .status()
         .map_err(|e| e.to_string())?;
-    match status.code() {
-        Some(0) => Ok(()),
-        Some(126) | Some(127) => Err("Authorization denied or cancelled.".to_owned()),
-        _ => Err(format!("The command failed ({status}).")),
-    }
+    crate::admin::outcome(status)
 }

@@ -134,9 +134,7 @@ pub fn set_priority(target: Target, nice: i32) -> Result<(), PriorityError> {
 /// Same through pkexec and renice, for priorities only root may set.
 /// Blocks until the password dialog is answered.
 pub fn set_priority_as_admin(pid: i32, nice: i32) -> Result<(), String> {
-    let pkexec =
-        crate::energy::find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
-            .ok_or("pkexec not found (polkit package).")?;
+    let mut pkexec = crate::admin::pkexec()?;
     let renice = crate::energy::find_program(
         "renice",
         &[
@@ -146,7 +144,7 @@ pub fn set_priority_as_admin(pid: i32, nice: i32) -> Result<(), String> {
         ],
     )
     .ok_or("renice not found.")?;
-    let status = std::process::Command::new(pkexec)
+    let status = pkexec
         .args([
             renice.as_str(),
             "-n",
@@ -157,11 +155,7 @@ pub fn set_priority_as_admin(pid: i32, nice: i32) -> Result<(), String> {
         .stdout(std::process::Stdio::null())
         .status()
         .map_err(|e| e.to_string())?;
-    match status.code() {
-        Some(0) => Ok(()),
-        Some(126) | Some(127) => Err("Authorization denied or cancelled.".to_owned()),
-        _ => Err(format!("The command failed ({status}).")),
-    }
+    crate::admin::outcome(status)
 }
 
 #[cfg(test)]

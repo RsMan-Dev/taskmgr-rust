@@ -166,10 +166,7 @@ pub fn run_helper(
 ) -> Result<(), String> {
     use std::io::BufRead;
     let helper = helper_path().ok_or("taskmgr-helper not found.")?;
-    let pkexec =
-        crate::energy::find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
-            .ok_or("pkexec not found (polkit package).")?;
-    let mut child = std::process::Command::new(pkexec)
+    let mut child = crate::admin::pkexec()?
         .arg(helper)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -204,11 +201,10 @@ pub fn run_helper(
         *l = None;
     }
     let status = child.wait().map_err(|e| e.to_string())?;
-    match status.code() {
-        _ if started => Ok(()),
-        Some(126) | Some(127) => Err("Authorization denied or cancelled.".to_owned()),
-        _ => Err(format!("The command failed ({status}).")),
+    if started {
+        return Ok(());
     }
+    crate::admin::outcome(status)
 }
 
 #[cfg(test)]
