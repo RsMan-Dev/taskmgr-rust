@@ -229,8 +229,7 @@ ColumnLayout {
         QQC2.Button {
             display: page.width < Kirigami.Units.gridUnit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
             text: qsTr("End task")
-            icon.source: Icons.of("end-task")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("end-task", Kirigami.Theme.textColor)
             enabled: page.selected !== null && page.selected.type !== "section"
             onClicked: page.endTask(page.selected, false)
             QQC2.ToolTip.text: qsTr("Asks the process to quit (SIGTERM)")
@@ -240,8 +239,7 @@ ColumnLayout {
         QQC2.Button {
             display: page.width < Kirigami.Units.gridUnit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
             text: qsTr("Kill")
-            icon.source: Icons.of("kill")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("kill", Kirigami.Theme.textColor)
             enabled: page.selected !== null && page.selected.type !== "section"
             onClicked: page.endTask(page.selected, true)
             QQC2.ToolTip.text: qsTr("Stops the process at once, without giving it time to save (SIGKILL)")
@@ -261,15 +259,13 @@ ColumnLayout {
         actions: [
             Kirigami.Action {
                 text: qsTr("Enable…")
-                icon.source: Icons.of("admin")
-                icon.color: Kirigami.Theme.textColor
+                icon.source: Icons.of("admin", Kirigami.Theme.textColor)
                 enabled: page.monitor.networkAccess !== "pending"
                 onTriggered: page.monitor.enableNetworkMonitor()
             },
             Kirigami.Action {
                 text: qsTr("Hide the column")
-                icon.source: Icons.of("hide")
-                icon.color: Kirigami.Theme.textColor
+                icon.source: Icons.of("hide", Kirigami.Theme.textColor)
                 onTriggered: Prefs.toggleColumn("net")
             }
         ]
@@ -404,7 +400,7 @@ ColumnLayout {
             anchors.centerIn: parent
             width: parent.width - Kirigami.Units.gridUnit * 4
             visible: page.groups !== null && list.count === 0
-            icon.source: Icons.of("search")
+            icon.source: Icons.of("search", Kirigami.Theme.textColor)
             text: qsTr("No matching process")
         }
 
@@ -420,14 +416,12 @@ ColumnLayout {
 
         QQC2.MenuItem {
             text: qsTr("End task")
-            icon.source: Icons.of("end-task")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("end-task", Kirigami.Theme.textColor)
             onTriggered: page.endTask(menu.entry, false)
         }
         QQC2.MenuItem {
             text: qsTr("Kill task")
-            icon.source: Icons.of("kill")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("kill", Kirigami.Theme.textColor)
             onTriggered: page.endTask(menu.entry, true)
         }
         QQC2.MenuSeparator {}
@@ -435,14 +429,12 @@ ColumnLayout {
             visible: menu.entry?.type === "group" && menu.entry.group.processes.length > 1
             height: visible ? implicitHeight : 0
             text: menu.entry?.type === "group" && page.expanded[menu.entry.group.key] ? qsTr("Collapse") : qsTr("Expand")
-            icon.source: Icons.of("collapse")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("collapse", Kirigami.Theme.textColor)
             onTriggered: page.setExpanded(menu.entry.group.key, !page.expanded[menu.entry.group.key])
         }
         QQC2.MenuItem {
             text: qsTr("Copy command line")
-            icon.source: Icons.of("copy")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("copy", Kirigami.Theme.textColor)
             enabled: menu.entry?.type === "process" || menu.entry?.group?.processes.length === 1
             onTriggered: {
                 const p = menu.entry.type === "process" ? menu.entry.proc : menu.entry.group.processes[0]
@@ -525,9 +517,7 @@ ColumnLayout {
                 Layout.bottomMargin: Kirigami.Units.smallSpacing
                 Kirigami.Icon {
                     visible: page.sortColumn === cell.column
-                    source: Icons.of(page.sortDescending ? "sort-down" : "sort-up")
-                    isMask: true
-                    color: Kirigami.Theme.textColor
+                    source: Icons.of(page.sortDescending ? "sort-down" : "sort-up", Kirigami.Theme.textColor)
                     Layout.preferredWidth: Kirigami.Units.iconSizes.small
                     Layout.preferredHeight: Kirigami.Units.iconSizes.small
                 }

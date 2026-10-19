@@ -143,8 +143,7 @@ ColumnLayout {
         }
         QQC2.ToolButton {
             text: qsTr("Tree")
-            icon.source: Icons.of("tree")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("tree", Kirigami.Theme.textColor)
             display: QQC2.AbstractButton.IconOnly
             checkable: true
             checked: page.tree
@@ -156,16 +155,14 @@ ColumnLayout {
         QQC2.Button {
             display: page.width < page.unit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
             text: qsTr("End task")
-            icon.source: Icons.of("end-task")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("end-task", Kirigami.Theme.textColor)
             enabled: table.selectedRow !== null
             onClicked: page.signal(table.selectedRow, "term")
         }
         QQC2.Button {
             display: page.width < page.unit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
             text: qsTr("Kill")
-            icon.source: Icons.of("kill")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("kill", Kirigami.Theme.textColor)
             enabled: table.selectedRow !== null
             onClicked: page.signal(table.selectedRow, "kill")
         }
@@ -184,8 +181,7 @@ ColumnLayout {
             Kirigami.Action {
                 visible: page.pendingPriority !== null
                 text: qsTr("Retry as administrator…")
-                icon.source: Icons.of("admin")
-                icon.color: Kirigami.Theme.textColor
+                icon.source: Icons.of("admin", Kirigami.Theme.textColor)
                 onTriggered: {
                     page.monitor.setPriorityAsAdmin(page.pendingPriority.pid, page.pendingPriority.nice)
                     page.message = qsTr("Waiting for the administrator password…")
@@ -234,21 +230,18 @@ ColumnLayout {
 
         QQC2.MenuItem {
             text: qsTr("End task")
-            icon.source: Icons.of("end-task")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("end-task", Kirigami.Theme.textColor)
             onTriggered: page.signal(menu.row, "term")
         }
         QQC2.MenuItem {
             text: qsTr("Kill task")
-            icon.source: Icons.of("kill")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("kill", Kirigami.Theme.textColor)
             onTriggered: page.signal(menu.row, "kill")
         }
         QQC2.MenuItem {
             readonly property bool suspended: menu.row?.state === "T"
             text: suspended ? qsTr("Resume") : qsTr("Suspend")
-            icon.source: Icons.of(suspended ? "resume" : "suspend")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of(suspended ? "resume" : "suspend", Kirigami.Theme.textColor)
             onTriggered: page.signal(menu.row, suspended ? "cont" : "stop")
         }
         QQC2.MenuSeparator {}
@@ -268,15 +261,13 @@ ColumnLayout {
         QQC2.MenuSeparator {}
         QQC2.MenuItem {
             text: qsTr("Open file location")
-            icon.source: Icons.of("open-folder")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("open-folder", Kirigami.Theme.textColor)
             enabled: !!menu.row?.exe
             onTriggered: Qt.openUrlExternally("file://" + page.folder(menu.row.exe))
         }
         QQC2.MenuItem {
             text: qsTr("Copy command line")
-            icon.source: Icons.of("copy")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("copy", Kirigami.Theme.textColor)
             onTriggered: {
                 clipboard.text = menu.row.command
                 clipboard.selectAll()

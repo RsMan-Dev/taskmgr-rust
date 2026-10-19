@@ -65,8 +65,7 @@ QQC2.ScrollView {
 
             QQC2.Button {
                 text: copied.running ? qsTr("Copied") : qsTr("Copy")
-                icon.source: Icons.of(copied.running ? "copied" : "copy")
-                icon.color: Kirigami.Theme.textColor
+                icon.source: Icons.of(copied.running ? "copied" : "copy", Kirigami.Theme.textColor)
                 onClicked: {
                     clipboardHelper.text = page.asText()
                     clipboardHelper.selectAll()
@@ -145,9 +144,7 @@ QQC2.ScrollView {
                         spacing: Kirigami.Units.largeSpacing
                         Layout.bottomMargin: Kirigami.Units.smallSpacing
                         Kirigami.Icon {
-                            source: Icons.of(card.modelData[1])
-                            isMask: true
-                            color: Kirigami.Theme.textColor
+                            source: Icons.of(card.modelData[1], Kirigami.Theme.textColor)
                             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                         }

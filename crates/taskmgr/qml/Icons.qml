@@ -59,8 +59,15 @@ QtObject {
         "system": "shield",
     })
 
-    function of(name) {
+    // Light ink on dark backgrounds, dark ink otherwise, picked from the
+    // text colour where the icon is drawn.
+    function of(name, color) {
         const f = files[name]
-        return f ? "qrc:/icons/" + f + "_20_regular.svg" : name
+        if (!f) {
+            return name
+        }
+        const c = Qt.color(color ?? "#232629")
+        const variant = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) > 0.5 ? "on-dark" : "on-light"
+        return "qrc:/icons/" + variant + "/" + f + "_20_regular.svg"
     }
 }

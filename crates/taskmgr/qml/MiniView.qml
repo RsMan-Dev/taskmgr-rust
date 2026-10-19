@@ -63,8 +63,7 @@ ColumnLayout {
         }
         QQC2.ToolButton {
             visible: mini.scale === 1
-            icon.source: Icons.of("pin")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("pin", Kirigami.Theme.textColor)
             checkable: true
             checked: mini.pinned
             display: QQC2.AbstractButton.IconOnly
@@ -74,8 +73,7 @@ ColumnLayout {
             QQC2.ToolTip.visible: hovered
         }
         QQC2.ToolButton {
-            icon.source: Icons.of("maximize")
-            icon.color: Kirigami.Theme.textColor
+            icon.source: Icons.of("maximize", Kirigami.Theme.textColor)
             display: QQC2.AbstractButton.IconOnly
             text: qsTr("Full view")
             onClicked: mini.expandRequested()
@@ -126,9 +124,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Kirigami.Icon {
                 readonly property bool own: !modelData.icon
-                source: own ? Icons.of(modelData.kind) : modelData.icon
-                isMask: own
-                color: Kirigami.Theme.textColor
+                source: own ? Icons.of(modelData.kind, Kirigami.Theme.textColor) : modelData.icon
                 Layout.preferredWidth: mini.unit
                 Layout.preferredHeight: mini.unit
             }

@@ -49,9 +49,7 @@ ColumnLayout {
                     spacing: Kirigami.Units.largeSpacing
                     Layout.bottomMargin: Kirigami.Units.smallSpacing
                     Kirigami.Icon {
-                        source: Icons.of(view.icons[card.modelData.kind] ?? "sensor")
-                        isMask: true
-                        color: Kirigami.Theme.textColor
+                        source: Icons.of(view.icons[card.modelData.kind] ?? "sensor", Kirigami.Theme.textColor)
                         Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                         Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                     }

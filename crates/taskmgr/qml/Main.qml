@@ -127,8 +127,7 @@ QQC2.ApplicationWindow {
         required property int index
         Layout.fillWidth: true
         text: modelData.text
-        icon.source: Icons.of(modelData.icon)
-        icon.color: highlighted ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+        icon.source: Icons.of(modelData.icon, highlighted ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor)
         display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
         highlighted: window.currentPage === index
         onClicked: window.currentPage = index
@@ -177,8 +176,7 @@ QQC2.ApplicationWindow {
             }
 
             QQC2.ToolButton {
-                icon.source: Icons.of("menu")
-                icon.color: Kirigami.Theme.textColor
+                icon.source: Icons.of("menu", Kirigami.Theme.textColor)
                 display: QQC2.AbstractButton.IconOnly
                 text: window.sidebarCollapsed ? qsTr("Expand menu") : qsTr("Collapse menu")
                 onClicked: {
@@ -203,8 +201,7 @@ QQC2.ApplicationWindow {
             QQC2.ItemDelegate {
                 Layout.fillWidth: true
                 text: qsTr("Mini mode")
-                icon.source: Icons.of("minimize")
-                icon.color: Kirigami.Theme.textColor
+                icon.source: Icons.of("minimize", Kirigami.Theme.textColor)
                 display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
                 onClicked: window.enterMini()
                 QQC2.ToolTip.text: qsTr("Mini mode (F12: full screen)")

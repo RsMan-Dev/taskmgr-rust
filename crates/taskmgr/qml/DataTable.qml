@@ -133,9 +133,7 @@ ColumnLayout {
                         }
                         Kirigami.Icon {
                             visible: !table.ordered && table.sortColumn === cell.modelData.key
-                            source: Icons.of(table.sortDescending ? "sort-down" : "sort-up")
-                            isMask: true
-                            color: Kirigami.Theme.textColor
+                            source: Icons.of(table.sortDescending ? "sort-down" : "sort-up", Kirigami.Theme.textColor)
                             Layout.preferredWidth: Kirigami.Units.iconSizes.small
                             Layout.preferredHeight: Kirigami.Units.iconSizes.small
                         }

@@ -71,11 +71,14 @@ fn translations() -> Option<std::path::PathBuf> {
     Some(qrc)
 }
 
-/// Bundled interface icons and the logo, served at `:/icons`.
+/// Bundled interface icons and the logo, served at `:/icons`. Each icon
+/// comes in two inks (Breeze text colours) so any renderer, QStyle included,
+/// can draw it; colouring at run time only works in Kirigami.Icon.
 fn icons() -> std::path::PathBuf {
     println!("cargo::rerun-if-changed=icons");
     println!("cargo::rerun-if-changed=../../packaging/fr.rsman.taskmgr-rust.svg");
     let here = std::env::current_dir().expect("crate dir");
+    let out = std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
     let mut entries = format!(
         "<file alias=\"logo.svg\">{}</file>",
         here.join("../../packaging/fr.rsman.taskmgr-rust.svg")
@@ -87,15 +90,24 @@ fn icons() -> std::path::PathBuf {
         .filter(|p| p.extension().is_some_and(|x| x == "svg"))
         .collect();
     files.sort();
-    for f in files {
-        let name = f.file_name().unwrap().to_string_lossy().into_owned();
-        entries.push_str(&format!(
-            "<file alias=\"{name}\">{}</file>",
-            here.join(&f).display()
-        ));
+    for (variant, ink) in [("on-dark", "#fcfcfc"), ("on-light", "#232629")] {
+        let dir = out.join(variant);
+        std::fs::create_dir_all(&dir).expect("icon variant dir");
+        for f in &files {
+            let name = f.file_name().unwrap().to_string_lossy().into_owned();
+            let svg = std::fs::read_to_string(f).expect("read icon").replacen(
+                "<svg ",
+                &format!("<svg fill=\"{ink}\" "),
+                1,
+            );
+            std::fs::write(dir.join(&name), svg).expect("write icon");
+            entries.push_str(&format!(
+                "<file alias=\"{variant}/{name}\">{}</file>",
+                dir.join(&name).display()
+            ));
+        }
     }
-    let qrc =
-        std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("icons.qrc");
+    let qrc = out.join("icons.qrc");
     std::fs::write(
         &qrc,
         format!("<RCC><qresource prefix=\"/icons\">{entries}</qresource></RCC>"),
