@@ -56,11 +56,17 @@ impl qobject::SystemMonitor {
             let root = Root::system();
             let mut sampler = Sampler::new(root.clone());
             let mut processes = ProcessSampler::new(&root);
+            let watcher = taskmgr_core::windows::WindowWatcher::start();
             let mut last = Instant::now();
             loop {
                 let started = Instant::now();
                 let json = serde_json::to_string(&sampler.sample()).unwrap_or_default();
-                let groups = processes.sample(&root, started.duration_since(last).as_secs_f64());
+                let windows = watcher.as_ref().and_then(|w| w.windows());
+                let groups = processes.sample(
+                    &root,
+                    started.duration_since(last).as_secs_f64(),
+                    windows.as_ref(),
+                );
                 last = started;
                 let procs = serde_json::to_string(&groups).unwrap_or_default();
                 let queued = qt_thread.queue(move |mut o| {

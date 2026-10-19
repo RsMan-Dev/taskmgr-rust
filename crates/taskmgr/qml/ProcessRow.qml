@@ -81,6 +81,17 @@ QQC2.ItemDelegate {
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 4
             }
 
+            QQC2.Label {
+                readonly property var titles: row.isGroup ? (row.expandable ? [] : row.group.windows) : (row.proc.windows ?? [])
+                visible: titles.length > 0
+                text: titles.length > 0 ? titles[0] : ""
+                opacity: 0.6
+                elide: Text.ElideRight
+                Layout.fillWidth: implicitWidth > width
+                Layout.maximumWidth: implicitWidth
+                Layout.minimumWidth: Math.min(implicitWidth, Kirigami.Units.gridUnit * 4)
+            }
+
             Repeater {
                 model: row.isGroup ? row.group.via : []
                 Chip {

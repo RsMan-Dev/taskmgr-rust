@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 use crate::catalog::Catalog;
-use crate::identity::{self, ENV_KEYS, Identity, Kind, ProcFacts, Role};
+use crate::identity::{self, ENV_KEYS, Group, Identity, Kind, ProcFacts, Role};
 use crate::util::Root;
+use crate::windows::Window;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ProcessRow {
@@ -16,6 +17,8 @@ pub struct ProcessRow {
     pub disk_bps: Option<f64>,
     pub threads: u64,
     pub command: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub windows: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -28,6 +31,7 @@ pub struct ProcessGroup {
     pub cpu: f64,
     pub memory: u64,
     pub disk_bps: Option<f64>,
+    pub windows: Vec<String>,
     pub processes: Vec<ProcessRow>,
 }
 
@@ -141,8 +145,13 @@ impl ProcessSampler {
         }
     }
 
-    pub fn sample(&mut self, root: &Root, secs: f64) -> Vec<ProcessGroup> {
-        let mut groups: HashMap<String, ProcessGroup> = HashMap::new();
+    pub fn sample(
+        &mut self,
+        root: &Root,
+        secs: f64,
+        windows: Option<&HashMap<u32, Vec<Window>>>,
+    ) -> Vec<ProcessGroup> {
+        let mut entries: Vec<Entry> = Vec::new();
         let mut seen = HashMap::new();
         for entry in root.list("/proc") {
             let Ok(pid) = entry.parse::<u32>() else {
@@ -209,21 +218,38 @@ impl ProcessSampler {
                 disk_bps,
                 threads: stat.threads,
                 command: command.chars().take(400).collect(),
+                windows: Vec::new(),
             };
+            entries.push(Entry {
+                group: id.group,
+                row,
+                ppid: stat.ppid,
+            });
+        }
+        self.identities
+            .retain(|(pid, start, _), _| seen.get(pid).is_some_and(|p| p.start == *start));
+        self.prev = seen;
+        if let Some(windows) = windows {
+            apply_windows(&mut entries, windows, &self.catalog);
+        }
+
+        let mut groups: HashMap<String, ProcessGroup> = HashMap::new();
+        for Entry { group, row, .. } in entries {
             let g = groups
-                .entry(id.group.key.clone())
+                .entry(group.key.clone())
                 .or_insert_with(|| ProcessGroup {
-                    key: id.group.key.clone(),
-                    name: id.group.name.clone().unwrap_or_default(),
-                    icon: id.group.icon.clone(),
-                    kind: id.group.kind,
+                    key: group.key.clone(),
+                    name: group.name.clone().unwrap_or_default(),
+                    icon: group.icon.clone(),
+                    kind: group.kind,
                     via: Vec::new(),
                     cpu: 0.0,
                     memory: 0,
                     disk_bps: None,
+                    windows: Vec::new(),
                     processes: Vec::new(),
                 });
-            for v in &id.group.via {
+            for v in &group.via {
                 if !g.via.contains(v) {
                     g.via.push(v);
                 }
@@ -233,11 +259,9 @@ impl ProcessSampler {
             if let Some(d) = row.disk_bps {
                 g.disk_bps = Some(g.disk_bps.unwrap_or(0.0) + d);
             }
+            g.windows.extend(row.windows.iter().cloned());
             g.processes.push(row);
         }
-        self.identities
-            .retain(|(pid, start, _), _| seen.get(pid).is_some_and(|p| p.start == *start));
-        self.prev = seen;
 
         let mut out: Vec<ProcessGroup> = groups.into_values().collect();
         for g in &mut out {
@@ -250,9 +274,93 @@ impl ProcessSampler {
                     .map_or_else(|| "Application".to_owned(), |p| p.name.clone());
             }
             g.processes.sort_by_key(|p| p.pid);
+            // Like Windows: an application is something with a window.
+            if windows.is_some() {
+                g.kind = match (g.kind, g.windows.is_empty()) {
+                    (Kind::App, true) => Kind::Background,
+                    (_, false) => Kind::App,
+                    (k, true) => k,
+                };
+            }
         }
         out.sort_by_key(|g| g.name.to_lowercase());
         out
+    }
+}
+
+struct Entry {
+    group: Group,
+    row: ProcessRow,
+    ppid: u32,
+}
+
+/// A window whose `.desktop` id names another application moves its process
+/// and descendants there (a browser started from a terminal). Sandboxes are
+/// left alone: everything inside a Flatpak or Wine prefix belongs to it.
+fn apply_windows(entries: &mut [Entry], windows: &HashMap<u32, Vec<Window>>, catalog: &Catalog) {
+    let mut moves: Vec<(u32, Group)> = Vec::new();
+    for e in entries.iter_mut() {
+        let Some(list) = windows.get(&e.row.pid) else {
+            continue;
+        };
+        e.row.windows = list
+            .iter()
+            .map(|w| w.caption.clone())
+            .filter(|c| !c.is_empty())
+            .collect();
+        let sandboxed = e.group.key.starts_with("steam:")
+            || e.group
+                .via
+                .iter()
+                .any(|v| matches!(*v, "Flatpak" | "AppImage" | "Wine" | "Proton"));
+        if sandboxed {
+            continue;
+        }
+        let Some((id, desktop)) = list.iter().find_map(|w| {
+            let id = if w.desktop.is_empty() {
+                &w.class
+            } else {
+                &w.desktop
+            };
+            Some((id.clone(), catalog.desktop(id)?.clone()))
+        }) else {
+            continue;
+        };
+        let key = format!("app:{id}");
+        if !e.group.key.eq_ignore_ascii_case(&key) {
+            let group = Group {
+                key,
+                name: Some(desktop.name),
+                icon: desktop.icon,
+                kind: Kind::App,
+                via: Vec::new(),
+            };
+            moves.push((e.row.pid, group));
+        }
+    }
+    for (root_pid, group) in moves {
+        let Some(origin) = entries
+            .iter()
+            .find(|e| e.row.pid == root_pid)
+            .map(|e| e.group.key.clone())
+        else {
+            continue;
+        };
+        let mut subtree = vec![root_pid];
+        let mut i = 0;
+        while i < subtree.len() {
+            let parent = subtree[i];
+            subtree.extend(
+                entries
+                    .iter()
+                    .filter(|e| e.ppid == parent && e.group.key == origin)
+                    .map(|e| e.row.pid),
+            );
+            i += 1;
+        }
+        for e in entries.iter_mut().filter(|e| subtree.contains(&e.row.pid)) {
+            e.group = group.clone();
+        }
     }
 }
 
@@ -284,6 +392,76 @@ mod tests {
         assert!(!child.wait().unwrap().success());
         assert!(!terminate(&[1], false));
         assert!(terminate(&[child.id() as i32], true));
+    }
+
+    fn entry(pid: u32, ppid: u32, key: &str, via: &[&'static str]) -> Entry {
+        Entry {
+            group: Group {
+                key: key.into(),
+                name: Some(key.into()),
+                icon: None,
+                kind: Kind::App,
+                via: via.to_vec(),
+            },
+            row: ProcessRow {
+                pid,
+                name: String::new(),
+                role: Role::Normal,
+                cpu: 0.0,
+                memory: 0,
+                disk_bps: None,
+                threads: 1,
+                command: String::new(),
+                windows: Vec::new(),
+            },
+            ppid,
+        }
+    }
+
+    fn window(pid: u32, desktop: &str, class: &str) -> (u32, Vec<Window>) {
+        (
+            pid,
+            vec![Window {
+                pid,
+                caption: "t".into(),
+                class: class.into(),
+                desktop: desktop.into(),
+            }],
+        )
+    }
+
+    #[test]
+    fn windows_split_apps_out_of_terminals_but_not_sandboxes() {
+        let catalog = Catalog::with_desktop(&[
+            ("firefox", "Firefox", "firefox"),
+            ("org.kde.konsole", "Konsole", "k"),
+        ]);
+        let mut entries = vec![
+            entry(10, 1, "app:org.kde.konsole", &[]),
+            entry(11, 10, "app:org.kde.konsole", &[]),
+            entry(12, 11, "app:org.kde.konsole", &[]),
+            entry(13, 12, "app:org.kde.konsole", &[]),
+            entry(20, 1, "app:org.vinegarhq.Vinegar", &["Flatpak", "Wine"]),
+        ];
+        let windows = HashMap::from([
+            window(10, "org.kde.konsole", "org.kde.konsole"),
+            window(12, "firefox", "firefox"),
+            window(20, "", "steam_proton"),
+        ]);
+        apply_windows(&mut entries, &windows, &catalog);
+        let keys: Vec<&str> = entries.iter().map(|e| e.group.key.as_str()).collect();
+        assert_eq!(
+            keys,
+            [
+                "app:org.kde.konsole",
+                "app:org.kde.konsole",
+                "app:firefox",
+                "app:firefox",
+                "app:org.vinegarhq.Vinegar"
+            ]
+        );
+        assert_eq!(entries[2].group.name.as_deref(), Some("Firefox"));
+        assert_eq!(entries[4].row.windows, vec!["t"]);
     }
 
     #[test]

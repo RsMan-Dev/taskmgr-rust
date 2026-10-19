@@ -16,5 +16,6 @@ fn main() {
     argv.push(std::ptr::null_mut());
     // SAFETY: argv points into `args`, which outlives the event loop.
     let code = unsafe { taskmgr_run(args.len() as c_int, argv.as_mut_ptr()) };
+    taskmgr_core::windows::unload();
     std::process::exit(code);
 }

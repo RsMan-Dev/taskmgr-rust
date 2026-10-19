@@ -1,13 +1,19 @@
-use std::{thread, time::Duration};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 use taskmgr_core::{ProcessSampler, Root};
 
 fn main() {
     let root = Root::system();
+    let w = taskmgr_core::windows::WindowWatcher::start();
     let mut s = ProcessSampler::new(&root);
-    s.sample(&root, 0.0);
+    s.sample(&root, 0.0, None);
+    let start = Instant::now();
     thread::sleep(Duration::from_secs(1));
-    for g in s.sample(&root, 1.0) {
+    let windows = w.as_ref().and_then(|w| w.windows());
+    for g in s.sample(&root, start.elapsed().as_secs_f64(), windows.as_ref()) {
         let via = if g.via.is_empty() {
             String::new()
         } else {

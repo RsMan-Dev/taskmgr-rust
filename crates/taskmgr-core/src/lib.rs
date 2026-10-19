@@ -14,6 +14,7 @@ pub mod process;
 pub mod sensors;
 pub mod sysinfo;
 pub mod util;
+pub mod windows;
 
 use std::time::Instant;
 
