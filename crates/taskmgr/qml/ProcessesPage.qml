@@ -30,23 +30,23 @@ ColumnLayout {
         const factor = prefs.cpuPerCore ? logical : 1
         const s = snapshot
         const cols = [
-            { key: "cpu", title: "Processeur", total: s ? Format.percent(s.cpu.usage * factor) : "",
-              value: x => x.cpu * factor, reference: 25 * factor, text: v => Format.num(v, 1) + " %" },
-            { key: "memory", title: "Mémoire", total: s ? Format.percent(s.memory.usage) : "",
+            { key: "cpu", title: qsTr("CPU"), total: s ? Format.percent(s.cpu.usage * factor) : "",
+              value: x => x.cpu * factor, reference: 25 * factor, text: v => Format.percent(v, 1) },
+            { key: "memory", title: qsTr("Memory"), total: s ? Format.percent(s.memory.usage) : "",
               value: x => x.memory, reference: 2 * 1024 * 1024 * 1024, text: v => Format.bytes(v) },
-            { key: "disk", title: "Disque",
-              total: s ? Format.num(s.disks.reduce((a, d) => a + d.read_bps + d.write_bps, 0) / 1048576, 1) + " Mo/s" : "",
+            { key: "disk", title: qsTr("Disk"),
+              total: s ? Format.num(s.disks.reduce((a, d) => a + d.read_bps + d.write_bps, 0) / 1048576, 1) + " " + qsTr("MB/s") : "",
               value: x => x.disk_bps ?? -1, reference: 20 * 1024 * 1024,
-              text: v => v < 0 ? "" : Format.num(v / 1048576, 1) + " Mo/s" },
+              text: v => v < 0 ? "" : Format.num(v / 1048576, 1) + " " + qsTr("MB/s") },
         ]
         for (const g of dedicatedGpus) {
-            cols.push({ key: "gpu" + g.index, title: "GPU " + g.index, tip: g.name, total: Format.percent(g.usage),
-                        value: x => x.gpu?.[g.index] ?? 0, reference: 50, text: v => Format.num(v, 0) + " %" })
-            cols.push({ key: "gpumem" + g.index, title: "Mém. GPU " + g.index, tip: g.name,
+            cols.push({ key: "gpu" + g.index, title: qsTr("GPU %1").arg(g.index), tip: g.name, total: Format.percent(g.usage),
+                        value: x => x.gpu?.[g.index] ?? 0, reference: 50, text: v => Format.percent(v) })
+            cols.push({ key: "gpumem" + g.index, title: qsTr("GPU %1 mem.").arg(g.index), tip: g.name,
                         total: g.memory_total ? Format.percent(g.memory_used / g.memory_total * 100) : "",
                         value: x => x.gpu_memory?.[g.index] ?? 0, reference: 4 * 1024 * 1024 * 1024, text: v => v > 0 ? Format.bytes(v) : "" })
         }
-        cols.push({ key: "threads", title: "Threads", total: s ? Format.num(s.cpu.threads, 0) : "",
+        cols.push({ key: "threads", title: qsTr("Threads"), total: s ? Format.num(s.cpu.threads, 0) : "",
                     value: x => x.threads ?? (x.processes ?? []).reduce((a, p) => a + p.threads, 0), reference: 1e9, text: v => Format.num(v, 0) })
         return cols
     }
@@ -65,9 +65,9 @@ ColumnLayout {
         }
     }
     readonly property var sectionTitles: [
-        ["app", "Applications"],
-        ["background", "Processus en arrière-plan"],
-        ["system", "Processus système"],
+        ["app", qsTr("Apps")],
+        ["background", qsTr("Background processes")],
+        ["system", qsTr("System processes")],
     ]
 
     readonly property var table: build(groups, search.text.trim().toLowerCase(), sortColumn, sortDescending, expanded)
@@ -169,7 +169,8 @@ ColumnLayout {
         if (!entry || entry.type === "section") {
             return
         }
-        error = monitor.terminate(pidsOf(entry).join(","), force)
+        error = monitor.terminate(pidsOf(entry).join(","), force) === "denied"
+            ? qsTr("Access denied: this process belongs to another user or to the system.") : ""
     }
 
     function sortBy(column) {
@@ -193,11 +194,11 @@ ColumnLayout {
     }
 
     PageHeader {
-        title: "Processus"
+        title: qsTr("Processes")
 
         Kirigami.SearchField {
             id: search
-            placeholderText: "Rechercher un nom ou un PID"
+            placeholderText: qsTr("Search a name or PID")
             Layout.fillWidth: true
             Layout.preferredWidth: Kirigami.Units.gridUnit * 16
             Layout.maximumWidth: Kirigami.Units.gridUnit * 16
@@ -205,21 +206,21 @@ ColumnLayout {
         }
         QQC2.Button {
             display: page.width < Kirigami.Units.gridUnit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
-            text: "Fin de tâche"
+            text: qsTr("End task")
             icon.name: "process-stop"
             enabled: page.selected !== null && page.selected.type !== "section"
             onClicked: page.endTask(page.selected, false)
-            QQC2.ToolTip.text: "Demande au processus de se terminer (SIGTERM)"
+            QQC2.ToolTip.text: qsTr("Asks the process to quit (SIGTERM)")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
         QQC2.Button {
             display: page.width < Kirigami.Units.gridUnit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
-            text: "Tuer"
+            text: qsTr("Kill")
             icon.name: "edit-delete"
             enabled: page.selected !== null && page.selected.type !== "section"
             onClicked: page.endTask(page.selected, true)
-            QQC2.ToolTip.text: "Arrête le processus immédiatement, sans lui laisser le temps de sauvegarder (SIGKILL)"
+            QQC2.ToolTip.text: qsTr("Stops the process at once, without giving it time to save (SIGKILL)")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
@@ -250,7 +251,7 @@ ColumnLayout {
 
         HeaderCell {
             column: "name"
-            title: "Nom"
+            title: qsTr("Name")
             alignment: Qt.AlignLeft
             Layout.fillWidth: true
         }
@@ -352,7 +353,7 @@ ColumnLayout {
             width: parent.width - Kirigami.Units.gridUnit * 4
             visible: page.groups !== null && list.count === 0
             icon.name: "edit-none"
-            text: "Aucun processus ne correspond"
+            text: qsTr("No matching process")
         }
 
         Kirigami.LoadingPlaceholder {
@@ -366,12 +367,12 @@ ColumnLayout {
         property var entry: null
 
         QQC2.MenuItem {
-            text: "Fin de tâche"
+            text: qsTr("End task")
             icon.name: "process-stop"
             onTriggered: page.endTask(menu.entry, false)
         }
         QQC2.MenuItem {
-            text: "Tuer la tâche"
+            text: qsTr("Kill task")
             icon.name: "edit-delete"
             onTriggered: page.endTask(menu.entry, true)
         }
@@ -379,12 +380,12 @@ ColumnLayout {
         QQC2.MenuItem {
             visible: menu.entry?.type === "group" && menu.entry.group.processes.length > 1
             height: visible ? implicitHeight : 0
-            text: menu.entry?.type === "group" && page.expanded[menu.entry.group.key] ? "Réduire" : "Développer"
+            text: menu.entry?.type === "group" && page.expanded[menu.entry.group.key] ? qsTr("Collapse") : qsTr("Expand")
             icon.name: "view-list-tree"
             onTriggered: page.setExpanded(menu.entry.group.key, !page.expanded[menu.entry.group.key])
         }
         QQC2.MenuItem {
-            text: "Copier la ligne de commande"
+            text: qsTr("Copy command line")
             icon.name: "edit-copy"
             enabled: menu.entry?.type === "process" || menu.entry?.group?.processes.length === 1
             onTriggered: {
@@ -416,7 +417,7 @@ ColumnLayout {
         }
         QQC2.MenuSeparator {}
         QQC2.MenuItem {
-            text: "Processeur en % d'un cœur (comme top)"
+            text: qsTr("CPU as % of one core (like top)")
             checkable: true
             checked: prefs.cpuPerCore
             onTriggered: prefs.cpuPerCore = !prefs.cpuPerCore
@@ -434,7 +435,7 @@ ColumnLayout {
         padding: 0
         implicitHeight: Kirigami.Units.gridUnit * 3
         onClicked: page.sortBy(column)
-        QQC2.ToolTip.text: (tip ? tip + "\n" : "") + "Clic droit : choisir les colonnes"
+        QQC2.ToolTip.text: (tip ? tip + "\n" : "") + qsTr("Right click: choose columns")
         QQC2.ToolTip.visible: hovered
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
 

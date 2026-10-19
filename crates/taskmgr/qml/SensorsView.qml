@@ -54,7 +54,7 @@ ColumnLayout {
                         Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                     }
                     Kirigami.Heading {
-                        text: card.modelData.name
+                        text: Tr.core(card.modelData.name)
                         level: 4
                         elide: Text.ElideRight
                         Layout.fillWidth: true
@@ -71,7 +71,7 @@ ColumnLayout {
                         Layout.fillWidth: true
 
                         QQC2.Label {
-                            text: sensorRow.modelData.label
+                            text: Tr.core(sensorRow.modelData.label)
                             opacity: 0.7
                             elide: Text.ElideRight
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 9
@@ -94,7 +94,7 @@ ColumnLayout {
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 3.5
                         }
                         QQC2.Label {
-                            text: sensorRow.modelData.critical !== null ? "crit. " + Format.temperature(sensorRow.modelData.critical) : ""
+                            text: sensorRow.modelData.critical !== null ? qsTr("crit. %1").arg(Format.temperature(sensorRow.modelData.critical)) : ""
                             opacity: 0.5
                             font: Kirigami.Theme.smallFont
                             Layout.preferredWidth: Kirigami.Units.gridUnit * 4.5

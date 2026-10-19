@@ -99,7 +99,7 @@ impl qobject::SystemMonitor {
         QString::from(if taskmgr_core::process::terminate(&pids, force) {
             ""
         } else {
-            "Accès refusé : ce processus appartient à un autre utilisateur ou au système."
+            "denied"
         })
     }
 

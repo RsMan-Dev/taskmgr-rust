@@ -8,13 +8,13 @@ QtObject {
         return Number(v).toLocaleString(Qt.locale(), "f", decimals)
     }
 
-    function percent(v) {
-        return v === null || v === undefined ? "—" : num(v, 0) + " %"
+    function percent(v, decimals) {
+        return v === null || v === undefined ? "—" : qsTr("%1%").arg(num(v, decimals ?? 0))
     }
 
-    // Binary units with the French "octet" symbols, like Windows does.
+    // Binary units, like Windows does (octet symbols in French).
     function bytes(b) {
-        const units = ["o", "Ko", "Mo", "Go", "To"]
+        const units = [qsTr("B"), qsTr("KB"), qsTr("MB"), qsTr("GB"), qsTr("TB")]
         let i = 0
         while (b >= 1024 && i < units.length - 1) {
             b /= 1024

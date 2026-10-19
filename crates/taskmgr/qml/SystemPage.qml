@@ -21,34 +21,34 @@ QQC2.ScrollView {
         const clean = rows => rows.filter(r => r[1] !== null && r[1] !== undefined && r[1] !== "")
         const cpu = i.cpu
         return [
-            ["Système", "preferences-system-linux", clean([
-                ["Nom de l'appareil", i.hostname],
-                ["Système d'exploitation", i.os],
-                ["Noyau", i.kernel ? "Linux " + i.kernel : null],
-                ["Architecture", i.architecture],
-                ["Bureau", i.desktop ? i.desktop + (i.session ? " (" + i.session + ")" : "") : null],
+            [qsTr("System"), "preferences-system-linux", clean([
+                [qsTr("Device name"), i.hostname],
+                [qsTr("Operating system"), i.os],
+                [qsTr("Kernel"), i.kernel ? "Linux " + i.kernel : null],
+                [qsTr("Architecture"), i.architecture],
+                [qsTr("Desktop"), i.desktop ? i.desktop + (i.session ? " (" + i.session + ")" : "") : null],
             ])],
-            ["Carte mère", "computer", clean([
-                ["Fabricant", i.vendor],
-                ["Produit", i.manufacturer !== i.board ? i.manufacturer : null],
-                ["Modèle", i.board],
-                ["BIOS", i.bios],
-                ["Micrologiciel", i.firmware],
+            [qsTr("Motherboard"), "computer", clean([
+                [qsTr("Manufacturer"), i.vendor],
+                [qsTr("Product"), i.manufacturer !== i.board ? i.manufacturer : null],
+                [qsTr("Model"), i.board],
+                [qsTr("BIOS"), i.bios],
+                [qsTr("Firmware"), i.firmware],
             ])],
-            ["Processeur et mémoire", "cpu", clean([
-                ["Processeur", cpu.model],
-                ["Cœurs", cpu.cores + " cœurs, " + cpu.logical + " processeurs logiques"],
-                ["Mémoire utilisable", Format.bytes(i.memory_total)],
+            [qsTr("CPU and memory"), "cpu", clean([
+                [qsTr("CPU"), cpu.model],
+                [qsTr("Cores"), qsTr("%1 cores, %2 logical processors").arg(cpu.cores).arg(cpu.logical)],
+                [qsTr("Usable memory"), Format.bytes(i.memory_total)],
             ])],
-            ["Cartes graphiques", "video-display", s ? s.gpus.map(g => [
-                "GPU " + g.index,
-                g.name + " (pilote " + g.driver + (g.driver_version ? " " + g.driver_version : "") + ")",
+            [qsTr("Graphics cards"), "video-display", s ? s.gpus.map(g => [
+                qsTr("GPU %1").arg(g.index),
+                qsTr("%1 (driver %2)").arg(g.name).arg(g.driver + (g.driver_version ? " " + g.driver_version : "")),
             ]) : []],
-            ["Disques", "drive-harddisk", s ? s.disks.map(d => [
-                "Disque " + d.index,
-                d.model + ", " + Format.bytes(d.capacity) + ", " + d.kind,
+            [qsTr("Disks"), "drive-harddisk", s ? s.disks.map(d => [
+                qsTr("Disk %1").arg(d.index),
+                d.model + ", " + Format.bytes(d.capacity) + ", " + Tr.core(d.kind),
             ]) : []],
-            ["Réseau", "network-wired", s ? s.networks.map(n => [n.kind + " (" + n.name + ")", n.adapter]) : []],
+            [qsTr("Network"), "network-wired", s ? s.networks.map(n => [n.kind + " (" + n.name + ")", n.adapter]) : []],
         ].filter(sec => sec[2].length > 0)
     }
 
@@ -61,10 +61,10 @@ QQC2.ScrollView {
         spacing: Kirigami.Units.gridUnit
 
         PageHeader {
-            title: "Système"
+            title: qsTr("System")
 
             QQC2.Button {
-                text: copied.running ? "Copié" : "Copier"
+                text: copied.running ? qsTr("Copied") : qsTr("Copy")
                 icon.name: copied.running ? "checkmark" : "edit-copy"
                 onClicked: {
                     clipboardHelper.text = page.asText()

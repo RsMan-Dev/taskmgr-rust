@@ -38,22 +38,22 @@ const BOARD_CHIPS: [&str; 7] = [
 
 fn label(chip: &str, raw: Option<&str>, n: u32) -> String {
     let Some(raw) = raw else {
-        return format!("Capteur {n}");
+        return format!("Sensor {n}");
     };
     if let Some(ccd) = raw.strip_prefix("Tccd") {
         return format!("CCD {ccd}");
     }
     match (chip, raw) {
-        (_, "Tctl") => "Tctl (contrôle)".to_owned(),
+        (_, "Tctl") => "Tctl (control)".to_owned(),
         (_, "Tdie") => "Die".to_owned(),
-        (_, "Package id 0") => "Boîtier".to_owned(),
-        ("amdgpu", "edge") => "Bord".to_owned(),
-        ("amdgpu", "junction") => "Jonction".to_owned(),
-        ("amdgpu", "mem") => "Mémoire".to_owned(),
+        (_, "Package id 0") => "Package".to_owned(),
+        ("amdgpu", "edge") => "Edge".to_owned(),
+        ("amdgpu", "junction") => "Junction".to_owned(),
+        ("amdgpu", "mem") => "Memory".to_owned(),
         (_, other) => {
             let other = other.strip_suffix(" Temperature").unwrap_or(other);
             match other.strip_prefix("Sensor ") {
-                Some(i) => format!("Capteur {i}"),
+                Some(i) => format!("Sensor {i}"),
                 None => other.to_owned(),
             }
         }
@@ -88,17 +88,17 @@ impl SensorSampler {
                 .iter()
                 .find(|g| Some(&g.pci_slot) == device_name.as_ref());
             let (name, kind) = if let Some(d) = disk {
-                (format!("Disque {} ({})", d.index, d.model), "disk")
+                (format!("Disk {} ({})", d.index, d.model), "disk")
             } else if let Some(g) = gpu {
                 (format!("GPU {} ({})", g.index, g.name), "gpu")
             } else if matches!(chip.name.as_str(), "k10temp" | "zenpower" | "coretemp") {
                 ("Processeur".to_owned(), "cpu")
             } else if BOARD_CHIPS.iter().any(|b| chip.name.starts_with(b)) {
-                ("Carte mère".to_owned(), "board")
+                ("Motherboard".to_owned(), "board")
             } else if chip.name == "acpitz" {
-                ("ACPI (zone thermique)".to_owned(), "other")
+                ("ACPI (thermal zone)".to_owned(), "other")
             } else if root.exists(format!("/sys/class/net/{}", chip.name)) {
-                (format!("Carte réseau {}", chip.name), "network")
+                (format!("Network card {}", chip.name), "network")
             } else {
                 (chip.name.clone(), "other")
             };
@@ -185,9 +185,9 @@ mod tests {
     #[test]
     fn readable_labels() {
         assert_eq!(label("k10temp", Some("Tccd2"), 4), "CCD 2");
-        assert_eq!(label("nvme", Some("Sensor 8"), 9), "Capteur 8");
+        assert_eq!(label("nvme", Some("Sensor 8"), 9), "Sensor 8");
         assert_eq!(label("enp7s0", Some("PHY Temperature"), 1), "PHY");
-        assert_eq!(label("gigabyte_wmi", None, 3), "Capteur 3");
-        assert_eq!(label("amdgpu", Some("edge"), 1), "Bord");
+        assert_eq!(label("gigabyte_wmi", None, 3), "Sensor 3");
+        assert_eq!(label("amdgpu", Some("edge"), 1), "Edge");
     }
 }

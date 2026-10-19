@@ -86,16 +86,16 @@ fn kind(root: &Root, name: &str) -> String {
     } else if root.read_u64(format!("/sys/block/{name}/queue/rotational")) == Some(1) {
         "HDD"
     } else if name.starts_with("mmcblk") {
-        "Carte SD"
+        "SD card"
     } else if name.starts_with("sr") {
-        "Optique"
+        "Optical"
     } else {
         "SSD"
     };
     if path.contains("/usb") {
         format!("{base} (USB)")
     } else if root.read_u64(format!("/sys/block/{name}/removable")) == Some(1) {
-        format!("{base} (amovible)")
+        format!("{base} (removable)")
     } else {
         base.to_owned()
     }

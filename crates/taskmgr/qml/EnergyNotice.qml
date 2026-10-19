@@ -13,16 +13,16 @@ Kirigami.InlineMessage {
 
     visible: energy?.status === "denied"
     type: failed ? Kirigami.MessageType.Error : Kirigami.MessageType.Warning
-    text: request === "pending" ? "En attente du mot de passe administrateur…"
-        : failed ? request
-        : "Consommation du processeur indisponible : le compteur est réservé à root."
+    text: request === "pending" ? qsTr("Waiting for the administrator password…")
+        : failed ? Tr.core(request)
+        : qsTr("CPU power unavailable: the counter is restricted to root.")
 
     actions: [
         Kirigami.Action {
-            text: "Autoriser l'accès…"
+            text: qsTr("Allow access…")
             icon.name: "security-high"
             enabled: notice.request !== "pending"
-            tooltip: "Donne la lecture du compteur RAPL à votre utilisateur jusqu'au prochain redémarrage (voir docs/energy.md)."
+            tooltip: qsTr("Lets your user read the RAPL counter until the next reboot (see docs/energy.md).")
             onTriggered: notice.monitor.requestEnergyAccess()
         }
     ]

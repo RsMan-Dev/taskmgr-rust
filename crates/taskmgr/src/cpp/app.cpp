@@ -3,6 +3,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QTranslator>
 #include <QTimer>
 #include <QSocketNotifier>
 
@@ -46,6 +48,16 @@ extern "C" int taskmgr_run(int argc, char **argv)
     app.setDesktopFileName(QStringLiteral("fr.rsman.taskmgr-rust"));
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("utilities-system-monitor")));
     QIcon::setFallbackThemeName(QStringLiteral("breeze"));
+
+    // "general/language": empty follows the system, "en" or "fr" forces it.
+    const QString language = QSettings().value(QStringLiteral("general/language")).toString();
+    static QTranslator translator;
+    const bool loaded = language.isEmpty()
+        ? translator.load(QLocale(), QStringLiteral("taskmgr"), QStringLiteral("_"), QStringLiteral(":/i18n"))
+        : translator.load(QStringLiteral(":/i18n/taskmgr_") + language);
+    if (loaded) {
+        QCoreApplication::installTranslator(&translator);
+    }
     quitOnSignals(app);
 
     // org.kde.desktop draws with QStyle, hence QApplication.

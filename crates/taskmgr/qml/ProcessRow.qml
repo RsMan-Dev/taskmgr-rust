@@ -59,7 +59,7 @@ QQC2.ItemDelegate {
                 icon.height: Kirigami.Units.iconSizes.small
                 display: QQC2.AbstractButton.IconOnly
                 flat: true
-                text: row.expanded ? "Réduire" : "Développer"
+                text: row.expanded ? qsTr("Collapse") : qsTr("Expand")
                 onClicked: row.toggleRequested()
                 Layout.preferredWidth: Kirigami.Units.gridUnit * 1.4
                 Layout.preferredHeight: Kirigami.Units.gridUnit * 1.4
@@ -76,7 +76,7 @@ QQC2.ItemDelegate {
 
             QQC2.Label {
                 text: row.isGroup
-                    ? row.group.name + (row.expandable ? "  (" + row.group.processes.length + ")" : "")
+                    ? Tr.core(row.group.name) + (row.expandable ? "  (" + row.group.processes.length + ")" : "")
                     : row.proc.name
                 elide: Text.ElideRight
                 opacity: row.secondary ? 0.6 : 1
@@ -107,12 +107,12 @@ QQC2.ItemDelegate {
 
             Chip {
                 visible: row.secondary
-                text: row.secondary && row.proc.role === "wrapper" ? "enveloppe" : "Wine"
+                text: row.secondary && row.proc.role === "wrapper" ? qsTr("wrapper") : "Wine"
             }
 
             QQC2.Label {
                 visible: !row.isGroup || !row.expandable
-                text: "PID " + (row.isGroup ? row.group.processes[0].pid : row.proc.pid)
+                text: qsTr("PID %1").arg(row.isGroup ? row.group.processes[0].pid : row.proc.pid)
                 opacity: 0.5
                 font: Kirigami.Theme.smallFont
                 Layout.minimumWidth: implicitWidth

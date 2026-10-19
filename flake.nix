@@ -33,7 +33,7 @@
           cargoBuildFlags = [ "-p" "taskmgr" ];
           cargoTestFlags = [ "--workspace" ];
 
-          nativeBuildInputs = [ pkgs.pkg-config pkgs.kdePackages.wrapQtAppsHook ];
+          nativeBuildInputs = [ pkgs.pkg-config pkgs.kdePackages.wrapQtAppsHook pkgs.kdePackages.qttools ];
           buildInputs = runtimeQt pkgs;
           # The session's QML paths point at the desktop's own Kirigami, which
           # may be built against another Qt and would shadow ours.
@@ -64,6 +64,7 @@
             rustfmt
             rust-analyzer
             pkg-config
+            kdePackages.qttools
           ] ++ runtimeQt pkgs;
           RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
           # Debug C++ builds (cxx-qt) otherwise warn on every file.

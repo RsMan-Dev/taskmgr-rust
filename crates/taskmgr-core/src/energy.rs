@@ -68,7 +68,7 @@ fn find_program(name: &str, extra: &[&str]) -> Option<String> {
 /// through the desktop's polkit agent. Blocks until the dialog is answered.
 pub fn grant_access(root: &Root) -> Result<(), String> {
     let pkexec = find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
-        .ok_or("pkexec est introuvable (paquet polkit).")?;
+        .ok_or("pkexec not found (polkit package).")?;
     let chown = find_program(
         "chown",
         &[
@@ -77,7 +77,7 @@ pub fn grant_access(root: &Root) -> Result<(), String> {
             "/bin/chown",
         ],
     )
-    .ok_or("chown est introuvable.")?;
+    .ok_or("chown not found.")?;
     let files: Vec<String> = root
         .list("/sys/class/powercap")
         .into_iter()
@@ -86,7 +86,7 @@ pub fn grant_access(root: &Root) -> Result<(), String> {
         .filter(|f| root.exists(f))
         .collect();
     if files.is_empty() {
-        return Err("Aucun compteur RAPL sur cette machine.".to_owned());
+        return Err("No RAPL counter on this machine.".to_owned());
     }
     // SAFETY: getuid cannot fail.
     let uid = unsafe { libc::getuid() };
@@ -98,7 +98,7 @@ pub fn grant_access(root: &Root) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     match status.code() {
         Some(0) => Ok(()),
-        Some(126) | Some(127) => Err("Autorisation refusée ou annulée.".to_owned()),
-        _ => Err(format!("La commande a échoué ({status}).")),
+        Some(126) | Some(127) => Err("Authorization denied or cancelled.".to_owned()),
+        _ => Err(format!("The command failed ({status}).")),
     }
 }

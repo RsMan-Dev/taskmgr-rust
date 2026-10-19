@@ -12,7 +12,7 @@ QQC2.ApplicationWindow {
     minimumWidth: Kirigami.Units.gridUnit * 36
     minimumHeight: Kirigami.Units.gridUnit * 24
     visible: true
-    title: "Gestionnaire des tâches"
+    title: qsTr("Task Manager")
 
     readonly property var snapshot: monitor.snapshot !== "" ? JSON.parse(monitor.snapshot) : null
     readonly property var systemInfo: monitor.info !== "" ? JSON.parse(monitor.info) : null
@@ -50,7 +50,7 @@ QQC2.ApplicationWindow {
             QQC2.ToolButton {
                 icon.name: "application-menu"
                 display: QQC2.AbstractButton.IconOnly
-                text: window.sidebarCollapsed ? "Déplier le menu" : "Replier le menu"
+                text: window.sidebarCollapsed ? qsTr("Expand menu") : qsTr("Collapse menu")
                 onClicked: {
                     if (window.narrow) {
                         window.sidebarOpenedNarrow = !window.sidebarOpenedNarrow
@@ -65,9 +65,9 @@ QQC2.ApplicationWindow {
 
             Repeater {
                 model: [
-                    { text: "Processus", icon: "view-process-tree" },
-                    { text: "Performances", icon: "office-chart-area" },
-                    { text: "Système", icon: "computer" },
+                    { text: qsTr("Processes"), icon: "view-process-tree" },
+                    { text: qsTr("Performance"), icon: "office-chart-area" },
+                    { text: qsTr("System"), icon: "computer" },
                 ]
 
                 QQC2.ItemDelegate {

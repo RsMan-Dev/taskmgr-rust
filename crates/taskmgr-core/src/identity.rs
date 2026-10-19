@@ -369,18 +369,18 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
             },
             Location::Session(scope) => Group {
                 key: format!("session:{scope}"),
-                name: Some("Session de connexion".to_owned()),
+                name: Some("Login session".to_owned()),
                 icon: None,
                 kind: Kind::Background,
                 via: vec![],
             },
             Location::SystemUnit(unit) => {
                 let name = if unit.starts_with("docker-") && unit.ends_with(".scope") {
-                    "Conteneur Docker".to_owned()
+                    "Docker container".to_owned()
                 } else if unit == "init.scope" {
                     "systemd".to_owned()
                 } else if let Some(point) = mount_point(&unit) {
-                    format!("Montage {point}")
+                    format!("Mount {point}")
                 } else {
                     catalog
                         .unit_description(root, &unit, false)
@@ -397,7 +397,7 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
             Location::Other(path) => Group {
                 key: format!("other:{path}"),
                 name: Some(if path == "/" {
-                    "Noyau".to_owned()
+                    "Kernel".to_owned()
                 } else {
                     path
                 }),
@@ -598,7 +598,7 @@ mod tests {
             "/system.slice/mnt-MASS_HDD.mount",
             &[],
         ));
-        assert_eq!(ntfs.group.name.as_deref(), Some("Montage /mnt/MASS_HDD"));
+        assert_eq!(ntfs.group.name.as_deref(), Some("Mount /mnt/MASS_HDD"));
         let wallet = resolve_one(&facts(
             "kwalletd6",
             &["kwalletd6"],

@@ -68,67 +68,67 @@ Item {
             const c = s.cpu
             const ch = c.charts
             return {
-                title: "Processeur",
+                title: qsTr("CPU"),
                 subtitle: "",
                 summary: summary(Format.percent(c.usage), Format.ghz(c.mhz), c.temperature),
                 header: c.model,
                 color: colors.cpu,
-                chartLabel: "% d'utilisation",
+                chartLabel: qsTr("% utilization"),
                 maximum: 100,
                 maximumLabel: "100 %",
                 series: [series(c.history, colors.cpu)],
                 cores: c.core_history,
                 energy: true,
                 charts: [
-                    mini("Température", Format.temperature(c.temperature), ch.temperature, 100, colors.temperature,
-                         c.temperature === null ? "Aucun capteur de température processeur" : ""),
-                    mini("Fréquence moyenne", Format.mhz(c.mhz), ch.clock, c.max_mhz ?? 1, colors.clock),
-                    mini("Tension", c.voltage !== null ? Format.num(c.voltage, 3) + " V" : "", ch.voltage, 1.5, colors.voltage,
-                         c.voltage === null ? "Non exposée : aucun pilote de capteur de carte mère (nct6775, it87, zenpower)" : ""),
+                    mini(qsTr("Temperature"), Format.temperature(c.temperature), ch.temperature, 100, colors.temperature,
+                         c.temperature === null ? qsTr("No CPU temperature sensor") : ""),
+                    mini(qsTr("Average clock"), Format.mhz(c.mhz), ch.clock, c.max_mhz ?? 1, colors.clock),
+                    mini(qsTr("Voltage"), c.voltage !== null ? Format.num(c.voltage, 3) + " V" : "", ch.voltage, 1.5, colors.voltage,
+                         c.voltage === null ? qsTr("Not exposed: no motherboard sensor driver (nct6775, it87, zenpower)") : ""),
                 ],
                 stats: [
-                    ["Utilisation", Format.percent(c.usage)],
-                    ["Vitesse", Format.ghz(c.mhz)],
-                    ["Processus", Format.num(c.processes, 0)],
-                    ["Threads", Format.num(c.threads, 0)],
-                    ["Temps de fonctionnement", Format.uptime(c.uptime_secs)],
-                    ["Température", Format.temperature(c.temperature)],
-                ].concat(s.energy.package_watts !== null ? [["Consommation", Format.watts(s.energy.package_watts)]] : []),
+                    [qsTr("Utilization"), Format.percent(c.usage)],
+                    [qsTr("Speed"), Format.ghz(c.mhz)],
+                    [qsTr("Processes"), Format.num(c.processes, 0)],
+                    [qsTr("Threads"), Format.num(c.threads, 0)],
+                    [qsTr("Up time"), Format.uptime(c.uptime_secs)],
+                    [qsTr("Temperature"), Format.temperature(c.temperature)],
+                ].concat(s.energy.package_watts !== null ? [[qsTr("Power"), Format.watts(s.energy.package_watts)]] : []),
                 details: details([
-                    ["Vitesse max", c.max_mhz ? Format.ghz(c.max_mhz) : null],
-                    ["Sockets", c.sockets],
-                    ["Cœurs", c.cores],
-                    ["Processeurs logiques", c.logical],
-                    ["Virtualisation", c.virtualization],
-                ].concat(c.caches.map(k => ["Cache " + k.name, Format.bytes(k.bytes)]))),
+                    [qsTr("Max speed"), c.max_mhz ? Format.ghz(c.max_mhz) : null],
+                    [qsTr("Sockets"), c.sockets],
+                    [qsTr("Cores"), c.cores],
+                    [qsTr("Logical processors"), c.logical],
+                    [qsTr("Virtualization"), c.virtualization],
+                ].concat(c.caches.map(k => [qsTr("Cache %1").arg(k.name), Format.bytes(k.bytes)]))),
             }
         }
         case "memory": {
             const m = s.memory
             const speed = m.dimms.length > 0 ? m.dimms[0].speed_mts : null
             return {
-                title: "Mémoire",
-                subtitle: m.dimms.length > 0 && m.dimms[0].kind ? m.dimms[0].kind + (speed ? " " + speed + " MT/s" : "") : "",
+                title: qsTr("Memory"),
+                subtitle: m.dimms.length > 0 && m.dimms[0].kind ? m.dimms[0].kind + (speed ? " " + qsTr("%1 MT/s").arg(speed) : "") : "",
                 summary: summary(Format.percent(m.usage), Format.bytes(m.used) + " / " + Format.bytes(m.total)),
                 header: Format.bytes(m.total),
                 color: colors.memory,
-                chartLabel: "Utilisation de la mémoire",
+                chartLabel: qsTr("Memory usage"),
                 maximum: 100,
                 maximumLabel: Format.bytes(m.total),
                 series: [series(m.history, colors.memory)],
                 dimms: m.dimms,
                 stats: [
-                    ["Utilisée", Format.bytes(m.used)],
-                    ["Disponible", Format.bytes(m.available)],
-                    ["Validée", Format.bytes(m.committed)],
-                    ["En cache", Format.bytes(m.cached)],
-                    ["Swap", m.swap_total ? Format.bytes(m.swap_used) + " / " + Format.bytes(m.swap_total) : "Aucun"],
+                    [qsTr("In use"), Format.bytes(m.used)],
+                    [qsTr("Available"), Format.bytes(m.available)],
+                    [qsTr("Committed"), Format.bytes(m.committed)],
+                    [qsTr("Cached"), Format.bytes(m.cached)],
+                    [qsTr("Swap"), m.swap_total ? Format.bytes(m.swap_used) + " / " + Format.bytes(m.swap_total) : qsTr("None")],
                 ],
                 details: details([
-                    ["Vitesse", speed ? speed + " MT/s" : null],
-                    ["Type", m.dimms.length > 0 ? m.dimms[0].kind : null],
-                    ["Emplacements utilisés", m.slots ? m.dimms.length + " sur " + m.slots : null],
-                    ["Utilisable", Format.bytes(m.total)],
+                    [qsTr("Speed"), speed ? qsTr("%1 MT/s").arg(speed) : null],
+                    [qsTr("Type"), m.dimms.length > 0 ? m.dimms[0].kind : null],
+                    [qsTr("Slots used"), m.slots ? qsTr("%1 of %2").arg(m.dimms.length).arg(m.slots) : null],
+                    [qsTr("Usable"), Format.bytes(m.total)],
                 ]),
             }
         }
@@ -139,32 +139,32 @@ Item {
             }
             const top = Format.niceMax(Math.max(...d.read_history, ...d.write_history, 0), 1024 * 1024)
             return {
-                title: "Disque " + d.index + " (" + d.name + ")",
-                subtitle: d.kind,
+                title: qsTr("Disk %1 (%2)").arg(d.index).arg(d.name),
+                subtitle: Tr.core(d.kind),
                 summary: summary(Format.percent(d.active), Format.rate(d.read_bps + d.write_bps), d.temperature),
                 header: d.model,
                 color: colors.disk,
-                chartLabel: "Temps d'activité (au moins une requête en cours)",
+                chartLabel: qsTr("Active time (at least one request in flight)"),
                 maximum: 100,
                 maximumLabel: "100 %",
                 series: [series(d.active_history, colors.disk)],
                 secondChart: {
-                    label: "Vitesse de transfert (lecture, écriture)",
+                    label: qsTr("Transfer rate (read, write)"),
                     maximum: top,
                     maximumLabel: Format.rate(top),
                     series: [series(d.read_history, colors.disk), series(d.write_history, Qt.darker(colors.disk, 1.6))],
                 },
                 stats: [
-                    ["Temps d'activité", Format.percent(d.active)],
-                    ["Temps de réponse moyen", Format.num(d.response_ms, 1) + " ms"],
-                    ["Vitesse de lecture", Format.rate(d.read_bps)],
-                    ["Vitesse d'écriture", Format.rate(d.write_bps)],
-                ].concat(d.temperature !== null ? [["Température", Format.temperature(d.temperature)]] : []),
+                    [qsTr("Active time"), Format.percent(d.active)],
+                    [qsTr("Average response time"), qsTr("%1 ms").arg(Format.num(d.response_ms, 1))],
+                    [qsTr("Read speed"), Format.rate(d.read_bps)],
+                    [qsTr("Write speed"), Format.rate(d.write_bps)],
+                ].concat(d.temperature !== null ? [[qsTr("Temperature"), Format.temperature(d.temperature)]] : []),
                 details: details([
-                    ["Capacité", Format.bytes(d.capacity)],
-                    ["Type", d.kind],
-                    ["Disque système", d.system_disk ? "Oui" : "Non"],
-                    ["Points de montage", d.mounts.join(", ") || "Aucun"],
+                    [qsTr("Capacity"), Format.bytes(d.capacity)],
+                    [qsTr("Type"), Tr.core(d.kind)],
+                    [qsTr("System disk"), d.system_disk ? qsTr("Yes") : qsTr("No")],
+                    [qsTr("Mount points"), d.mounts.join(", ") || qsTr("None")],
                 ]),
             }
         }
@@ -179,31 +179,31 @@ Item {
             return {
                 title: n.kind,
                 subtitle: n.name,
-                summary: summary(load !== null ? Format.percent(load) : "", "R " + Format.bits(n.rx_bps) + "  E " + Format.bits(n.tx_bps)),
+                summary: summary(load !== null ? Format.percent(load) : "", qsTr("R %1  S %2").arg(Format.bits(n.rx_bps)).arg(Format.bits(n.tx_bps))),
                 header: n.adapter,
                 color: colors.network,
-                chartLabel: "Réception",
+                chartLabel: qsTr("Receive"),
                 maximum: rxTop,
                 maximumLabel: Format.bits(rxTop),
                 series: [series(n.rx_history, colors.network)],
                 secondChart: {
-                    label: "Envoi",
+                    label: qsTr("Send"),
                     maximum: txTop,
                     maximumLabel: Format.bits(txTop),
                     series: [series(n.tx_history, Qt.darker(colors.network, 1.4))],
                 },
                 stats: [
-                    ["Réception", Format.bits(n.rx_bps)],
-                    ["Envoi", Format.bits(n.tx_bps)],
-                ].concat(load !== null ? [["Utilisation du lien", Format.percent(load)]] : []),
+                    [qsTr("Receive"), Format.bits(n.rx_bps)],
+                    [qsTr("Send"), Format.bits(n.tx_bps)],
+                ].concat(load !== null ? [[qsTr("Link utilization"), Format.percent(load)]] : []),
                 details: details([
-                    ["Adaptateur", n.adapter],
-                    ["Interface", n.name],
-                    ["Type de connexion", n.kind],
-                    ["Vitesse de liaison", n.link_mbps ? Format.link(n.link_mbps) : null],
-                    ["Adresse IPv4", n.ipv4.join("\n")],
-                    ["Adresse IPv6", n.ipv6.join("\n")],
-                    ["Adresse MAC", n.mac],
+                    [qsTr("Adapter"), n.adapter],
+                    [qsTr("Interface"), n.name],
+                    [qsTr("Connection type"), n.kind],
+                    [qsTr("Link speed"), n.link_mbps ? Format.link(n.link_mbps) : null],
+                    [qsTr("IPv4 address"), n.ipv4.join("\n")],
+                    [qsTr("IPv6 address"), n.ipv6.join("\n")],
+                    [qsTr("MAC address"), n.mac],
                 ]),
             }
         }
@@ -214,42 +214,42 @@ Item {
             }
             const ch = g.charts
             const mem = g.memory_total ? Format.bytes(g.memory_used) + " / " + Format.bytes(g.memory_total) : null
-            const noVoltage = g.driver === "nvidia" ? "Non exposée par le pilote NVIDIA" : "Non exposée par le pilote"
+            const noVoltage = g.driver === "nvidia" ? qsTr("Not exposed by the NVIDIA driver") : qsTr("Not exposed by the driver")
             return {
-                title: "GPU " + g.index,
+                title: qsTr("GPU %1").arg(g.index),
                 subtitle: g.name,
-                summary: summary(g.usage !== null ? Format.percent(g.usage) : "Non mesuré", mem, g.temperature),
+                summary: summary(g.usage !== null ? Format.percent(g.usage) : qsTr("Not measured"), mem, g.temperature),
                 header: g.name,
                 color: colors.gpu,
-                chartLabel: "Utilisation",
+                chartLabel: qsTr("Utilization"),
                 maximum: 100,
                 maximumLabel: "100 %",
                 series: [series(g.history, colors.gpu)],
                 charts: [
-                    mini(g.dedicated ? "Mémoire dédiée" : "Mémoire réservée", mem ?? "", ch.memory, 100, colors.memory,
-                         g.memory_total ? "" : "Non mesurée"),
-                    mini("Fréquence GPU", Format.mhz(g.core_mhz), ch.core_clock, g.core_max_mhz ?? 1, colors.clock,
-                         g.core_mhz === null ? "Non mesurée" : ""),
-                    mini("Fréquence mémoire", Format.mhz(g.memory_mhz), ch.memory_clock, g.memory_max_mhz ?? 1, colors.clock,
-                         g.memory_mhz === null ? (g.dedicated ? "Non mesurée" : "Mémoire système partagée") : ""),
-                    mini("Tension", Format.millivolts(g.voltage_mv), ch.voltage, 1500, colors.voltage,
+                    mini(g.dedicated ? qsTr("Dedicated memory") : qsTr("Reserved memory"), mem ?? "", ch.memory, 100, colors.memory,
+                         g.memory_total ? "" : qsTr("Not measured")),
+                    mini(qsTr("GPU clock"), Format.mhz(g.core_mhz), ch.core_clock, g.core_max_mhz ?? 1, colors.clock,
+                         g.core_mhz === null ? qsTr("Not measured") : ""),
+                    mini(qsTr("Memory clock"), Format.mhz(g.memory_mhz), ch.memory_clock, g.memory_max_mhz ?? 1, colors.clock,
+                         g.memory_mhz === null ? (g.dedicated ? qsTr("Not measured") : qsTr("Shared system memory")) : ""),
+                    mini(qsTr("Voltage"), Format.millivolts(g.voltage_mv), ch.voltage, 1500, colors.voltage,
                          g.voltage_mv === null ? noVoltage : ""),
-                    mini("Consommation", Format.watts(g.power_watts) + (g.power_limit_watts ? " / " + Format.watts(g.power_limit_watts) : ""),
-                         ch.power, g.power_limit_watts ?? 1, colors.power, g.power_watts === null ? "Non mesurée" : ""),
+                    mini(qsTr("Power"), Format.watts(g.power_watts) + (g.power_limit_watts ? " / " + Format.watts(g.power_limit_watts) : ""),
+                         ch.power, g.power_limit_watts ?? 1, colors.power, g.power_watts === null ? qsTr("Not measured") : ""),
                 ],
                 stats: [
-                    ["Utilisation", Format.percent(g.usage)],
-                    ["Mémoire dédiée", mem ?? "—"],
-                ].concat(g.shared_total ? [["Mémoire partagée", Format.bytes(g.shared_used) + " / " + Format.bytes(g.shared_total)]] : [])
-                 .concat(g.temperature !== null ? [["Température", Format.temperature(g.temperature)]] : [])
-                 .concat(g.encoder !== null ? [["Encodage vidéo", Format.percent(g.encoder)]] : [])
-                 .concat(g.decoder !== null ? [["Décodage vidéo", Format.percent(g.decoder)]] : []),
+                    [qsTr("Utilization"), Format.percent(g.usage)],
+                    [qsTr("Dedicated memory"), mem ?? "—"],
+                ].concat(g.shared_total ? [[qsTr("Shared memory"), Format.bytes(g.shared_used) + " / " + Format.bytes(g.shared_total)]] : [])
+                 .concat(g.temperature !== null ? [[qsTr("Temperature"), Format.temperature(g.temperature)]] : [])
+                 .concat(g.encoder !== null ? [[qsTr("Video encode"), Format.percent(g.encoder)]] : [])
+                 .concat(g.decoder !== null ? [[qsTr("Video decode"), Format.percent(g.decoder)]] : []),
                 details: details([
-                    ["Type", g.dedicated ? "Dédié" : "Intégré"],
-                    ["Pilote", g.driver],
-                    ["Version du pilote", g.driver_version],
-                    ["Fréquence max", g.core_max_mhz ? Format.mhz(g.core_max_mhz) : null],
-                    ["Emplacement PCI", g.pci_slot],
+                    [qsTr("Type"), g.dedicated ? qsTr("Dedicated") : qsTr("Integrated")],
+                    [qsTr("Driver"), g.driver],
+                    [qsTr("Driver version"), g.driver_version],
+                    [qsTr("Max clock"), g.core_max_mhz ? Format.mhz(g.core_max_mhz) : null],
+                    [qsTr("PCI slot"), g.pci_slot],
                 ]),
             }
         }
@@ -257,9 +257,9 @@ Item {
             const all = [].concat(...s.sensors.map(g => g.sensors))
             const hottest = all.reduce((a, b) => b.value > a.value ? b : a)
             return {
-                title: "Capteurs",
-                subtitle: all.length + " capteurs de température",
-                summary: "Max " + Format.temperature(hottest.value),
+                title: qsTr("Sensors"),
+                subtitle: qsTr("%1 temperature sensors").arg(all.length),
+                summary: qsTr("Max %1").arg(Format.temperature(hottest.value)),
                 header: "",
                 color: colors.sensors,
                 maximum: 110,
@@ -318,7 +318,7 @@ Item {
         }
         RowLayout {
             Caption {
-                text: "60 secondes"
+                text: qsTr("60 seconds")
                 Layout.fillWidth: true
             }
             Caption {
@@ -332,7 +332,7 @@ Item {
         spacing: 0
 
         PageHeader {
-            title: "Performances"
+            title: qsTr("Performance")
         }
 
         RowLayout {
@@ -460,7 +460,7 @@ Item {
 
                             RowLayout {
                                 Caption {
-                                    text: "% d'utilisation par processeur logique"
+                                    text: qsTr("% utilization per logical processor")
                                     Layout.fillWidth: true
                                 }
                                 Caption {
@@ -486,7 +486,7 @@ Item {
                                         Layout.preferredHeight: Math.max(Kirigami.Units.gridUnit * 2.5,
                                             page.height * 0.42 / Math.ceil(coreGrid.count / coreGrid.columns))
 
-                                        QQC2.ToolTip.text: "Processeur " + index
+                                        QQC2.ToolTip.text: qsTr("Processor %1").arg(index)
                                         QQC2.ToolTip.visible: coreHover.hovered
                                         HoverHandler {
                                             id: coreHover
@@ -591,7 +591,7 @@ Item {
         QQC2.MenuItem {
             visible: !!page.selected?.cores
             height: visible ? implicitHeight : 0
-            text: "Utilisation globale"
+            text: qsTr("Overall utilization")
             checkable: true
             checked: !page.logicalProcessors
             onTriggered: page.logicalProcessors = false
@@ -599,7 +599,7 @@ Item {
         QQC2.MenuItem {
             visible: !!page.selected?.cores
             height: visible ? implicitHeight : 0
-            text: "Processeurs logiques"
+            text: qsTr("Logical processors")
             checkable: true
             checked: page.logicalProcessors
             onTriggered: page.logicalProcessors = true
@@ -609,7 +609,7 @@ Item {
             height: visible ? implicitHeight : 0
         }
         QQC2.MenuItem {
-            text: "Copier les détails"
+            text: qsTr("Copy details")
             icon.name: "edit-copy"
             onTriggered: {
                 clipboard.text = page.detailsText(page.selected)

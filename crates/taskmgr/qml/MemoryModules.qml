@@ -16,7 +16,7 @@ ColumnLayout {
     spacing: Kirigami.Units.largeSpacing
 
     Kirigami.Heading {
-        text: "Barrettes"
+        text: qsTr("Memory modules")
         level: 3
     }
 
@@ -61,7 +61,7 @@ ColumnLayout {
                     }
                     QQC2.Label {
                         text: [Format.bytes(card.modelData.size), card.modelData.kind,
-                               card.modelData.speed_mts ? card.modelData.speed_mts + " MT/s" : null].filter(x => x).join("  ")
+                               card.modelData.speed_mts ? qsTr("%1 MT/s").arg(card.modelData.speed_mts) : null].filter(x => x).join("  ")
                     }
                     QQC2.Label {
                         visible: text !== ""
@@ -85,7 +85,7 @@ ColumnLayout {
                         }
                     }
                     QQC2.Label {
-                        text: "\u2248 " + Format.bytes(card.share) + " utilisés"
+                        text: qsTr("about %1 used").arg(Format.bytes(card.share))
                         font: Kirigami.Theme.smallFont
                         opacity: 0.7
                     }
@@ -95,8 +95,7 @@ ColumnLayout {
     }
 
     QQC2.Label {
-        text: "Estimation : le contrôleur mémoire entrelace les données entre les barrettes, "
-            + "chacune en porte une part proportionnelle à sa taille."
+        text: qsTr("Estimate: the memory controller interleaves data across modules, each holds a share proportional to its size.")
         wrapMode: Text.Wrap
         opacity: 0.6
         font: Kirigami.Theme.smallFont
