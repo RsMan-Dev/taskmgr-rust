@@ -3,6 +3,9 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QtQml/qqml.h>
+
+#include "seriesplot.h"
 #include <QPalette>
 #include <QSettings>
 #include <QStandardPaths>
@@ -108,6 +111,7 @@ extern "C" int taskmgr_run(int argc, char **argv)
         QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
     }
 
+    qmlRegisterType<SeriesPlot>("org.taskmgr.charts", 1, 0, "SeriesPlot");
     QQmlApplicationEngine engine;
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                      [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);

@@ -27,6 +27,8 @@ fn main() {
         .qt_module("QuickControls2")
         .file("src/monitor.rs")
         .cpp_file("src/cpp/app.cpp")
+        .cpp_file("src/cpp/seriesplot.h")
+        .cpp_file("src/cpp/seriesplot.cpp")
         .build();
 }
 

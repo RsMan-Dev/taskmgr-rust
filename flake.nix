@@ -17,7 +17,6 @@
         qtsvg
         kirigami
         qqc2-desktop-style
-        kquickcharts
         breeze
         breeze-icons
         plasma-integration
