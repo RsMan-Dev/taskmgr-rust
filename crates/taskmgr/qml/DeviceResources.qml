@@ -166,6 +166,7 @@ QtObject {
             [qsTr("Type"), g.dedicated ? qsTr("Dedicated") : qsTr("Integrated")],
             [qsTr("Driver"), g.driver],
             [qsTr("Driver version"), g.driver_version],
+            [qsTr("Vulkan"), g.vulkan],
             [qsTr("Max clock"), g.core_max_mhz ? Format.mhz(g.core_max_mhz) : null],
             [qsTr("Bus"), g.pcie_now ? (g.pcie_max && g.pcie_max !== g.pcie_now
                 ? qsTr("%1 (maximum %2)").arg(g.pcie_now).arg(g.pcie_max) : g.pcie_now) : null],

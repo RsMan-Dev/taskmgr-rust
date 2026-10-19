@@ -1682,75 +1682,80 @@
     </message>
     <message>
         <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="169"/>
+        <source>Vulkan</source>
+        <translation>Vulkan</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="170"/>
         <source>Max clock</source>
         <translation>Fréquence max</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="170"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="171"/>
         <source>Bus</source>
         <translation>Bus</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="171"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="172"/>
         <source>%1 (maximum %2)</source>
         <translation>%1 (maximum %2)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="172"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="173"/>
         <source>PCI slot</source>
         <translation>Emplacement PCI</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="184"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="185"/>
         <source>Fan</source>
         <translation>Ventilateur</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="187"/>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="192"/>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="201"/>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="204"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="188"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="193"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="202"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="205"/>
         <source>%1 RPM</source>
         <translation>%1 tr/min</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="190"/>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="201"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="191"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="202"/>
         <source>Speed</source>
         <translation>Vitesse</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="195"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="196"/>
         <source>Duty cycle (PWM)</source>
         <translation>Rapport cyclique (PWM)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="202"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="203"/>
         <source>Duty cycle</source>
         <translation>Rapport cyclique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="204"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="205"/>
         <source>Maximum speed</source>
         <translation>Vitesse maximale</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="205"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="206"/>
         <source>Sensor</source>
         <translation>Capteur</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="214"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="215"/>
         <source>Sensors</source>
         <translation>Capteurs</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="215"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="216"/>
         <source>%1 temperature sensors</source>
         <translation>%1 capteurs de température</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="216"/>
+        <location filename="../crates/taskmgr/qml/DeviceResources.qml" line="217"/>
         <source>Max %1</source>
         <translation>Max %1</translation>
     </message>

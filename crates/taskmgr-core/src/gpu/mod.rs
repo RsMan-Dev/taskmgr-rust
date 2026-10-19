@@ -12,6 +12,7 @@ use serde::Serialize;
 use crate::hwmon::Chip;
 
 mod clients;
+mod vulkan;
 
 use crate::util::{Charts, History, Root};
 pub use clients::DrmClients;
@@ -47,6 +48,8 @@ pub struct GpuSnapshot {
     /// "PCIe 4.0 x16": the link drops to a lower speed when idle.
     pub pcie_now: Option<String>,
     pub pcie_max: Option<String>,
+    /// Highest Vulkan version the driver supports.
+    pub vulkan: Option<String>,
     pub history: History,
     pub memory_history: History,
     pub charts: Charts,
@@ -200,6 +203,7 @@ impl GpuSampler {
                 .map(|m| marketing_name(&vendor, &m))
                 .unwrap_or_else(|| format!("{vendor} GPU")),
             vendor,
+            vulkan: vulkan::version(root, &driver),
             driver,
             pci_slot,
             ..Default::default()
