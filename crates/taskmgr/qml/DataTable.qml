@@ -6,6 +6,8 @@ import org.kde.kirigami as Kirigami
 // Flat sortable table. `columns`: { key, title, width (0: fills, absent:
 // fits the content), text(row), value(row) for sorting, align, dim(row),
 // widest: sample texts for numbers }. `rows`: plain objects.
+// `groupBy(row)` folds rows sharing a key under a row built by
+// `groupRow(key, rows)`, expanded with the chevron of the first column.
 ColumnLayout {
     id: table
 
@@ -18,8 +20,12 @@ ColumnLayout {
     property string placeholder: ""
     // Keeps `rows` in the given order (tree view) instead of sorting.
     property bool ordered: false
+    property var groupBy: null
+    property var groupRow: null
+    property var expanded: ({})
 
     readonly property var selectedRow: index[selectedKey] ?? null
+    readonly property real chevron: groupBy ? Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing : 0
     readonly property real fillMinimum: Kirigami.Units.gridUnit * 12
     readonly property var widths: {
         const out = {}
@@ -29,8 +35,9 @@ ColumnLayout {
                 out[c.key] = c.width
                 continue
             }
-            const texts = new Set(c.widest ?? rows.map(r => String(c.text(r))))
+            const texts = new Set(c.widest ?? (groupBy ? sorted : rows).map(r => String(c.text(r))))
             let w = metrics.advanceWidth(c.title) + Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
+                + (c === columns[0] ? chevron * 2 : 0)
             for (const t of texts) {
                 w = Math.max(w, metrics.advanceWidth(t))
             }
@@ -45,22 +52,48 @@ ColumnLayout {
 
     readonly property var sorted: {
         const col = columns.find(c => c.key === sortColumn)
-        const list = rows.slice()
-        if (col && !ordered) {
-            const v = col.value ?? col.text
-            list.sort((a, b) => {
-                const x = v(a), y = v(b)
-                const r = typeof x === "number" && typeof y === "number"
-                    ? x - y : String(x).localeCompare(String(y), Qt.locale().name, { sensitivity: "base" })
-                return sortDescending ? -r : r
-            })
+        const order = list => {
+            if (col && !ordered) {
+                const v = col.value ?? col.text
+                list.sort((a, b) => {
+                    const x = v(a), y = v(b)
+                    const r = typeof x === "number" && typeof y === "number"
+                        ? x - y : String(x).localeCompare(String(y), Qt.locale().name, { sensitivity: "base" })
+                    return sortDescending ? -r : r
+                })
+            }
+            return list
         }
-        return list
+        if (!groupBy) {
+            return order(rows.slice())
+        }
+        const buckets = new Map()
+        for (const r of rows) {
+            const k = groupBy(r)
+            if (!buckets.has(k)) {
+                buckets.set(k, [])
+            }
+            buckets.get(k).push(r)
+        }
+        const heads = []
+        for (const [k, list] of buckets) {
+            heads.push(list.length === 1 ? list[0] : Object.assign(groupRow(k, list), { _group: k, _rows: list }))
+        }
+        const out = []
+        for (const h of order(heads)) {
+            out.push(h)
+            if (h._group !== undefined && expanded[h._group]) {
+                for (const r of order(h._rows.slice())) {
+                    out.push(Object.assign({}, r, { _child: true }))
+                }
+            }
+        }
+        return out
     }
     readonly property var index: {
         const map = {}
         for (const r of sorted) {
-            map[keyOf(r)] = r
+            map[rowKey(r)] = r
         }
         return map
     }
@@ -69,7 +102,17 @@ ColumnLayout {
     signal activated(var row)
 
     spacing: 0
-    onSortedChanged: model.sync(sorted.map(keyOf))
+    onSortedChanged: model.sync(sorted.map(rowKey))
+
+    function rowKey(r) {
+        return r._group !== undefined ? "group:" + r._group : keyOf(r)
+    }
+
+    function toggle(group) {
+        const e = Object.assign({}, expanded)
+        e[group] = !e[group]
+        expanded = e
+    }
 
     function sortBy(key) {
         if (sortColumn === key) {
@@ -81,7 +124,7 @@ ColumnLayout {
     }
 
     function moveSelection(delta) {
-        const keys = sorted.map(keyOf)
+        const keys = sorted.map(rowKey)
         if (keys.length === 0) {
             return
         }
@@ -200,10 +243,14 @@ ColumnLayout {
                 Repeater {
                     model: table.columns
                     QQC2.Label {
+                        id: cellLabel
                         required property var modelData
+                        required property int index
+                        readonly property bool first: index === 0
                         width: table.cellWidth(modelData)
                         height: rowItem.height
                         leftPadding: Kirigami.Units.largeSpacing + (rowItem.row && modelData.indent ? modelData.indent(rowItem.row) : 0)
+                            + (first ? table.chevron * (rowItem.row?._child ? 2 : 1) : 0)
                         rightPadding: Kirigami.Units.largeSpacing
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: modelData.align === Qt.AlignRight ? Text.AlignRight : Text.AlignLeft
@@ -212,6 +259,19 @@ ColumnLayout {
                         font.features: { "tnum": 1 }
                         text: rowItem.row ? String(modelData.text(rowItem.row)) : ""
                         opacity: rowItem.row && modelData.dim && modelData.dim(rowItem.row) ? 0.55 : 1
+
+                        Kirigami.Icon {
+                            readonly property var group: rowItem.row?._group
+                            visible: cellLabel.first && group !== undefined
+                            x: Kirigami.Units.largeSpacing
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Kirigami.Units.iconSizes.small
+                            height: width
+                            source: Icons.of(table.expanded[group] ? "collapse" : "expand", Kirigami.Theme.textColor)
+                            TapHandler {
+                                onTapped: table.toggle(parent.group)
+                            }
+                        }
                     }
                 }
             }

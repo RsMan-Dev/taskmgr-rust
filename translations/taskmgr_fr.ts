@@ -4,96 +4,140 @@
 <context>
     <name>ConnectionsPage</name>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="46"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="55"/>
         <source>PID %1</source>
         <translation>PID %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="58"/>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="80"/>
+        <source>No application</source>
+        <translation type="vanished">Sans application</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="55"/>
+        <source>No application (%1)</source>
+        <translation>Sans application (%1)</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="90"/>
+        <source>Access denied: this process belongs to another user or to the system.</source>
+        <translation>Accès refusé : ce processus appartient à un autre utilisateur ou au système.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="106"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="128"/>
         <source>Connected</source>
         <translation>Connectée</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="59"/>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="80"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="107"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="128"/>
         <source>Listening</source>
         <translation>En écoute</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="60"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="108"/>
         <source>Connecting</source>
         <translation>Connexion</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="62"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="110"/>
         <source>Closing</source>
         <translation>Fermeture</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="64"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="112"/>
         <source>Open</source>
         <translation>Ouverte</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="77"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="125"/>
         <source>Connections</source>
         <translation>Connexions</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="80"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="128"/>
         <source>All</source>
         <translation>Toutes</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="86"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="134"/>
         <source>Search an app, address or port</source>
         <translation>Rechercher une appli, une adresse ou un port</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="95"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="143"/>
         <source>Sockets of other users are listed without their application.</source>
         <translation>Les sockets des autres utilisateurs sont listés sans leur application.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="109"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="172"/>
         <source>No matching connection</source>
         <translation>Aucune connexion correspondante</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="113"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="176"/>
         <source>Application</source>
         <translation>Application</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="115"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="177"/>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="179"/>
         <source>PID</source>
         <translation>PID</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="116"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="180"/>
         <source>Protocol</source>
         <translation>Protocole</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="117"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="181"/>
         <source>Local address</source>
         <translation>Adresse locale</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="118"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="182"/>
         <source>Remote address</source>
         <translation>Adresse distante</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="119"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="183"/>
         <source>State</source>
         <translation>État</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="120"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="184"/>
         <source>User</source>
         <translation>Utilisateur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="205"/>
+        <source>End task</source>
+        <translation>Fin de tâche</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="211"/>
+        <source>Kill task</source>
+        <translation>Tuer la tâche</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="220"/>
+        <source>Collapse</source>
+        <translation>Réduire</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="220"/>
+        <source>Expand</source>
+        <translation>Développer</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="225"/>
+        <source>Go to details</source>
+        <translation>Voir dans Détails</translation>
     </message>
 </context>
 <context>
@@ -613,7 +657,7 @@
     </message>
     <message>
         <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="176"/>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="778"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="779"/>
         <source>Logical processors</source>
         <translation>Processeurs logiques</translation>
     </message>
@@ -1232,57 +1276,57 @@
         <translation>Profil d&apos;énergie</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="590"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="591"/>
         <source>Performance held back: %1</source>
         <translation>Performances limitées : %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="628"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="629"/>
         <source>% utilization per NUMA node</source>
         <translation>% d&apos;utilisation par nœud NUMA</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="629"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="630"/>
         <source>Frequency per logical processor</source>
         <translation>Fréquence par processeur logique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="630"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="631"/>
         <source>% utilization per logical processor</source>
         <translation>% d&apos;utilisation par processeur logique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="631"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="632"/>
         <source>(P: performance cores, E: efficiency cores in green)</source>
         <translation>(P : cœurs performance, E : cœurs efficacité en vert)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="661"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="662"/>
         <source>NUMA node %1</source>
         <translation>Nœud NUMA %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="662"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="663"/>
         <source>Processor %1</source>
         <translation>Processeur %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="770"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="771"/>
         <source>Overall utilization</source>
         <translation>Utilisation globale</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="786"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="787"/>
         <source>Frequency per processor</source>
         <translation>Fréquence par processeur</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="794"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="795"/>
         <source>NUMA nodes</source>
         <translation>Nœuds NUMA</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="804"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="805"/>
         <source>Copy details</source>
         <translation>Copier les détails</translation>
     </message>
