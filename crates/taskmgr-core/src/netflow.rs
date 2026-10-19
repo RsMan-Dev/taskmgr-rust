@@ -142,6 +142,10 @@ struct HelperLine {
 
 /// The helper sits next to the interface binary, or on the PATH.
 pub fn helper_path() -> Option<String> {
+    // Set by the AppImage, where the binary runs through the bundled loader.
+    if let Ok(p) = std::env::var("TASKMGR_HELPER") {
+        return Some(p);
+    }
     let beside = std::env::current_exe()
         .ok()?
         .parent()?

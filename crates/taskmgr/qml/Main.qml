@@ -14,6 +14,29 @@ QQC2.ApplicationWindow {
     visible: true
     title: qsTr("Task Manager")
 
+    // Styles other than org.kde.desktop (Fusion in the AppImage) keep their
+    // own palette: hand them the application one.
+    SystemPalette { id: appPalette }
+    SystemPalette { id: appPaletteOff; colorGroup: SystemPalette.Disabled }
+    palette.window: appPalette.window
+    palette.windowText: appPalette.windowText
+    palette.base: appPalette.base
+    palette.alternateBase: appPalette.alternateBase
+    palette.text: appPalette.text
+    palette.button: appPalette.button
+    palette.buttonText: appPalette.buttonText
+    palette.highlight: appPalette.highlight
+    palette.highlightedText: appPalette.highlightedText
+    palette.placeholderText: appPalette.placeholderText
+    palette.mid: appPalette.mid
+    palette.midlight: appPalette.midlight
+    palette.dark: appPalette.dark
+    palette.light: appPalette.light
+    palette.shadow: appPalette.shadow
+    palette.disabled.windowText: appPaletteOff.windowText
+    palette.disabled.text: appPaletteOff.text
+    palette.disabled.buttonText: appPaletteOff.buttonText
+
     readonly property var snapshot: monitor.snapshot !== "" ? JSON.parse(monitor.snapshot) : null
     readonly property var systemInfo: monitor.info !== "" ? JSON.parse(monitor.info) : null
     readonly property var processes: monitor.processes !== "" ? JSON.parse(monitor.processes) : null

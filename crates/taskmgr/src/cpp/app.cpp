@@ -7,6 +7,7 @@
 
 #include "seriesplot.h"
 #include <QPalette>
+#include <QStyleHints>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTranslator>
@@ -18,6 +19,30 @@
 #include <unistd.h>
 
 static int s_signalFds[2];
+
+// Breeze colours for the portable build, which ships no KDE colour schemes.
+static QPalette breezePalette(bool dark)
+{
+    const auto c = [](int r, int g, int b) { return QColor(r, g, b); };
+    QPalette p;
+    p.setColor(QPalette::Window, dark ? c(32, 35, 38) : c(239, 240, 241));
+    p.setColor(QPalette::WindowText, dark ? c(252, 252, 252) : c(35, 38, 41));
+    p.setColor(QPalette::Base, dark ? c(20, 22, 24) : c(255, 255, 255));
+    p.setColor(QPalette::AlternateBase, dark ? c(29, 31, 34) : c(247, 247, 247));
+    p.setColor(QPalette::Text, dark ? c(252, 252, 252) : c(35, 38, 41));
+    p.setColor(QPalette::Button, dark ? c(41, 44, 48) : c(252, 252, 252));
+    p.setColor(QPalette::ButtonText, dark ? c(252, 252, 252) : c(35, 38, 41));
+    p.setColor(QPalette::Highlight, c(61, 174, 233));
+    p.setColor(QPalette::HighlightedText, dark ? c(252, 252, 252) : c(255, 255, 255));
+    p.setColor(QPalette::ToolTipBase, dark ? c(41, 44, 48) : c(247, 247, 247));
+    p.setColor(QPalette::ToolTipText, dark ? c(252, 252, 252) : c(35, 38, 41));
+    p.setColor(QPalette::Link, dark ? c(29, 153, 243) : c(41, 128, 185));
+    p.setColor(QPalette::PlaceholderText, dark ? c(161, 169, 177) : c(112, 125, 138));
+    for (auto role : {QPalette::Text, QPalette::WindowText, QPalette::ButtonText}) {
+        p.setColor(QPalette::Disabled, role, dark ? c(161, 169, 177) : c(112, 125, 138));
+    }
+    return p;
+}
 
 static QPalette schemePalette(const QString &path)
 {
@@ -85,7 +110,22 @@ extern "C" int taskmgr_run(int argc, char **argv)
     // this application only, the way KColorSchemeManager does: Kirigami reads
     // the scheme from the property, widgets from the palette.
     const QString theme = QSettings().value(QStringLiteral("prefs/theme")).toString();
-    if (theme == QLatin1String("light") || theme == QLatin1String("dark")) {
+    // Portable build (AppImage): no KDE platform theme or style is shipped.
+    const bool portable = qEnvironmentVariableIsSet("TASKMGR_PORTABLE");
+    if (portable) {
+        const bool dark = theme == QLatin1String("dark")
+            || (theme.isEmpty() && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+        // Fusion picks its own palette from the colour scheme.
+        QGuiApplication::styleHints()->setColorScheme(dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+        app.setPalette(breezePalette(dark));
+        // The AppImage bundles the few Breeze icons Kirigami asks for by name.
+        QStringList iconPaths = QIcon::themeSearchPaths();
+        for (const QString &d : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+            iconPaths << d + QStringLiteral("/icons");
+        }
+        QIcon::setThemeSearchPaths(iconPaths);
+        QIcon::setThemeName(dark ? QStringLiteral("breeze-dark") : QStringLiteral("breeze"));
+    } else if (theme == QLatin1String("light") || theme == QLatin1String("dark")) {
         const QString scheme = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
             theme == QLatin1String("light") ? QStringLiteral("color-schemes/BreezeLight.colors")
                                             : QStringLiteral("color-schemes/BreezeDark.colors"));
@@ -106,9 +146,11 @@ extern "C" int taskmgr_run(int argc, char **argv)
     }
     quitOnSignals(app);
 
-    // org.kde.desktop draws with QStyle, hence QApplication.
+    // org.kde.desktop draws with QStyle, hence QApplication. The portable
+    // build ships styles/Fusion/Theme.qml in Kirigami so its colours follow
+    // the palette.
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
-        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
+        QQuickStyle::setStyle(portable ? QStringLiteral("Fusion") : QStringLiteral("org.kde.desktop"));
     }
 
     qmlRegisterType<SeriesPlot>("org.taskmgr.charts", 1, 0, "SeriesPlot");

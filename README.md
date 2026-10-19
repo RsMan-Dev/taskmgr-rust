@@ -23,10 +23,12 @@ Never run it as root. CPU power needs read access to RAPL, see
 ## Without Nix (AppImage)
 
 ```sh
-nix bundle --bundler github:ralismark/nix-appimage .#portable
+nix build .#appimage   # result/taskmgr-x86_64.AppImage, about 55 MB
 ```
 
-The `portable` package ships Mesa for systems without `/run/opengl-driver`.
+The AppImage keeps only what the app loads (see `packaging/appimage.sh`):
+standard Qt controls with Breeze colours, software rendering, no KDE
+frameworks. It follows the desktop's light or dark preference.
 
 ## Install (Nix)
 

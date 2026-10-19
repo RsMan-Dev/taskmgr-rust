@@ -2,8 +2,10 @@
   description = "taskmgr-rust — wrapper-aware Linux task manager";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  # AppImage runtime only (static ELF that mounts the image).
+  inputs.nix-appimage.url = "github:ralismark/nix-appimage";
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, nix-appimage }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAll = f: nixpkgs.lib.genAttrs systems (s: f nixpkgs.legacyPackages.${s});
@@ -23,21 +25,24 @@
         kiconthemes
       ];
 
-      # Same app for distributions without Nix (AppImage through
-      # `nix bundle --bundler github:ralismark/nix-appimage .#portable`).
-      # Nix's libglvnd looks for drivers in /run/opengl-driver, which only
-      # NixOS has: elsewhere the bundled Mesa is used instead.
-      portableFor = pkgs: pkgs.writeShellScriptBin "taskmgr" ''
-        if [ ! -e /run/opengl-driver ]; then
-          export __EGL_VENDOR_LIBRARY_DIRS=${pkgs.mesa}/share/glvnd/egl_vendor.d
-          export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
-          export GBM_BACKENDS_PATH=${pkgs.mesa}/lib/gbm
-        fi
-        exec ${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/taskmgr "$@"
-      '';
     in {
       packages = forAll (pkgs: {
-        portable = portableFor pkgs;
+        # Same app for distributions without Nix: a pruned AppImage (Fusion
+        # style, software rendering), see packaging/appimage.sh.
+        appimage = pkgs.runCommand "taskmgr-appimage" {
+          nativeBuildInputs = [ pkgs.patchelf pkgs.squashfsTools pkgs.glibc.bin pkgs.binutils ];
+          APP = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/.taskmgr-wrapped";
+          HELPER = "${self.probes.${pkgs.stdenv.hostPlatform.system}.native}/bin/taskmgr-helper";
+          QTBASE = pkgs.kdePackages.qtbase;
+          QTDECL = pkgs.kdePackages.qtdeclarative;
+          QTWAYLAND = pkgs.kdePackages.qtwayland;
+          QTSVG = pkgs.kdePackages.qtsvg;
+          KIRIGAMI = pkgs.kdePackages.kirigami.unwrapped or pkgs.kdePackages.kirigami;
+          BREEZE = pkgs.kdePackages.breeze-icons;
+          EXTRA = "${pkgs.xcb-util-cursor}/lib/libxcb-cursor.so.0";
+          RUNTIME = nix-appimage.packages.${pkgs.stdenv.hostPlatform.system}.appimage-runtimes.appimage-type2-runtime;
+          SRC = self;
+        } "bash ${./packaging/appimage.sh}";
         default = pkgs.rustPlatform.buildRustPackage {
           pname = "taskmgr";
           version = "0.1.0";
