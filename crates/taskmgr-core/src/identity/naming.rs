@@ -2,8 +2,10 @@
 
 use super::{ProcFacts, Role};
 
-const WRAPPERS: [&str; 9] = [
+const WRAPPERS: [&str; 11] = [
     "bwrap",
+    "srt-bwrap",
+    "pv-adverb",
     "xdg-dbus-proxy",
     "appimage-run",
     "steam-run",
@@ -14,7 +16,7 @@ const WRAPPERS: [&str; 9] = [
     "wine64-preloader",
 ];
 
-const WINE_INFRA: [&str; 10] = [
+const WINE_INFRA: [&str; 11] = [
     "wineserver",
     "services.exe",
     "winedevice.exe",
@@ -25,6 +27,7 @@ const WINE_INFRA: [&str; 10] = [
     "conhost.exe",
     "start.exe",
     "rundll32.exe",
+    "xalia.exe",
 ];
 
 const INTERPRETERS: [&str; 9] = [

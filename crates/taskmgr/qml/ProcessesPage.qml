@@ -11,10 +11,8 @@ ColumnLayout {
     required property var monitor
     property var processDetails: ({})
 
-    property string sortColumn: Prefs.sortColumn
-    property bool sortDescending: Prefs.sortDescending
-    onSortColumnChanged: Prefs.sortColumn = sortColumn
-    onSortDescendingChanged: Prefs.sortDescending = sortDescending
+    readonly property string sortColumn: Prefs.sortColumn
+    readonly property bool sortDescending: Prefs.sortDescending
     property var expanded: ({})
 
     signal journalRequested(string title, var query)
@@ -127,12 +125,14 @@ ColumnLayout {
             ? qsTr("Access denied: this process belongs to another user or to the system.") : ""
     }
 
+    // Saved only on a click: writing a setting back while the settings
+    // load made them save early, before the later ones were read.
     function sortBy(column) {
         if (sortColumn === column) {
-            sortDescending = !sortDescending
+            Prefs.sortDescending = !sortDescending
         } else {
-            sortColumn = column
-            sortDescending = column !== "name"
+            Prefs.sortColumn = column
+            Prefs.sortDescending = column !== "name"
         }
     }
 
