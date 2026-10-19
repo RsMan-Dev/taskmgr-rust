@@ -64,13 +64,13 @@ ColumnLayout {
     }
 
     function signal(row, sig) {
-        if (row && monitor.sendSignal(String(row.pid), sig) === "denied") {
+        if (row && monitor.sendSignal(row.pid + ":" + row.start, sig) === "denied") {
             message = qsTr("Access denied: this process belongs to another user or to the system.")
         }
     }
 
     function setPriority(row, nice) {
-        const r = monitor.setPriority(row.pid, nice)
+        const r = monitor.setPriority(row.pid + ":" + row.start, nice)
         if (r === "denied") {
             pendingPriority = { pid: row.pid, nice: nice }
             message = qsTr("Raising the priority of %1 needs administrator rights.").arg(row.name)

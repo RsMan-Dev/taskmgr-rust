@@ -160,15 +160,17 @@ ColumnLayout {
         expanded = e
     }
 
-    function pidsOf(entry) {
-        return entry.type === "group" ? entry.group.processes.map(p => p.pid) : [entry.proc.pid]
+    // "pid:start" pairs: actions skip a process whose pid was reused.
+    function targetsOf(entry) {
+        const list = entry.type === "group" ? entry.group.processes : [entry.proc]
+        return list.map(p => p.pid + ":" + p.start).join(",")
     }
 
     function endTask(entry, force) {
         if (!entry || entry.type === "section") {
             return
         }
-        error = monitor.terminate(pidsOf(entry).join(","), force) === "denied"
+        error = monitor.sendSignal(targetsOf(entry), force ? "kill" : "term") === "denied"
             ? qsTr("Access denied: this process belongs to another user or to the system.") : ""
     }
 

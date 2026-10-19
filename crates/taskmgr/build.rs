@@ -78,7 +78,8 @@ fn icons() -> std::path::PathBuf {
     let here = std::env::current_dir().expect("crate dir");
     let mut entries = format!(
         "<file alias=\"logo.svg\">{}</file>",
-        here.join("../../packaging/fr.rsman.taskmgr-rust.svg").display()
+        here.join("../../packaging/fr.rsman.taskmgr-rust.svg")
+            .display()
     );
     let mut files: Vec<_> = std::fs::read_dir("icons")
         .expect("icons directory")
@@ -88,9 +89,17 @@ fn icons() -> std::path::PathBuf {
     files.sort();
     for f in files {
         let name = f.file_name().unwrap().to_string_lossy().into_owned();
-        entries.push_str(&format!("<file alias=\"{name}\">{}</file>", here.join(&f).display()));
+        entries.push_str(&format!(
+            "<file alias=\"{name}\">{}</file>",
+            here.join(&f).display()
+        ));
     }
-    let qrc = std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("icons.qrc");
-    std::fs::write(&qrc, format!("<RCC><qresource prefix=\"/icons\">{entries}</qresource></RCC>")).expect("write icons.qrc");
+    let qrc =
+        std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("icons.qrc");
+    std::fs::write(
+        &qrc,
+        format!("<RCC><qresource prefix=\"/icons\">{entries}</qresource></RCC>"),
+    )
+    .expect("write icons.qrc");
     qrc
 }

@@ -19,6 +19,9 @@ pub struct ProcessRow {
     pub threads: u64,
     pub command: String,
     pub ppid: u32,
+    /// Start time (clock ticks since boot): with the pid, the identity used
+    /// for actions.
+    pub start: u64,
     pub user: String,
     /// `R` running, `S` sleeping, `D` waiting on I/O, `T` stopped, `Z` zombie.
     pub state: char,
@@ -273,6 +276,7 @@ impl ProcessSampler {
                 threads: stat.threads,
                 command: command.chars().take(400).collect(),
                 ppid: stat.ppid,
+                start: stat.start,
                 user: status_kb(&status, "Uid")
                     .map(|uid| self.users.name(root, uid as u32))
                     .unwrap_or_default(),
@@ -522,25 +526,72 @@ impl Signal {
     }
 }
 
-pub fn terminate(pids: &[i32], force: bool) -> bool {
-    send(
-        pids,
-        if force {
-            Signal::Kill
-        } else {
-            Signal::Terminate
-        },
-    )
+/// A process as the interface saw it: the start time tells a recycled pid
+/// apart, so an action never hits a process that took over the number.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Target {
+    pub pid: i32,
+    /// Start time in clock ticks since boot; 0 skips the check.
+    pub start: u64,
 }
 
-/// Signals every pid. Returns false if any of them was denied; processes
-/// that already exited are not an error.
-pub fn send(pids: &[i32], signal: Signal) -> bool {
+impl Target {
+    /// `"pid:start,pid:start"`, as sent by the interface.
+    pub fn parse_list(s: &str) -> Vec<Target> {
+        s.split(',')
+            .filter_map(|t| {
+                let (pid, start) = t.trim().split_once(':').unwrap_or((t.trim(), "0"));
+                Some(Target {
+                    pid: pid.parse().ok().filter(|p| *p > 0)?,
+                    start: start.parse().unwrap_or(0),
+                })
+            })
+            .collect()
+    }
+
+    fn still_same(&self) -> bool {
+        self.start == 0
+            || std::fs::read_to_string(format!("/proc/{}/stat", self.pid))
+                .ok()
+                .and_then(|s| parse_stat(&s))
+                .is_some_and(|s| s.start == self.start)
+    }
+}
+
+/// Signals every target. Returns false if any was denied; processes that
+/// exited (or whose pid was reused) are skipped, not an error. A pidfd pins
+/// the process between the identity check and the signal.
+pub fn send(targets: &[Target], signal: Signal) -> bool {
     let signal = signal.number();
     let mut ok = true;
-    for &pid in pids.iter().filter(|p| **p > 0) {
-        // SAFETY: kill has no memory preconditions.
-        if unsafe { libc::kill(pid, signal) } != 0 {
+    for t in targets {
+        // SAFETY: plain syscalls; the descriptor is closed right after use.
+        let fd = unsafe { libc::syscall(libc::SYS_pidfd_open, t.pid, 0) } as i32;
+        let result = if fd >= 0 {
+            let r = if t.still_same() {
+                unsafe {
+                    libc::syscall(
+                        libc::SYS_pidfd_send_signal,
+                        fd,
+                        signal,
+                        std::ptr::null::<libc::siginfo_t>(),
+                        0,
+                    )
+                }
+            } else {
+                0
+            };
+            unsafe { libc::close(fd) };
+            r
+        } else if std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+            || !t.still_same()
+        {
+            0
+        } else {
+            // Kernels before 5.3 have no pidfd.
+            unsafe { libc::kill(t.pid, signal) as i64 }
+        };
+        if result != 0 {
             ok &= std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH);
         }
     }
@@ -556,7 +607,11 @@ pub enum PriorityError {
 }
 
 /// Sets the nice value (-20 highest to 19 lowest).
-pub fn set_priority(pid: i32, nice: i32) -> Result<(), PriorityError> {
+pub fn set_priority(target: Target, nice: i32) -> Result<(), PriorityError> {
+    if !target.still_same() {
+        return Err(PriorityError::Gone);
+    }
+    let pid = target.pid;
     // SAFETY: setpriority has no memory preconditions.
     if unsafe { libc::setpriority(libc::PRIO_PROCESS, pid as libc::id_t, nice) } == 0 {
         return Ok(());
@@ -618,15 +673,26 @@ mod tests {
             let s = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap();
             parse_stat(&s).unwrap()
         };
-        assert!(send(&[pid], Signal::Suspend));
+        let me = Target {
+            pid,
+            start: state().start,
+        };
+        assert!(send(&[me], Signal::Suspend));
         std::thread::sleep(std::time::Duration::from_millis(100));
         assert_eq!(state().state, 'T');
-        assert!(send(&[pid], Signal::Resume));
+        assert!(send(&[me], Signal::Resume));
         std::thread::sleep(std::time::Duration::from_millis(100));
         assert_ne!(state().state, 'T');
-        assert_eq!(set_priority(pid, 5), Ok(()));
+        assert_eq!(set_priority(me, 5), Ok(()));
+        let reused = Target {
+            pid,
+            start: me.start + 1,
+        };
+        assert_eq!(set_priority(reused, 0), Err(PriorityError::Gone));
+        assert!(send(&[reused], Signal::Kill));
+        assert_ne!(state().state, 'Z');
         assert_eq!(state().nice, 5);
-        assert!(send(&[pid], Signal::Kill));
+        assert!(send(&[me], Signal::Kill));
         let _ = child.wait();
     }
 
@@ -636,7 +702,11 @@ mod tests {
             .arg("30")
             .spawn()
             .unwrap();
-        assert!(terminate(&[child.id() as i32], false));
+        let me = Target {
+            pid: child.id() as i32,
+            start: 0,
+        };
+        assert!(send(&[me], Signal::Terminate));
         assert!(!child.wait().unwrap().success());
         // In a build sandbox pid 1 may be ours: only check denial when it is not.
         let uid = |pid: &str| {
@@ -645,9 +715,9 @@ mod tests {
                 .and_then(|s| status_kb(&s, "Uid"))
         };
         if uid("1").is_some() && uid("1") != uid("self") {
-            assert!(!terminate(&[1], false));
+            assert!(!send(&[Target { pid: 1, start: 0 }], Signal::Terminate));
         }
-        assert!(terminate(&[child.id() as i32], true));
+        assert!(send(&[me], Signal::Kill));
     }
 
     fn entry(pid: u32, ppid: u32, key: &str, via: &[&'static str]) -> Entry {
@@ -670,6 +740,7 @@ mod tests {
                 command: String::new(),
                 net: None,
                 ppid,
+                start: 0,
                 user: String::new(),
                 state: 'S',
                 nice: 0,

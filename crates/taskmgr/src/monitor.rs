@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::QString;
-use taskmgr_core::process::{PriorityError, Signal};
+use taskmgr_core::process::{PriorityError, Signal, Target};
 use taskmgr_core::{ProcessSampler, Root, Sampler};
 
 #[cxx_qt::bridge]
@@ -50,18 +50,15 @@ pub mod qobject {
         #[cxx_name = "requestEnergyAccess"]
         fn request_energy_access(self: Pin<&mut SystemMonitor>);
 
-        #[qinvokable]
-        fn terminate(self: &SystemMonitor, pids: &QString, force: bool) -> QString;
-
         /// `signal`: term, kill, stop, cont. Returns "" or "denied".
         #[qinvokable]
         #[cxx_name = "sendSignal"]
-        fn send_signal(self: &SystemMonitor, pids: &QString, signal: &QString) -> QString;
+        fn send_signal(self: &SystemMonitor, targets: &QString, signal: &QString) -> QString;
 
         /// Returns "", "denied" (root needed), "gone" or an error message.
         #[qinvokable]
         #[cxx_name = "setPriority"]
-        fn set_priority(self: &SystemMonitor, pid: i32, nice: i32) -> QString;
+        fn set_priority(self: &SystemMonitor, target: &QString, nice: i32) -> QString;
 
         #[qinvokable]
         #[cxx_name = "setPriorityAsAdmin"]
@@ -128,13 +125,6 @@ impl Default for SystemMonitorRust {
             processes_visible: Arc::new(AtomicBool::new(true)),
         }
     }
-}
-
-fn pid_list(pids: &QString) -> Vec<i32> {
-    pids.to_string()
-        .split(',')
-        .filter_map(|p| p.trim().parse().ok())
-        .collect()
 }
 
 /// `{"action": ..., "ok": bool, "message": ...}` for actionResult.
@@ -252,29 +242,23 @@ impl qobject::SystemMonitor {
         });
     }
 
-    pub fn terminate(&self, pids: &QString, force: bool) -> QString {
-        QString::from(
-            if taskmgr_core::process::terminate(&pid_list(pids), force) {
-                ""
-            } else {
-                "denied"
-            },
-        )
-    }
-
-    pub fn send_signal(&self, pids: &QString, signal: &QString) -> QString {
+    pub fn send_signal(&self, targets: &QString, signal: &QString) -> QString {
         let Some(signal) = Signal::parse(&signal.to_string()) else {
             return QString::from("invalid");
         };
-        QString::from(if taskmgr_core::process::send(&pid_list(pids), signal) {
+        let targets = Target::parse_list(&targets.to_string());
+        QString::from(if taskmgr_core::process::send(&targets, signal) {
             ""
         } else {
             "denied"
         })
     }
 
-    pub fn set_priority(&self, pid: i32, nice: i32) -> QString {
-        QString::from(&match taskmgr_core::process::set_priority(pid, nice) {
+    pub fn set_priority(&self, target: &QString, nice: i32) -> QString {
+        let Some(target) = Target::parse_list(&target.to_string()).into_iter().next() else {
+            return QString::from("gone");
+        };
+        QString::from(&match taskmgr_core::process::set_priority(target, nice) {
             Ok(()) => String::new(),
             Err(PriorityError::Denied) => "denied".to_owned(),
             Err(PriorityError::Gone) => "gone".to_owned(),
