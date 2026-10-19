@@ -23,7 +23,7 @@ pub struct Catalog {
     steam: HashMap<String, Option<String>>,
 }
 
-fn locales() -> Vec<String> {
+pub(crate) fn locales() -> Vec<String> {
     let lang = std::env::var("LC_MESSAGES")
         .or_else(|_| std::env::var("LANG"))
         .unwrap_or_default();

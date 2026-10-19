@@ -23,6 +23,8 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "chown not found."),
         QT_TRANSLATE_NOOP("core", "No RAPL counter on this machine."),
         QT_TRANSLATE_NOOP("core", "Authorization denied or cancelled."),
+        QT_TRANSLATE_NOOP("core", "renice not found."),
+        QT_TRANSLATE_NOOP("core", "Invalid unit name."),
     ]
 
     readonly property var patterns: [

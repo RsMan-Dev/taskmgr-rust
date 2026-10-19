@@ -18,6 +18,12 @@ pub struct ProcessRow {
     pub disk_bps: Option<f64>,
     pub threads: u64,
     pub command: String,
+    pub ppid: u32,
+    pub user: String,
+    /// `R` running, `S` sleeping, `D` waiting on I/O, `T` stopped, `Z` zombie.
+    pub state: char,
+    pub nice: i32,
+    pub exe: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub windows: Vec<String>,
     /// Keyed by GPU index, dedicated GPUs only.
@@ -45,6 +51,8 @@ pub struct ProcessGroup {
 
 struct Stat {
     comm: String,
+    state: char,
+    nice: i32,
     ppid: u32,
     ticks: u64,
     threads: u64,
@@ -58,6 +66,8 @@ fn parse_stat(text: &str) -> Option<Stat> {
     let n = |i: usize| f.get(i).and_then(|v| v.parse::<u64>().ok());
     Some(Stat {
         comm: text[open + 1..close].to_owned(),
+        state: f.first()?.chars().next()?,
+        nice: f.get(16)?.parse().ok()?,
         ppid: n(1)? as u32,
         ticks: n(11)? + n(12)?,
         threads: n(17)?,
@@ -100,7 +110,27 @@ struct Prev {
     io: Option<u64>,
 }
 
+/// uid to login name, from /etc/passwd (cached; NSS users fall back to the uid).
+#[derive(Default)]
+struct Users(HashMap<u32, String>);
+
+impl Users {
+    fn name(&mut self, root: &Root, uid: u32) -> String {
+        if self.0.is_empty() {
+            for line in root.read("/etc/passwd").unwrap_or_default().lines() {
+                let f: Vec<&str> = line.split(':').collect();
+                if let (Some(name), Some(Ok(id))) = (f.first(), f.get(2).map(|s| s.parse::<u32>()))
+                {
+                    self.0.insert(id, (*name).to_owned());
+                }
+            }
+        }
+        self.0.get(&uid).cloned().unwrap_or_else(|| uid.to_string())
+    }
+}
+
 pub struct ProcessSampler {
+    users: Users,
     catalog: Catalog,
     prev: HashMap<u32, Prev>,
     identities: HashMap<(u32, u64, String), Identity>,
@@ -113,6 +143,7 @@ impl ProcessSampler {
         // SAFETY: sysconf has no preconditions.
         let hz = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
         Self {
+            users: Users::default(),
             catalog: Catalog::load(root),
             prev: HashMap::new(),
             identities: HashMap::new(),
@@ -236,6 +267,15 @@ impl ProcessSampler {
                 disk_bps,
                 threads: stat.threads,
                 command: command.chars().take(400).collect(),
+                ppid: stat.ppid,
+                user: status_kb(&status, "Uid")
+                    .map(|uid| self.users.name(root, uid as u32))
+                    .unwrap_or_default(),
+                state: stat.state,
+                nice: stat.nice,
+                exe: std::fs::read_link(root.path(format!("/proc/{pid}/exe")))
+                    .ok()
+                    .map(|p| p.to_string_lossy().into_owned()),
                 windows: Vec::new(),
                 gpu: gpu_use
                     .get(&pid)
@@ -398,10 +438,50 @@ fn apply_windows(entries: &mut [Entry], windows: &HashMap<u32, Vec<Window>>, cat
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Signal {
+    Terminate,
+    Kill,
+    Suspend,
+    Resume,
+}
+
+impl Signal {
+    pub fn parse(s: &str) -> Option<Self> {
+        Some(match s {
+            "term" => Self::Terminate,
+            "kill" => Self::Kill,
+            "stop" => Self::Suspend,
+            "cont" => Self::Resume,
+            _ => return None,
+        })
+    }
+
+    fn number(self) -> i32 {
+        match self {
+            Self::Terminate => libc::SIGTERM,
+            Self::Kill => libc::SIGKILL,
+            Self::Suspend => libc::SIGSTOP,
+            Self::Resume => libc::SIGCONT,
+        }
+    }
+}
+
+pub fn terminate(pids: &[i32], force: bool) -> bool {
+    send(
+        pids,
+        if force {
+            Signal::Kill
+        } else {
+            Signal::Terminate
+        },
+    )
+}
+
 /// Signals every pid. Returns false if any of them was denied; processes
 /// that already exited are not an error.
-pub fn terminate(pids: &[i32], force: bool) -> bool {
-    let signal = if force { libc::SIGKILL } else { libc::SIGTERM };
+pub fn send(pids: &[i32], signal: Signal) -> bool {
+    let signal = signal.number();
     let mut ok = true;
     for &pid in pids.iter().filter(|p| **p > 0) {
         // SAFETY: kill has no memory preconditions.
@@ -412,9 +492,88 @@ pub fn terminate(pids: &[i32], force: bool) -> bool {
     ok
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum PriorityError {
+    /// Raising priority (lower nice) needs root.
+    Denied,
+    Gone,
+    Failed(String),
+}
+
+/// Sets the nice value (-20 highest to 19 lowest).
+pub fn set_priority(pid: i32, nice: i32) -> Result<(), PriorityError> {
+    // SAFETY: setpriority has no memory preconditions.
+    if unsafe { libc::setpriority(libc::PRIO_PROCESS, pid as libc::id_t, nice) } == 0 {
+        return Ok(());
+    }
+    match std::io::Error::last_os_error().raw_os_error() {
+        Some(libc::EPERM) | Some(libc::EACCES) => Err(PriorityError::Denied),
+        Some(libc::ESRCH) => Err(PriorityError::Gone),
+        _ => Err(PriorityError::Failed(
+            std::io::Error::last_os_error().to_string(),
+        )),
+    }
+}
+
+/// Same through pkexec and renice, for priorities only root may set.
+/// Blocks until the password dialog is answered.
+pub fn set_priority_as_admin(pid: i32, nice: i32) -> Result<(), String> {
+    let pkexec =
+        crate::energy::find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
+            .ok_or("pkexec not found (polkit package).")?;
+    let renice = crate::energy::find_program(
+        "renice",
+        &[
+            "/run/current-system/sw/bin/renice",
+            "/usr/bin/renice",
+            "/bin/renice",
+        ],
+    )
+    .ok_or("renice not found.")?;
+    let status = std::process::Command::new(pkexec)
+        .args([
+            renice.as_str(),
+            "-n",
+            &nice.to_string(),
+            "-p",
+            &pid.to_string(),
+        ])
+        .stdout(std::process::Stdio::null())
+        .status()
+        .map_err(|e| e.to_string())?;
+    match status.code() {
+        Some(0) => Ok(()),
+        Some(126) | Some(127) => Err("Authorization denied or cancelled.".to_owned()),
+        _ => Err(format!("The command failed ({status}).")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn suspend_resume_and_priority_on_own_process() {
+        let mut child = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .unwrap();
+        let pid = child.id() as i32;
+        let state = || {
+            let s = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap();
+            parse_stat(&s).unwrap()
+        };
+        assert!(send(&[pid], Signal::Suspend));
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_eq!(state().state, 'T');
+        assert!(send(&[pid], Signal::Resume));
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_ne!(state().state, 'T');
+        assert_eq!(set_priority(pid, 5), Ok(()));
+        assert_eq!(state().nice, 5);
+        assert!(send(&[pid], Signal::Kill));
+        let _ = child.wait();
+    }
 
     #[test]
     fn terminate_kills_own_process_and_reports_denial() {
@@ -454,6 +613,11 @@ mod tests {
                 disk_bps: None,
                 threads: 1,
                 command: String::new(),
+                ppid,
+                user: String::new(),
+                state: 'S',
+                nice: 0,
+                exe: None,
                 windows: Vec::new(),
                 gpu: BTreeMap::new(),
                 gpu_memory: BTreeMap::new(),

@@ -54,7 +54,7 @@ impl EnergySampler {
     }
 }
 
-fn find_program(name: &str, extra: &[&str]) -> Option<String> {
+pub(crate) fn find_program(name: &str, extra: &[&str]) -> Option<String> {
     std::env::var("PATH")
         .unwrap_or_default()
         .split(':')

@@ -9,7 +9,9 @@ fn main() {
     files.sort();
     println!("cargo::rerun-if-changed=qml");
     let qml = files.into_iter().map(|p| {
-        let singleton = p.file_stem().is_some_and(|s| s == "Format" || s == "Tr");
+        let singleton = p
+            .file_stem()
+            .is_some_and(|s| matches!(s.to_str(), Some("Format" | "Tr" | "Prefs")));
         QmlFile::from(p).singleton(singleton)
     });
 

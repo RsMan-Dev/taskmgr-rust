@@ -1,4 +1,3 @@
-import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -27,7 +26,7 @@ ColumnLayout {
 
     // Every metric column: key, header, header total, value and cell text.
     readonly property var allColumns: {
-        const factor = prefs.cpuPerCore ? logical : 1
+        const factor = Prefs.cpuPerCore ? logical : 1
         const s = snapshot
         const cols = [
             { key: "cpu", title: qsTr("CPU"), total: s ? Format.percent(s.cpu.usage * factor) : "",
@@ -50,20 +49,9 @@ ColumnLayout {
                     value: x => x.threads ?? (x.processes ?? []).reduce((a, p) => a + p.threads, 0), reference: 1e9, text: v => Format.num(v, 0) })
         return cols
     }
-    readonly property var columns: allColumns.filter(c => !prefs.hiddenList.includes(c.key))
+    readonly property var columns: allColumns.filter(c => !Prefs.hiddenList.includes(c.key))
 
-    Settings {
-        id: prefs
-        category: "processes"
-        property string hidden: "threads,gpumem1,gpumem0,gpumem2"
-        property bool cpuPerCore: false
-        readonly property var hiddenList: hidden.split(",")
 
-        function toggle(key) {
-            const list = hiddenList.filter(k => k !== "" && k !== key)
-            hidden = (hiddenList.includes(key) ? list : list.concat([key])).join(",")
-        }
-    }
     readonly property var sectionTitles: [
         ["app", qsTr("Apps")],
         ["background", qsTr("Background processes")],
@@ -125,31 +113,7 @@ ColumnLayout {
         return { keys: keys, data: data }
     }
 
-    // Moves rows in place so delegates and the scroll position survive updates.
-    function sync(keys) {
-        for (let i = 0; i < keys.length; i++) {
-            if (i < rows.count && rows.get(i).key === keys[i]) {
-                continue
-            }
-            let j = -1
-            for (let k = i + 1; k < rows.count; k++) {
-                if (rows.get(k).key === keys[i]) {
-                    j = k
-                    break
-                }
-            }
-            if (j >= 0) {
-                rows.move(j, i, 1)
-            } else {
-                rows.insert(i, { key: keys[i] })
-            }
-        }
-        if (rows.count > keys.length) {
-            rows.remove(keys.length, rows.count - keys.length)
-        }
-    }
-
-    onTableChanged: sync(table.keys)
+    onTableChanged: rows.sync(table.keys)
 
     function setExpanded(groupKey, open) {
         const e = Object.assign({}, expanded)
@@ -288,7 +252,7 @@ ColumnLayout {
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
         QQC2.ScrollBar.horizontal: QQC2.ScrollBar {}
 
-        model: ListModel { id: rows }
+        model: KeyedModel { id: rows }
 
         Keys.onUpPressed: page.moveSelection(-1)
         Keys.onDownPressed: page.moveSelection(1)
@@ -411,16 +375,16 @@ ColumnLayout {
                 required property var modelData
                 text: modelData.title + (modelData.tip ? "  (" + modelData.tip + ")" : "")
                 checkable: true
-                checked: !prefs.hiddenList.includes(modelData.key)
-                onTriggered: prefs.toggle(modelData.key)
+                checked: !Prefs.hiddenList.includes(modelData.key)
+                onTriggered: Prefs.toggleColumn(modelData.key)
             }
         }
         QQC2.MenuSeparator {}
         QQC2.MenuItem {
             text: qsTr("CPU as % of one core (like top)")
             checkable: true
-            checked: prefs.cpuPerCore
-            onTriggered: prefs.cpuPerCore = !prefs.cpuPerCore
+            checked: Prefs.cpuPerCore
+            onTriggered: Prefs.cpuPerCore = !Prefs.cpuPerCore
         }
     }
 

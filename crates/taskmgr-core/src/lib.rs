@@ -1,6 +1,7 @@
 //! System sampling for taskmgr: CPU, memory, disks, network and GPUs, read
 //! from `/proc` and `/sys` without root.
 
+pub mod autostart;
 pub mod catalog;
 pub mod cpu;
 pub mod disk;
@@ -12,6 +13,7 @@ pub mod memory;
 pub mod net;
 pub mod process;
 pub mod sensors;
+pub mod services;
 pub mod sysinfo;
 pub mod util;
 pub mod windows;

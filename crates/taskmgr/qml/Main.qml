@@ -18,7 +18,16 @@ QQC2.ApplicationWindow {
     readonly property var systemInfo: monitor.info !== "" ? JSON.parse(monitor.info) : null
     readonly property var processes: monitor.processes !== "" ? JSON.parse(monitor.processes) : null
 
-    property int currentPage: 0
+    readonly property var pages: [
+        { text: qsTr("Processes"), icon: "view-process-tree" },
+        { text: qsTr("Performance"), icon: "office-chart-area" },
+        { text: qsTr("Details"), icon: "view-list-details" },
+        { text: qsTr("Startup apps"), icon: "system-run" },
+        { text: qsTr("Services"), icon: "preferences-system-services" },
+        { text: qsTr("System"), icon: "computer" },
+        { text: qsTr("Settings"), icon: "configure" },
+    ]
+    property int currentPage: Prefs.startPage
     property string initialSelection: ""
     property bool sidebarFolded: false
     property bool sidebarOpenedNarrow: false
@@ -27,7 +36,35 @@ QQC2.ApplicationWindow {
 
     SystemMonitor {
         id: monitor
-        Component.onCompleted: start()
+        Component.onCompleted: {
+            setInterval(Prefs.intervalMs)
+            start()
+        }
+    }
+
+    Connections {
+        target: Prefs
+        function onIntervalMsChanged() {
+            monitor.setInterval(Prefs.intervalMs)
+        }
+    }
+
+    // The process list is only sampled while a page shows it.
+    onCurrentPageChanged: monitor.setProcessesVisible(currentPage === 0 || currentPage === 2)
+    Component.onCompleted: monitor.setProcessesVisible(currentPage === 0 || currentPage === 2)
+
+    component NavButton: QQC2.ItemDelegate {
+        required property var modelData
+        required property int index
+        Layout.fillWidth: true
+        text: modelData.text
+        icon.name: modelData.icon
+        display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
+        highlighted: window.currentPage === index
+        onClicked: window.currentPage = index
+        QQC2.ToolTip.text: text
+        QQC2.ToolTip.visible: window.sidebarCollapsed && hovered
+        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
     }
 
     RowLayout {
@@ -64,28 +101,16 @@ QQC2.ApplicationWindow {
             }
 
             Repeater {
-                model: [
-                    { text: qsTr("Processes"), icon: "view-process-tree" },
-                    { text: qsTr("Performance"), icon: "office-chart-area" },
-                    { text: qsTr("System"), icon: "computer" },
-                ]
-
-                QQC2.ItemDelegate {
-                    required property var modelData
-                    required property int index
-                    Layout.fillWidth: true
-                    text: modelData.text
-                    icon.name: modelData.icon
-                    display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
-                    highlighted: window.currentPage === index
-                    onClicked: window.currentPage = index
-                    QQC2.ToolTip.text: text
-                    QQC2.ToolTip.visible: window.sidebarCollapsed && hovered
-                    QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-                }
+                model: window.pages.slice(0, window.pages.length - 1)
+                NavButton {}
             }
 
             Item { Layout.fillHeight: true }
+
+            NavButton {
+                modelData: window.pages[window.pages.length - 1]
+                index: window.pages.length - 1
+            }
         }
 
         Kirigami.Separator {
@@ -120,9 +145,25 @@ QQC2.ApplicationWindow {
                         logicalProcessors = option === "logical"
                     }
                 }
+                DetailsPage {
+                    groups: window.processes
+                    monitor: monitor
+                    logical: window.snapshot?.cpu.logical ?? 1
+                }
+                StartupPage {
+                    monitor: monitor
+                    active: window.currentPage === 3
+                }
+                ServicesPage {
+                    monitor: monitor
+                    active: window.currentPage === 4
+                }
                 SystemPage {
                     info: window.systemInfo
                     snapshot: window.snapshot
+                }
+                SettingsPage {
+                    pageNames: window.pages.slice(0, window.pages.length - 1).map(p => p.text)
                 }
             }
         }
