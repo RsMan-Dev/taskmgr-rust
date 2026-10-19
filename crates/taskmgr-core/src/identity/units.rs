@@ -4,6 +4,7 @@ use super::naming::basename;
 
 pub(super) enum Location {
     AppUnit(String),
+    Snap(String),
     DBus(String),
     UserUnit(String),
     Session(String),
@@ -44,6 +45,8 @@ pub(super) fn locate(cgroup: &str) -> Location {
         return if let Some(rest) = unit.strip_prefix("dbus-:") {
             let name = rest.split_once('-').map_or(rest, |(_, n)| n);
             Location::DBus(name.split_once('@').map_or(name, |(n, _)| n).to_owned())
+        } else if let Some(id) = snap_id(unit) {
+            Location::Snap(id)
         } else if unit.starts_with("app-") {
             Location::AppUnit((*unit).to_owned())
         } else {
@@ -74,6 +77,20 @@ pub(super) fn locate(cgroup: &str) -> Location {
         [unit] => Location::SystemUnit((*unit).to_owned()),
         _ => Location::Other(cgroup.to_owned()),
     }
+}
+
+/// `snap.<snap>.<app>-<uuid>.scope` is the desktop entry `<snap>_<app>`.
+pub(super) fn snap_id(unit: &str) -> Option<String> {
+    let body = unit.strip_prefix("snap.")?.strip_suffix(".scope")?;
+    let mut parts = body.rsplitn(6, '-');
+    let uuid: Vec<&str> = parts.by_ref().take(5).collect();
+    let name = parts.next()?;
+    let hex = uuid.len() == 5
+        && uuid
+            .iter()
+            .all(|p| p.bytes().all(|b| b.is_ascii_hexdigit()));
+    let (snap, app) = name.split_once('.')?;
+    hex.then(|| format!("{snap}_{app}"))
 }
 
 /// `app-[<launcher>-]<id>-<random>.scope` or `app-[<launcher>-]<id>@<random>.service`.

@@ -5,6 +5,10 @@ use std::path::PathBuf;
 
 use crate::util::Root;
 
+mod exec;
+
+use exec::Launch;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Entry {
     pub name: String,
@@ -21,6 +25,8 @@ pub struct Catalog {
     steam_libraries: Vec<String>,
     icon_dirs: Vec<String>,
     steam: HashMap<String, Option<String>>,
+    /// Desktop entries by the file name of the program they start.
+    launches: HashMap<String, Vec<Launch>>,
 }
 
 pub(crate) fn locales() -> Vec<String> {
@@ -35,7 +41,8 @@ pub(crate) fn locales() -> Vec<String> {
         .collect()
 }
 
-fn parse_desktop(text: &str, locales: &[String]) -> Option<Entry> {
+/// The entry, and its `Exec=` line when it is a visible graphical one.
+fn parse_desktop(text: &str, locales: &[String]) -> Option<(Entry, Option<String>)> {
     let mut in_entry = false;
     let mut keys: HashMap<&str, &str> = HashMap::new();
     for line in text.lines() {
@@ -52,13 +59,20 @@ fn parse_desktop(text: &str, locales: &[String]) -> Option<Entry> {
         .iter()
         .find_map(|l| keys.get(format!("Name[{l}]").as_str()))
         .or(keys.get("Name"))?;
-    Some(Entry {
+    let shown = ["NoDisplay", "Hidden", "Terminal"]
+        .iter()
+        .all(|k| keys.get(k) != Some(&"true"));
+    let entry = Entry {
         name: (*name).to_owned(),
         icon: keys
             .get("Icon")
             .map(|s| (*s).to_owned())
             .filter(|s| !s.is_empty()),
-    })
+    };
+    Some((
+        entry,
+        keys.get("Exec").filter(|_| shown).map(|s| (*s).to_owned()),
+    ))
 }
 
 impl Catalog {
@@ -77,6 +91,7 @@ impl Catalog {
         data_dirs.extend([
             format!("{home}/.local/share/flatpak/exports/share"),
             "/var/lib/flatpak/exports/share".to_owned(),
+            "/var/lib/snapd/desktop".to_owned(),
             format!("/etc/profiles/per-user/{user}/share"),
             "/run/current-system/sw/share".to_owned(),
             "/usr/local/share".to_owned(),
@@ -111,8 +126,14 @@ impl Catalog {
         for name in root.list(dir) {
             let path = format!("{dir}/{name}");
             if let Some(id) = name.strip_suffix(".desktop") {
-                if let Some(e) = root.read(&path).and_then(|t| parse_desktop(&t, locales)) {
+                if let Some((e, exec)) = root.read(&path).and_then(|t| parse_desktop(&t, locales)) {
                     let id = format!("{prefix}{id}");
+                    for list in self.launches.values_mut() {
+                        list.retain(|l| l.id != id);
+                    }
+                    if let Some(l) = exec.and_then(|x| exec::launch(&id, &x)) {
+                        self.launches.entry(l.program.clone()).or_default().push(l);
+                    }
                     self.desktop_lower.insert(id.to_lowercase(), id.clone());
                     self.desktop.insert(id, e);
                 }
@@ -136,6 +157,28 @@ impl Catalog {
             );
         }
         c
+    }
+
+    #[cfg(test)]
+    pub fn with_launch(mut self, id: &str, exec: &str) -> Self {
+        if let Some(l) = exec::launch(id, exec) {
+            self.launches.entry(l.program.clone()).or_default().push(l);
+        }
+        self
+    }
+
+    /// Desktop entry id of the application this program was started as.
+    pub fn launched_as(&self, exe: Option<&str>, cmdline: &[String]) -> Option<String> {
+        let mut names: Vec<String> = exe.into_iter().map(exec::program_name).collect();
+        if let Some(arg0) = cmdline.first().map(|a| exec::program_name(a))
+            && !names.contains(&arg0)
+        {
+            names.push(arg0);
+        }
+        names.iter().find_map(|n| {
+            let id = exec::best(self.launches.get(n)?, cmdline)?;
+            self.desktop(id).is_some().then(|| id.to_owned())
+        })
     }
 
     pub fn desktop(&self, id: &str) -> Option<&Entry> {
@@ -254,7 +297,8 @@ mod tests {
     #[test]
     fn localized_desktop_name() {
         let text = "[Desktop Entry]\nName=Files\nName[fr]=Fichiers\nIcon=folder\n[Desktop Action new]\nName=New\n";
-        let e = parse_desktop(text, &["fr_FR".into(), "fr".into()]).unwrap();
+        let (e, exec) = parse_desktop(text, &["fr_FR".into(), "fr".into()]).unwrap();
+        assert_eq!(exec, None);
         assert_eq!(
             e,
             Entry {
@@ -262,7 +306,7 @@ mod tests {
                 icon: Some("folder".into())
             }
         );
-        assert_eq!(parse_desktop(text, &[]).unwrap().name, "Files");
+        assert_eq!(parse_desktop(text, &[]).unwrap().0.name, "Files");
     }
 
     #[test]

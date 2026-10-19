@@ -11,6 +11,51 @@ pub(super) struct Entry {
     pub group: Group,
     pub row: ProcessRow,
     pub ppid: u32,
+    pub launched: bool,
+}
+
+/// Outside systemd units, a process joins the nearest ancestor recognized
+/// from its desktop entry: the helpers of an application, or the renderers
+/// of a web application (same browser binary, more generic arguments).
+pub(super) fn join_launchers(entries: &mut [Entry]) {
+    let by_pid: HashMap<u32, usize> = entries
+        .iter()
+        .enumerate()
+        .map(|(i, e)| (e.row.pid, i))
+        .collect();
+    let target: Vec<Option<usize>> = entries
+        .iter()
+        .map(|e| {
+            let loose = e.group.key == identity::TREE || e.group.key.starts_with("session:");
+            if !loose && !e.launched {
+                return None;
+            }
+            let mut parent = e.ppid;
+            while let Some(&j) = by_pid.get(&parent) {
+                let a = &entries[j];
+                if a.launched {
+                    let same =
+                        !e.launched || (a.row.exe == e.row.exe && a.group.key != e.group.key);
+                    return same.then_some(j);
+                }
+                if parent <= 1 {
+                    break;
+                }
+                parent = a.ppid;
+            }
+            None
+        })
+        .collect();
+    for i in 0..entries.len() {
+        let mut j = i;
+        while let Some(next) = target[j] {
+            j = next;
+        }
+        if j != i {
+            entries[i].group = entries[j].group.clone();
+            entries[i].launched = true;
+        }
+    }
 }
 
 /// Without cgroups, a process belongs to its ancestor started by init: a
@@ -237,6 +282,7 @@ mod tests {
                 gpu_memory: BTreeMap::new(),
             },
             ppid,
+            launched: false,
         }
     }
 
@@ -275,6 +321,37 @@ mod tests {
             ["tree:1", "tree:100", "tree:100", "tree:100", "tree:200"]
         );
         assert_eq!(entries[3].group.name.as_deref(), Some("sshd"));
+    }
+
+    #[test]
+    fn helpers_and_web_app_renderers_join_their_launcher() {
+        let launched = |pid, ppid, key: &str, exe: &str| {
+            let mut e = entry(pid, ppid, key, &[]);
+            e.launched = true;
+            e.row.exe = Some(exe.into());
+            e
+        };
+        let mut entries = vec![
+            entry(1, 0, "session:session-2.scope", &[]),
+            launched(10, 1, "app:chrome-def", "/opt/chrome"),
+            launched(11, 10, "app:google-chrome", "/opt/chrome"),
+            entry(12, 11, "session:session-2.scope", &[]),
+            launched(13, 10, "app:org.gnome.Evince", "/usr/bin/evince"),
+            entry(20, 1, "session:session-2.scope", &[]),
+        ];
+        join_launchers(&mut entries);
+        let keys: Vec<&str> = entries.iter().map(|e| e.group.key.as_str()).collect();
+        assert_eq!(
+            keys,
+            [
+                "session:session-2.scope",
+                "app:chrome-def",
+                "app:chrome-def",
+                "app:chrome-def",
+                "app:org.gnome.Evince",
+                "session:session-2.scope"
+            ]
+        );
     }
 
     #[test]

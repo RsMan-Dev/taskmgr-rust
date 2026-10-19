@@ -67,6 +67,9 @@ pub struct Identity {
     pub group: Group,
     pub name: String,
     pub role: Role,
+    /// Group found from the program and a desktop entry, not from systemd:
+    /// its descendants join it.
+    pub launched: bool,
 }
 
 fn app_group(id: &str, catalog: &Catalog, via: &mut Vec<&'static str>) -> Group {
@@ -113,6 +116,14 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
         .filter_map(|k| f.env.get(*k))
         .find(|v| v.parse::<u64>().is_ok_and(|n| n > 0))
         .cloned();
+    let location = locate(&f.cgroup);
+    let launch = match location {
+        Location::Session(_) | Location::Other(_) => {
+            catalog.launched_as(f.exe.as_deref(), &f.cmdline)
+        }
+        _ => None,
+    };
+    let launched = steam_id.is_none() && launch.is_some();
     let mut group = if let Some(id) = steam_id {
         via.push("Steam");
         let name = catalog.steam_game(root, &id);
@@ -123,9 +134,20 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
             kind: Kind::App,
             via: vec![],
         }
+    } else if let Some(id) = launch {
+        app_group(&id, catalog, &mut via)
     } else {
-        match locate(&f.cgroup) {
+        match location {
             Location::AppUnit(unit) => app_group(&app_unit_id(&unit), catalog, &mut via),
+            Location::Snap(id) => {
+                via.push("Snap");
+                let mut g = app_group(&id, catalog, &mut via);
+                if catalog.desktop(&id).is_none() {
+                    g.name = Some(humanize(id.split('_').next().unwrap_or(&id)));
+                }
+                g
+            }
+
             Location::DBus(id) => Group {
                 key: format!("dbus:{id}"),
                 name: Some(
@@ -205,5 +227,10 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
         via.push("Wine");
     }
     group.via = via;
-    Identity { group, name, role }
+    Identity {
+        group,
+        name,
+        role,
+        launched,
+    }
 }

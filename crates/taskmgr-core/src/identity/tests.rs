@@ -21,6 +21,7 @@ fn catalog() -> Catalog {
         ("com.google.Chrome", "Google Chrome", "com.google.Chrome"),
         ("org.kde.konsole", "Konsole", "utilities-terminal"),
         ("steam", "Steam", "steam"),
+        ("firefox_firefox", "Firefox", "firefox"),
     ])
 }
 
@@ -232,4 +233,60 @@ fn names() {
         "taskmgr"
     );
     assert_eq!(appimage_name("/a/Foo-1.2-x86_64.AppImage"), "Foo-1.2");
+}
+
+#[test]
+fn snap_scopes_name_the_desktop_entry() {
+    let cg = format!("{APP}snap.firefox.firefox-2b3c4d5e-1a2b-4c3d-9e8f-0123456789ab.scope");
+    let id = resolve_one(&facts(
+        "firefox",
+        &["/snap/firefox/123/usr/lib/firefox/firefox"],
+        &cg,
+        &[],
+    ));
+    assert_eq!(id.group.key, "app:firefox_firefox");
+    assert_eq!(id.group.name.as_deref(), Some("Firefox"));
+    assert_eq!(id.group.via, vec!["Snap"]);
+    assert_eq!(units::snap_id("snap.firefox.firefox.scope"), None);
+}
+
+#[test]
+fn programs_outside_units_are_matched_to_their_desktop_entry() {
+    let mut catalog = Catalog::with_desktop(&[
+        ("org.gnome.Evince", "Document Viewer", "evince"),
+        ("chrome-abc-Default", "Notes", "chrome-abc"),
+        ("google-chrome", "Google Chrome", "chrome"),
+    ])
+    .with_launch("org.gnome.Evince", "evince %U")
+    .with_launch("google-chrome", "/opt/google/chrome/chrome %U")
+    .with_launch(
+        "chrome-abc-Default",
+        "/opt/google/chrome/chrome --app-id=abc",
+    );
+    let root = Root::new("/nonexistent");
+    let session = "/user.slice/user-1000.slice/session-2.scope";
+    let mut f = facts("evince", &["evince", "a.pdf"], session, &[]);
+    f.exe = Some("/nix/store/x-evince/bin/.evince-wrapped".into());
+    let id = resolve(&f, &mut catalog, &root);
+    assert_eq!(
+        (id.group.key.as_str(), id.launched),
+        ("app:org.gnome.Evince", true)
+    );
+    let pwa = facts(
+        "chrome",
+        &["/opt/google/chrome/chrome", "--app-id=abc"],
+        "/",
+        &[],
+    );
+    assert_eq!(
+        resolve(&pwa, &mut catalog, &root).group.name.as_deref(),
+        Some("Notes")
+    );
+    let in_unit = facts(
+        "evince",
+        &["evince"],
+        &format!("{APP}app-org.kde.konsole-1.scope"),
+        &[],
+    );
+    assert!(!resolve(&in_unit, &mut catalog, &root).launched);
 }

@@ -276,6 +276,7 @@ impl ProcessSampler {
                 group: id.group,
                 row,
                 ppid: stat.ppid,
+                launched: id.launched,
             });
         }
         self.identities
@@ -284,6 +285,7 @@ impl ProcessSampler {
             .retain(|(pid, start), _| seen.get(pid).is_some_and(|p| p.start == *start));
         self.samples += 1;
         self.prev = seen;
+        grouping::join_launchers(&mut entries);
         grouping::group_by_tree(&mut entries);
         if let Some(windows) = windows {
             grouping::apply_windows(&mut entries, windows, &self.catalog);
