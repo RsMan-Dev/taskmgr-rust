@@ -90,7 +90,7 @@ ColumnLayout {
                 if (!open || g.processes.length < 2) {
                     continue
                 }
-                const procs = g.processes.slice().sort((a, b) => roleRank[a.role] - roleRank[b.role] || cmp(a, b))
+                const procs = g.processes.slice().sort((a, b) => roleRank[a.role ?? "normal"] - roleRank[b.role ?? "normal"] || cmp(a, b))
                 for (const p of procs) {
                     const pk = "p:" + g.key + ":" + p.pid
                     keys.push(pk)

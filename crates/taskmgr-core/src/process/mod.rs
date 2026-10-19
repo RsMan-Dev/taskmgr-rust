@@ -5,6 +5,7 @@ mod grouping;
 mod procfs;
 
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::Write;
 
 use serde::Serialize;
 
@@ -23,6 +24,9 @@ use crate::windows::Window;
 pub struct ProcessRow {
     pub pid: u32,
     pub name: String,
+    /// Left out when normal, like the other defaults below: a thousand rows
+    /// are parsed by the interface at each refresh.
+    #[serde(skip_serializing_if = "Role::is_normal")]
     pub role: Role,
     pub cpu: f64,
     pub memory: u64,
@@ -38,6 +42,7 @@ pub struct ProcessRow {
     pub user: String,
     /// `R` running, `S` sleeping, `D` waiting on I/O, `T` stopped, `Z` zombie.
     pub state: char,
+    #[serde(skip_serializing_if = "is_zero")]
     pub nice: i32,
     #[serde(skip)]
     pub exe: Option<String>,
@@ -52,7 +57,12 @@ pub struct ProcessRow {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub gpu_memory: BTreeMap<usize, u64>,
     /// Video encoder and decoder use, in percent.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub video: Option<(f64, f64)>,
+}
+
+fn is_zero(n: &i32) -> bool {
+    *n == 0
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -193,23 +203,29 @@ impl ProcessSampler {
         }
         let mut entries: Vec<Entry> = Vec::new();
         let mut seen = HashMap::new();
+        let (mut path, mut text, mut status) = (String::new(), String::new(), String::new());
+        let mut read = |pid: u32, file: &str, buf: &mut String| {
+            path.clear();
+            let _ = write!(path, "/proc/{pid}/{file}");
+            root.read_into(&path, buf)
+        };
         for entry in root.list("/proc") {
             let Ok(pid) = entry.parse::<u32>() else {
                 continue;
             };
-            let Some(stat) = root
-                .read(format!("/proc/{pid}/stat"))
-                .and_then(|s| parse_stat(&s))
+            let Some(stat) = read(pid, "stat", &mut text)
+                .then(|| parse_stat(&text))
+                .flatten()
             else {
                 continue;
             };
             if pid == 2 || stat.ppid == 2 {
                 continue;
             }
-            let status = root.read(format!("/proc/{pid}/status")).unwrap_or_default();
-            let io = root
-                .read(format!("/proc/{pid}/io"))
-                .and_then(|s| io_bytes(&s));
+            read(pid, "status", &mut status);
+            let io = read(pid, "io", &mut text)
+                .then(|| io_bytes(&text))
+                .flatten();
             let (cpu, disk_bps) = match self
                 .prev
                 .get(&pid)

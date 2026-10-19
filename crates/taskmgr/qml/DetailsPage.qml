@@ -236,7 +236,7 @@ ColumnLayout {
               text: r => Format.percent(r.cpu * (Prefs.cpuPerCore ? page.logical : 1), 1), align: Qt.AlignRight },
             { key: "memory", title: qsTr("Memory"), widest: [Format.bytes(999 * 1048576), Format.bytes(99.9 * 1073741824)], value: r => r.memory, text: r => Format.bytes(r.memory), align: Qt.AlignRight },
             { key: "threads", title: qsTr("Threads"), widest: ["99999"], value: r => r.threads, text: r => r.threads, align: Qt.AlignRight },
-            { key: "nice", title: qsTr("Priority"), value: r => r.nice, text: r => page.priorityName(r.nice) },
+            { key: "nice", title: qsTr("Priority"), value: r => r.nice ?? 0, text: r => page.priorityName(r.nice ?? 0) },
             { key: "app", title: qsTr("Application"), maxWidth: page.unit * 12, text: r => page.appOf[r.pid] ?? "" },
             { key: "command", title: qsTr("Command line"), width: 0, text: r => page.processDetails[r.pid]?.command || "[" + r.name + "]" },
         ]
@@ -278,7 +278,7 @@ ColumnLayout {
                     required property var modelData
                     text: modelData[1]
                     checkable: true
-                    checked: menu.row?.nice === modelData[0]
+                    checked: (menu.row?.nice ?? 0) === modelData[0]
                     onTriggered: page.setPriority(menu.row, modelData[0])
                 }
             }

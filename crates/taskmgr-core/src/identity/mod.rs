@@ -53,6 +53,12 @@ pub enum Role {
     Infra,
 }
 
+impl Role {
+    pub fn is_normal(&self) -> bool {
+        *self == Role::Normal
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Group {
     pub key: String,

@@ -57,6 +57,15 @@ impl Root {
         fs::read_to_string(self.path(abs)).ok()
     }
 
+    /// Into a reused buffer: no size query and, once it is large enough, no
+    /// allocation. Worth it for the thousands of /proc reads per sample.
+    pub fn read_into(&self, abs: impl AsRef<Path>, buf: &mut String) -> bool {
+        buf.clear();
+        fs::File::open(self.path(abs))
+            .and_then(|mut f| std::io::Read::read_to_string(&mut f, buf))
+            .is_ok()
+    }
+
     pub fn read_trimmed(&self, abs: impl AsRef<Path>) -> Option<String> {
         self.read(abs)
             .map(|s| s.trim().to_owned())

@@ -20,7 +20,7 @@ QQC2.ItemDelegate {
     readonly property var proc: entry?.proc ?? null
     readonly property bool expandable: isGroup && group.processes.length > 1
     readonly property var metrics: (isGroup ? group : proc) ?? {}
-    readonly property bool secondary: !isGroup && !!proc && proc.role !== "normal"
+    readonly property bool secondary: !isGroup && !!proc && (proc.role ?? "normal") !== "normal"
 
     padding: 0
     hoverEnabled: true
@@ -91,7 +91,7 @@ QQC2.ItemDelegate {
             }
 
             QQC2.Label {
-                readonly property var titles: row.isGroup ? (row.expandable ? [] : row.group.windows) : (row.proc?.windows ?? [])
+                readonly property var titles: row.isGroup ? (row.expandable ? [] : row.group.windows ?? []) : (row.proc?.windows ?? [])
                 visible: titles.length > 0
                 text: titles.length > 0 ? titles[0] : ""
                 opacity: 0.6
@@ -102,7 +102,7 @@ QQC2.ItemDelegate {
             }
 
             Repeater {
-                model: row.isGroup ? row.group.via : []
+                model: row.isGroup ? row.group.via ?? [] : []
                 Chip {
                     required property string modelData
                     text: modelData
