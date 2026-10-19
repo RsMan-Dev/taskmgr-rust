@@ -12,7 +12,8 @@ pub struct Chip {
 }
 
 impl Chip {
-    fn temps(&self, root: &Root) -> Vec<(Option<String>, String)> {
+    /// `(index, label, input file)` for each `tempN_input`, in index order.
+    pub fn temps(&self, root: &Root) -> Vec<(u32, Option<String>, String)> {
         let mut inputs: Vec<(u32, String)> = root
             .list(&self.dir)
             .into_iter()
@@ -30,18 +31,24 @@ impl Chip {
             .into_iter()
             .map(|(n, f)| {
                 let label = root.read_trimmed(format!("{}/temp{n}_label", self.dir));
-                (label, format!("{}/{f}", self.dir))
+                (n, label, format!("{}/{f}", self.dir))
             })
             .collect()
+    }
+
+    /// `tempN_max` or `tempN_crit` in degrees, ignoring placeholder values.
+    pub fn limit(&self, root: &Root, n: u32, kind: &str) -> Option<f64> {
+        let v = root.read_i64(format!("{}/temp{n}_{kind}", self.dir))? as f64 / 1000.0;
+        (v > 0.0 && v < 200.0).then_some(v)
     }
 
     pub fn temperature(&self, root: &Root, preferred: &[&str]) -> Option<f64> {
         let temps = self.temps(root);
         let pick = preferred
             .iter()
-            .find_map(|p| temps.iter().find(|(l, _)| l.as_deref() == Some(*p)))
+            .find_map(|p| temps.iter().find(|(_, l, _)| l.as_deref() == Some(*p)))
             .or(temps.first())?;
-        root.read_i64(&pick.1).map(|m| m as f64 / 1000.0)
+        root.read_i64(&pick.2).map(|m| m as f64 / 1000.0)
     }
 }
 

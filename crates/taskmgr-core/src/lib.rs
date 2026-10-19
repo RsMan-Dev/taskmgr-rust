@@ -4,12 +4,14 @@
 pub mod catalog;
 pub mod cpu;
 pub mod disk;
+pub mod energy;
 pub mod gpu;
 pub mod hwmon;
 pub mod identity;
 pub mod memory;
 pub mod net;
 pub mod process;
+pub mod sensors;
 pub mod sysinfo;
 pub mod util;
 
@@ -28,6 +30,8 @@ pub struct Snapshot {
     pub disks: Vec<disk::DiskSnapshot>,
     pub networks: Vec<net::NetSnapshot>,
     pub gpus: Vec<gpu::GpuSnapshot>,
+    pub sensors: Vec<sensors::SensorGroup>,
+    pub energy: energy::EnergySnapshot,
 }
 
 pub struct Sampler {
@@ -38,6 +42,8 @@ pub struct Sampler {
     disks: disk::DiskSampler,
     networks: net::NetSampler,
     gpus: gpu::GpuSampler,
+    sensors: sensors::SensorSampler,
+    energy: energy::EnergySampler,
 }
 
 impl Sampler {
@@ -48,6 +54,8 @@ impl Sampler {
             disks: Default::default(),
             networks: Default::default(),
             gpus: gpu::GpuSampler::new(),
+            sensors: Default::default(),
+            energy: Default::default(),
             last: None,
             root,
         }
@@ -61,12 +69,16 @@ impl Sampler {
         self.last = Some(now);
         let root = &self.root;
         let chips = hwmon::chips(root);
+        let disks = self.disks.sample(root, &chips, secs);
+        let gpus = self.gpus.sample(root, &chips);
         Snapshot {
             cpu: self.cpu.sample(root, &chips),
             memory: self.memory.sample(root),
-            disks: self.disks.sample(root, &chips, secs),
             networks: self.networks.sample(root, secs),
-            gpus: self.gpus.sample(root, &chips),
+            sensors: self.sensors.sample(root, &chips, &disks, &gpus),
+            energy: self.energy.sample(root, secs),
+            disks,
+            gpus,
         }
     }
 }

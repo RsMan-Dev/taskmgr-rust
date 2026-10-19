@@ -17,6 +17,7 @@ Item {
         disk: "#1d99f3",
         network: "#f67400",
         gpu: "#1abc9c",
+        sensors: "#da4453",
     })
 
     property string selectedKey: "cpu"
@@ -32,6 +33,7 @@ Item {
             .concat(s.disks.map(d => "disk:" + d.name))
             .concat(s.networks.map(n => "net:" + n.name))
             .concat(s.gpus.map(g => "gpu:" + g.pci_slot))
+            .concat(s.sensors.length > 0 ? ["sensors"] : [])
             .join(",")
     }
 
@@ -68,7 +70,7 @@ Item {
                     ["Threads", Format.num(c.threads, 0)],
                     ["Temps de fonctionnement", Format.uptime(c.uptime_secs)],
                     ["Température", Format.temperature(c.temperature)],
-                ],
+                ].concat(s.energy.package_watts !== null ? [["Consommation", Format.num(s.energy.package_watts, 0) + " W"]] : []),
                 details: details([
                     ["Vitesse max", c.max_mhz ? Format.ghz(c.max_mhz) : null],
                     ["Sockets", c.sockets],
@@ -203,6 +205,20 @@ Item {
                     ["Version du pilote", g.driver_version],
                     ["Emplacement PCI", g.pci_slot],
                 ]),
+            }
+        }
+        case "sensors": {
+            const all = [].concat(...s.sensors.map(g => g.sensors))
+            const hottest = all.reduce((a, b) => b.value > a.value ? b : a)
+            return {
+                title: "Capteurs",
+                subtitle: all.length + " capteurs de température",
+                summary: "Max " + Format.temperature(hottest.value),
+                header: "",
+                color: colors.sensors,
+                maximum: 110,
+                series: [series(hottest.history, colors.sensors)],
+                sensors: true,
             }
         }
         }
@@ -350,7 +366,18 @@ Item {
                         }
                     }
 
+                    SensorsView {
+                        visible: !!detail.r?.sensors
+                        groups: detail.r?.sensors ? page.snapshot.sensors : []
+                        energy: page.snapshot?.energy ?? null
+                        Layout.fillWidth: true
+                        Layout.leftMargin: Kirigami.Units.gridUnit
+                        Layout.rightMargin: Kirigami.Units.gridUnit
+                        Layout.bottomMargin: Kirigami.Units.gridUnit
+                    }
+
                     ChartBlock {
+                        visible: !detail.r?.sensors
                         chart: detail.r
                         accent: detail.r?.color ?? "gray"
                         chartHeight: Math.max(Kirigami.Units.gridUnit * 8, page.height * (detail.r?.secondChart ? 0.32 : 0.45))
@@ -365,6 +392,7 @@ Item {
 
                     // Live values and static details side by side, stacked when narrow.
                     GridLayout {
+                        visible: !detail.r?.sensors
                         columns: detail.width > Kirigami.Units.gridUnit * 34 ? 2 : 1
                         columnSpacing: Kirigami.Units.gridUnit * 2
                         rowSpacing: Kirigami.Units.gridUnit
