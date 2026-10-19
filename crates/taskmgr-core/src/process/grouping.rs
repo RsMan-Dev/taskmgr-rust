@@ -178,6 +178,7 @@ pub(super) fn collect(entries: Vec<Entry>, with_windows: bool) -> Vec<ProcessGro
                 net: None,
                 gpu: BTreeMap::new(),
                 gpu_memory: BTreeMap::new(),
+                video: None,
                 processes: Vec::new(),
             });
         for v in &group.via {
@@ -201,6 +202,11 @@ pub(super) fn collect(entries: Vec<Entry>, with_windows: bool) -> Vec<ProcessGro
         }
         for (i, m) in &row.gpu_memory {
             *g.gpu_memory.entry(*i).or_default() += m;
+        }
+        if let Some((e, d)) = row.video {
+            let (ge, gd) = g.video.get_or_insert((0.0, 0.0));
+            *ge += e;
+            *gd += d;
         }
         g.processes.push(row);
     }
@@ -280,6 +286,7 @@ mod tests {
                 windows: Vec::new(),
                 gpu: BTreeMap::new(),
                 gpu_memory: BTreeMap::new(),
+                video: None,
             },
             ppid,
             launched: false,

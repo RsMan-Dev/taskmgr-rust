@@ -22,24 +22,31 @@ Item {
             net: Format.bits(s.networks.reduce((a, n) => a + n.rx_bps + n.tx_bps, 0)),
             threads: Format.num(s.cpu.threads, 0),
         }
-        for (const g of s.gpus.filter(g => g.dedicated)) {
+        for (const g of processGpus(s.gpus)) {
             out["gpu" + g.index] = Format.percent(g.usage)
             out["gpumem" + g.index] = g.memory_total ? Format.percent(g.memory_used / g.memory_total * 100) : ""
         }
         return out
     }
 
+    // GPUs with per-process columns: the dedicated ones, or the
+    // integrated one on a machine without.
+    function processGpus(gpus) {
+        const dedicated = gpus.filter(g => g.dedicated)
+        return dedicated.length > 0 ? dedicated : gpus
+    }
+
     // Rebuilt only when the processor count or the dedicated GPUs change,
     // so rows keep their cells between samples.
     readonly property string hardware: snapshot
-        ? snapshot.cpu.logical + "/" + snapshot.gpus.filter(g => g.dedicated).map(g => g.index + ":" + g.name).join("|") : ""
+        ? snapshot.cpu.logical + "/" + processGpus(snapshot.gpus).map(g => g.index + ":" + g.name).join("|") : ""
     property int logical: 1
     property var dedicatedGpus: []
     readonly property int factor: Prefs.cpuPerCore ? logical : 1
     onHardwareChanged: {
         if (snapshot) {
             logical = snapshot.cpu.logical
-            dedicatedGpus = snapshot.gpus.filter(g => g.dedicated).map(g => ({ index: g.index, name: g.name }))
+            dedicatedGpus = processGpus(snapshot.gpus).map(g => ({ index: g.index, name: g.name }))
         }
     }
 
@@ -68,6 +75,11 @@ Item {
             cols.push({ key: "gpumem" + g.index, title: qsTr("GPU %1 mem.").arg(g.index), tip: g.name,
                         value: x => x.gpu_memory?.[g.index] ?? 0, reference: 4 * 1024 * 1024 * 1024, text: v => v > 0 ? Format.bytes(v) : "",
                         widest: bytesWidest })
+        }
+        if (dedicatedGpus.length > 0) {
+            cols.push({ key: "video", title: qsTr("Video"), tip: qsTr("Video encoder and decoder use"),
+                        value: x => x.video ? Math.max(x.video[0], x.video[1]) : -1, reference: 50,
+                        text: v => v < 0 ? "" : Format.percent(v), widest: [Format.percent(100)] })
         }
         cols.push({ key: "threads", title: qsTr("Threads"),
                     value: x => x.threads ?? (x.processes ?? []).reduce((a, p) => a + p.threads, 0), reference: 1e9, text: v => Format.num(v, 0),

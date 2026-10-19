@@ -266,6 +266,9 @@ ColumnLayout {
             icon.source: Icons.of(suspended ? "resume" : "suspend", Kirigami.Theme.textColor)
             onTriggered: page.signal(menu.row, suspended ? "cont" : "stop")
         }
+        SignalMenu {
+            onChosen: (sig) => page.signal(menu.row, sig)
+        }
         QQC2.MenuSeparator {}
         QQC2.Menu {
             title: qsTr("Priority")

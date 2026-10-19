@@ -13,7 +13,7 @@ Settings {
     property bool cpuPerCore: false
     property string theme: ""
     property bool miniPinned: false
-    property string hiddenColumns: "threads,gpumem0,gpumem1,gpumem2"
+    property string hiddenColumns: "threads,gpumem0,gpumem1,gpumem2,video"
 
     function isHidden(key) {
         return hiddenColumns.split(",").includes(key)

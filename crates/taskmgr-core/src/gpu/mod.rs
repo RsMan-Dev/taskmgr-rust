@@ -10,7 +10,11 @@ use nvml_wrapper::enums::device::UsedGpuMemory;
 use serde::Serialize;
 
 use crate::hwmon::Chip;
+
+mod clients;
+
 use crate::util::{Charts, History, Root};
+pub use clients::DrmClients;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct GpuSnapshot {
@@ -52,6 +56,8 @@ pub struct GpuProcess {
     pub pid: u32,
     pub usage: f64,
     pub memory: Option<u64>,
+    pub encoder: Option<f64>,
+    pub decoder: Option<f64>,
 }
 
 /// AMD APU graphics sit behind the 00:08.1 bridge, Intel's at 00:02.0.
@@ -122,6 +128,7 @@ struct GpuState {
 pub struct GpuSampler {
     nvml: Option<Nvml>,
     state: Vec<(String, GpuState)>,
+    clients: DrmClients,
 }
 
 impl GpuSampler {
@@ -129,6 +136,7 @@ impl GpuSampler {
         Self {
             nvml: load_nvml(),
             state: Vec::new(),
+            clients: DrmClients::default(),
         }
     }
 
@@ -204,6 +212,16 @@ impl GpuSampler {
         let mut cards = Self::cards(root);
         cards.sort_by_key(|c| c[4..].parse::<u32>().unwrap_or(0));
         let mut out = Vec::new();
+        let mut drm = if per_process
+            && cards.iter().any(|c| {
+                root.link_name(format!("/sys/class/drm/{c}/device/driver"))
+                    .as_deref()
+                    != Some("nvidia")
+            }) {
+            self.clients.sample(root)
+        } else {
+            Default::default()
+        };
         for (index, card) in cards.into_iter().enumerate() {
             let dev = format!("/sys/class/drm/{card}/device");
             let i = match self.state.iter().position(|(k, _)| *k == card) {
@@ -227,6 +245,13 @@ impl GpuSampler {
                 self.state[i].1.nvml_seen = self.fill_nvml(&mut g, seen, per_process);
             } else {
                 fill_sysfs(root, &dev, &mut g);
+                g.processes = drm.remove(&g.pci_slot).unwrap_or_default();
+                let sum = |f: fn(&GpuProcess) -> Option<f64>| {
+                    let v: Vec<f64> = g.processes.iter().filter_map(f).collect();
+                    (!v.is_empty()).then(|| v.iter().sum::<f64>().min(100.0))
+                };
+                g.encoder = g.encoder.or(sum(|p| p.encoder));
+                g.decoder = g.decoder.or(sum(|p| p.decoder));
                 let path = self.state[i].1.device_path.as_ref();
                 if let Some(c) = chips.iter().find(|c| c.device.as_ref() == path) {
                     g.temperature = c.temperature(root, &["edge"]);
@@ -292,11 +317,14 @@ impl GpuSampler {
         }
 
         let mut newest = seen;
-        let mut usage: std::collections::HashMap<u32, f64> = std::collections::HashMap::new();
+        let mut usage: std::collections::HashMap<u32, (f64, f64, f64)> =
+            std::collections::HashMap::new();
         for s in d.process_utilization_stats(seen).unwrap_or_default() {
             newest = newest.max(s.timestamp);
             let u = usage.entry(s.pid).or_default();
-            *u = u.max(s.sm_util as f64);
+            u.0 = u.0.max(s.sm_util as f64);
+            u.1 = u.1.max(s.enc_util as f64);
+            u.2 = u.2.max(s.dec_util as f64);
         }
         let mut memory: std::collections::HashMap<u32, u64> = std::collections::HashMap::new();
         for p in d
@@ -315,10 +343,15 @@ impl GpuSampler {
             usage.keys().chain(memory.keys()).copied().collect();
         g.processes = pids
             .into_iter()
-            .map(|pid| GpuProcess {
-                pid,
-                usage: usage.get(&pid).copied().unwrap_or(0.0),
-                memory: memory.get(&pid).copied(),
+            .map(|pid| {
+                let u = usage.get(&pid).copied();
+                GpuProcess {
+                    pid,
+                    usage: u.map_or(0.0, |u| u.0),
+                    memory: memory.get(&pid).copied(),
+                    encoder: u.map(|u| u.1),
+                    decoder: u.map(|u| u.2),
+                }
             })
             .collect();
         newest

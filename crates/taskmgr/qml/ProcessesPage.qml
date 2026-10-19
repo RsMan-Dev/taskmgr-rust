@@ -115,11 +115,11 @@ ColumnLayout {
         return list.map(p => p.pid + ":" + p.start).join(",")
     }
 
-    function endTask(entry, force) {
+    function sendSignal(entry, sig) {
         if (!entry || entry.type === "section") {
             return
         }
-        error = monitor.sendSignal(targetsOf(entry), force ? "kill" : "term") === "denied"
+        error = monitor.sendSignal(targetsOf(entry), sig) === "denied"
             ? qsTr("Access denied: this process belongs to another user or to the system.") : ""
     }
 
@@ -159,7 +159,7 @@ ColumnLayout {
             text: qsTr("End task")
             icon.source: Icons.of("end-task", Kirigami.Theme.textColor)
             enabled: page.selected !== null && page.selected.type !== "section"
-            onClicked: page.endTask(page.selected, false)
+            onClicked: page.sendSignal(page.selected, "term")
             QQC2.ToolTip.text: qsTr("Asks the process to quit (SIGTERM)")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
@@ -169,7 +169,7 @@ ColumnLayout {
             text: qsTr("Kill")
             icon.source: Icons.of("kill", Kirigami.Theme.textColor)
             enabled: page.selected !== null && page.selected.type !== "section"
-            onClicked: page.endTask(page.selected, true)
+            onClicked: page.sendSignal(page.selected, "kill")
             QQC2.ToolTip.text: qsTr("Stops the process at once, without giving it time to save (SIGKILL)")
             QQC2.ToolTip.visible: hovered
             QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
@@ -287,7 +287,7 @@ ColumnLayout {
                 page.setExpanded(s.group.key, false)
             }
         }
-        Keys.onDeletePressed: page.endTask(page.selected, false)
+        Keys.onDeletePressed: page.sendSignal(page.selected, "term")
 
         delegate: Loader {
             id: slot
@@ -351,7 +351,7 @@ ColumnLayout {
         id: menu
         expanded: entry?.type === "group" && !!page.expanded[entry.group.key]
         processDetails: page.processDetails
-        onEndTask: (entry, force) => page.endTask(entry, force)
+        onSignalRequested: (entry, sig) => page.sendSignal(entry, sig)
         onToggleRequested: (key) => page.setExpanded(key, !page.expanded[key])
         onJournalRequested: (title, query) => page.journalRequested(title, query)
     }

@@ -10,19 +10,22 @@ QQC2.Menu {
     property bool expanded: false
     property var processDetails: ({})
 
-    signal endTask(var entry, bool force)
+    signal signalRequested(var entry, string signal)
     signal toggleRequested(string groupKey)
     signal journalRequested(string title, var query)
 
         QQC2.MenuItem {
             text: qsTr("End task")
             icon.source: Icons.of("end-task", Kirigami.Theme.textColor)
-            onTriggered: menu.endTask(menu.entry, false)
+            onTriggered: menu.signalRequested(menu.entry, "term")
         }
         QQC2.MenuItem {
             text: qsTr("Kill task")
             icon.source: Icons.of("kill", Kirigami.Theme.textColor)
-            onTriggered: menu.endTask(menu.entry, true)
+            onTriggered: menu.signalRequested(menu.entry, "kill")
+        }
+        SignalMenu {
+            onChosen: (sig) => menu.signalRequested(menu.entry, sig)
         }
         QQC2.MenuSeparator {}
         QQC2.MenuItem {

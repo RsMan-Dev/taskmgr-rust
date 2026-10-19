@@ -15,6 +15,10 @@ pub enum Signal {
     Kill,
     Suspend,
     Resume,
+    Hangup,
+    Interrupt,
+    User1,
+    User2,
 }
 
 impl Signal {
@@ -24,6 +28,10 @@ impl Signal {
             "kill" => Self::Kill,
             "stop" => Self::Suspend,
             "cont" => Self::Resume,
+            "hup" => Self::Hangup,
+            "int" => Self::Interrupt,
+            "usr1" => Self::User1,
+            "usr2" => Self::User2,
             _ => return None,
         })
     }
@@ -35,6 +43,10 @@ impl Signal {
             Self::Kill => S::KILL,
             Self::Suspend => S::STOP,
             Self::Resume => S::CONT,
+            Self::Hangup => S::HUP,
+            Self::Interrupt => S::INT,
+            Self::User1 => S::USR1,
+            Self::User2 => S::USR2,
         }
     }
 }

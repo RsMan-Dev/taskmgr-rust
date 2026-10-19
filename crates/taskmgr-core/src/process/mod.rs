@@ -51,6 +51,8 @@ pub struct ProcessRow {
     pub gpu: BTreeMap<usize, f64>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub gpu_memory: BTreeMap<usize, u64>,
+    /// Video encoder and decoder use, in percent.
+    pub video: Option<(f64, f64)>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -67,6 +69,8 @@ pub struct ProcessGroup {
     pub net: Option<(f64, f64)>,
     pub gpu: BTreeMap<usize, f64>,
     pub gpu_memory: BTreeMap<usize, u64>,
+    /// Video encoder and decoder use, in percent.
+    pub video: Option<(f64, f64)>,
     pub processes: Vec<ProcessRow>,
 }
 
@@ -170,12 +174,21 @@ impl ProcessSampler {
         net: Option<&HashMap<u32, (f64, f64)>>,
     ) -> Vec<ProcessGroup> {
         let mut gpu_use: HashMap<u32, Vec<(usize, f64, Option<u64>)>> = HashMap::new();
-        for g in gpus.iter().filter(|g| g.dedicated) {
+        let mut video: HashMap<u32, (f64, f64)> = HashMap::new();
+        // Without a dedicated card, the integrated one is what the
+        // processes use.
+        let only_integrated = gpus.iter().all(|g| !g.dedicated);
+        for g in gpus.iter().filter(|g| g.dedicated || only_integrated) {
             for p in &g.processes {
                 gpu_use
                     .entry(p.pid)
                     .or_default()
                     .push((g.index, p.usage, p.memory));
+                if p.encoder.is_some() || p.decoder.is_some() {
+                    let v = video.entry(p.pid).or_default();
+                    v.0 += p.encoder.unwrap_or(0.0);
+                    v.1 += p.decoder.unwrap_or(0.0);
+                }
             }
         }
         let mut entries: Vec<Entry> = Vec::new();
@@ -271,6 +284,7 @@ impl ProcessSampler {
                     .get(&pid)
                     .map(|v| v.iter().filter_map(|(i, _, m)| Some((*i, (*m)?))).collect())
                     .unwrap_or_default(),
+                video: video.get(&pid).copied(),
             };
             entries.push(Entry {
                 group: id.group,
