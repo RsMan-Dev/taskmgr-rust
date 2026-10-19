@@ -358,6 +358,7 @@ ColumnLayout {
             required property string key
             readonly property var entry: page.table.data[key] ?? null
             width: page.tableWidth
+            active: entry !== null
             sourceComponent: entry?.type === "section" ? sectionComponent : rowComponent
 
             Component {
@@ -381,7 +382,7 @@ ColumnLayout {
                     columns: page.columns
                     height: Kirigami.Units.gridUnit * 1.9
                     selected: page.selectedKey === slot.key
-                    expanded: entry.type === "group" && !!page.expanded[entry.group.key]
+                    expanded: entry?.type === "group" && !!page.expanded[entry.group.key]
                     onClicked: {
                         page.selectedKey = slot.key
                         list.forceActiveFocus()

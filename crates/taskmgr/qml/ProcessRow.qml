@@ -14,12 +14,13 @@ QQC2.ItemDelegate {
     signal toggleRequested()
     signal menuRequested(point position)
 
-    readonly property bool isGroup: entry.type === "group"
-    readonly property var group: entry.group
-    readonly property var proc: entry.proc
+    // entry turns null for an instant when its row leaves the list.
+    readonly property bool isGroup: entry?.type === "group"
+    readonly property var group: entry?.group ?? null
+    readonly property var proc: entry?.proc ?? null
     readonly property bool expandable: isGroup && group.processes.length > 1
-    readonly property var metrics: isGroup ? group : proc
-    readonly property bool secondary: !isGroup && proc.role !== "normal"
+    readonly property var metrics: (isGroup ? group : proc) ?? {}
+    readonly property bool secondary: !isGroup && !!proc && proc.role !== "normal"
 
     padding: 0
     hoverEnabled: true
@@ -76,7 +77,7 @@ QQC2.ItemDelegate {
             QQC2.Label {
                 text: row.isGroup
                     ? Tr.core(row.group.name) + (row.expandable ? "  (" + row.group.processes.length + ")" : "")
-                    : row.proc.name
+                    : row.proc?.name ?? ""
                 elide: Text.ElideRight
                 opacity: row.secondary ? 0.6 : 1
                 Layout.fillWidth: true
@@ -86,7 +87,7 @@ QQC2.ItemDelegate {
             }
 
             QQC2.Label {
-                readonly property var titles: row.isGroup ? (row.expandable ? [] : row.group.windows) : (row.proc.windows ?? [])
+                readonly property var titles: row.isGroup ? (row.expandable ? [] : row.group.windows) : (row.proc?.windows ?? [])
                 visible: titles.length > 0
                 text: titles.length > 0 ? titles[0] : ""
                 opacity: 0.6
@@ -111,7 +112,7 @@ QQC2.ItemDelegate {
 
             QQC2.Label {
                 visible: !row.isGroup || !row.expandable
-                text: qsTr("PID %1").arg(row.isGroup ? row.group.processes[0].pid : row.proc.pid)
+                text: qsTr("PID %1").arg(row.isGroup ? row.group.processes[0].pid : row.proc?.pid ?? "")
                 opacity: 0.5
                 font: Kirigami.Theme.smallFont
                 Layout.minimumWidth: implicitWidth
