@@ -44,7 +44,8 @@ ColumnLayout {
             if (filter === 2 && !(c.state === "listen" || (c.protocol === "UDP" && c.remote === ""))) {
                 return false
             }
-            return q === "" || [appName(c), c.pid ?? "", endpoint(c.local, c.local_port), endpoint(c.remote, c.remote_port)]
+            const proc = c.pid !== null ? owners[c.pid]?.proc.name ?? "" : ""
+            return q === "" || [appName(c), proc, c.pid ?? "", c.user, endpoint(c.local, c.local_port), endpoint(c.remote, c.remote_port)]
                 .some(x => String(x).toLowerCase().includes(q))
         })
     }
@@ -138,7 +139,7 @@ ColumnLayout {
         }
         Kirigami.SearchField {
             id: search
-            placeholderText: qsTr("Search an app, address or port")
+            placeholderText: qsTr("Search an app, process, address or port")
             Layout.fillWidth: true
             Layout.preferredWidth: page.unit * 14
             Layout.maximumWidth: page.unit * 14

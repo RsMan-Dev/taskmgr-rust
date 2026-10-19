@@ -4,7 +4,7 @@
 <context>
     <name>ConnectionsPage</name>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="55"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="63"/>
         <source>PID %1</source>
         <translation>PID %1</translation>
     </message>
@@ -13,129 +13,133 @@
         <translation type="vanished">Sans application</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="55"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="63"/>
         <source>No application (%1)</source>
         <translation>Sans application (%1)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="90"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="98"/>
         <source>Access denied: this process belongs to another user or to the system.</source>
         <translation>Accès refusé : ce processus appartient à un autre utilisateur ou au système.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="106"/>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="128"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="114"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="136"/>
         <source>Connected</source>
         <translation>Connectée</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="107"/>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="128"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="115"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="136"/>
         <source>Listening</source>
         <translation>En écoute</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="108"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="116"/>
         <source>Connecting</source>
         <translation>Connexion</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="110"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="118"/>
         <source>Closing</source>
         <translation>Fermeture</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="112"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="120"/>
         <source>Open</source>
         <translation>Ouverte</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="125"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="133"/>
         <source>Connections</source>
         <translation>Connexions</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="128"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="136"/>
         <source>All</source>
         <translation>Toutes</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="134"/>
         <source>Search an app, address or port</source>
-        <translation>Rechercher une appli, une adresse ou un port</translation>
+        <translation type="vanished">Rechercher une appli, une adresse ou un port</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="143"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="142"/>
+        <source>Search an app, process, address or port</source>
+        <translation>Rechercher une appli, un processus, une adresse ou un port</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="151"/>
         <source>Sockets of other users are listed without their application.</source>
         <translation>Les sockets des autres utilisateurs sont listés sans leur application.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="172"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="180"/>
         <source>No matching connection</source>
         <translation>Aucune connexion correspondante</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="176"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="184"/>
         <source>Application</source>
         <translation>Application</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="177"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="185"/>
         <source>%1 (%2)</source>
         <translation>%1 (%2)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="179"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="187"/>
         <source>PID</source>
         <translation>PID</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="180"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="188"/>
         <source>Protocol</source>
         <translation>Protocole</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="181"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="189"/>
         <source>Local address</source>
         <translation>Adresse locale</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="182"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="190"/>
         <source>Remote address</source>
         <translation>Adresse distante</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="183"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="191"/>
         <source>State</source>
         <translation>État</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="184"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="192"/>
         <source>User</source>
         <translation>Utilisateur</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="205"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="213"/>
         <source>End task</source>
         <translation>Fin de tâche</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="211"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="219"/>
         <source>Kill task</source>
         <translation>Tuer la tâche</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="220"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="228"/>
         <source>Collapse</source>
         <translation>Réduire</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="220"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="228"/>
         <source>Expand</source>
         <translation>Développer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="225"/>
+        <location filename="../crates/taskmgr/qml/ConnectionsPage.qml" line="233"/>
         <source>Go to details</source>
         <translation>Voir dans Détails</translation>
     </message>

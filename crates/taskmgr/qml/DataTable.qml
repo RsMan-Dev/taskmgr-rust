@@ -37,11 +37,11 @@ ColumnLayout {
             }
             const texts = new Set(c.widest ?? (groupBy ? sorted : rows).map(r => String(c.text(r))))
             let w = metrics.advanceWidth(c.title) + Kirigami.Units.iconSizes.small + Kirigami.Units.smallSpacing
-                + (c === columns[0] ? chevron * 2 : 0)
             for (const t of texts) {
                 w = Math.max(w, metrics.advanceWidth(t))
             }
-            out[c.key] = Math.min(Math.ceil(w) + pad, c.maxWidth ?? Kirigami.Units.gridUnit * 18)
+            const indent = c.key === columns[0].key ? chevron * 2 : 0
+            out[c.key] = Math.min(Math.ceil(w) + pad + indent, c.maxWidth ?? Kirigami.Units.gridUnit * 18)
         }
         return out
     }
