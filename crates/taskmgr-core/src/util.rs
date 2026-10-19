@@ -1,18 +1,33 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use serde::{Serialize, Serializer};
 
 pub const HISTORY_LEN: usize = 60;
 
+/// A sensor whose read takes longer than this (NVMe drives answer each
+/// temperature read with a command, up to 10 ms) is only re-read every
+/// `SLOW_REFRESH`.
+const SLOW_READ: Duration = Duration::from_micros(500);
+const SLOW_REFRESH: Duration = Duration::from_secs(5);
+
 /// Root of /proc and /sys: `/` in production, a fixture tree in tests.
+/// Clones share the cache of slow sensors.
 #[derive(Clone, Debug)]
-pub struct Root(PathBuf);
+pub struct Root {
+    base: PathBuf,
+    slow: Arc<Mutex<HashMap<PathBuf, (Instant, Option<i64>)>>>,
+}
 
 impl Root {
     pub fn new(path: impl Into<PathBuf>) -> Self {
-        Self(path.into())
+        Self {
+            base: path.into(),
+            slow: Arc::default(),
+        }
     }
 
     pub fn system() -> Self {
@@ -21,7 +36,7 @@ impl Root {
 
     pub fn path(&self, abs: impl AsRef<Path>) -> PathBuf {
         let abs = abs.as_ref();
-        self.0.join(abs.strip_prefix("/").unwrap_or(abs))
+        self.base.join(abs.strip_prefix("/").unwrap_or(abs))
     }
 
     pub fn read(&self, abs: impl AsRef<Path>) -> Option<String> {
@@ -42,6 +57,28 @@ impl Root {
         self.read(abs)?.trim().parse().ok()
     }
 
+    /// A hardware sensor value (hwmon), read again at once when cheap and
+    /// at most every few seconds when the read is slow.
+    pub fn read_sensor(&self, abs: impl AsRef<Path>) -> Option<i64> {
+        let path = self.path(abs);
+        let mut slow = self.slow.lock().ok()?;
+        if let Some((at, value)) = slow.get(&path)
+            && at.elapsed() < SLOW_REFRESH
+        {
+            return *value;
+        }
+        let started = Instant::now();
+        let value = fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| s.trim().parse().ok());
+        if started.elapsed() > SLOW_READ {
+            slow.insert(path, (Instant::now(), value));
+        } else {
+            slow.remove(&path);
+        }
+        value
+    }
+
     pub fn list(&self, abs: impl AsRef<Path>) -> Vec<String> {
         let mut names: Vec<String> = fs::read_dir(self.path(abs))
             .map(|rd| {
@@ -60,7 +97,7 @@ impl Root {
 
     pub fn canonical(&self, abs: impl AsRef<Path>) -> Option<PathBuf> {
         let real = fs::canonicalize(self.path(abs)).ok()?;
-        let base = fs::canonicalize(&self.0).ok()?;
+        let base = fs::canonicalize(&self.base).ok()?;
         real.strip_prefix(&base)
             .ok()
             .map(|p| Path::new("/").join(p))

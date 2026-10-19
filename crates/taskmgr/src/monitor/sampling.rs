@@ -28,6 +28,8 @@ impl Monitor {
             let mut processes = ProcessSampler::new(&root);
             let watcher = taskmgr_core::windows::WindowWatcher::start();
             let mut last = Instant::now();
+            let mut count: u64 = 0;
+            let mut was_wanted = false;
             loop {
                 let started = Instant::now();
                 let helper = net.lock().ok().and_then(|n| n.clone());
@@ -36,11 +38,13 @@ impl Monitor {
                     .and_then(|h| h.vcore.as_ref())
                     .filter(|v| !v.is_empty())
                     .map(|v| v.iter().sum::<f64>() / v.len() as f64);
+                let wanted = processes_visible.load(Ordering::Relaxed);
+                sampler.per_process = wanted;
                 let snapshot = sampler.sample();
                 let snapshot_json = json(&snapshot);
                 // The process list is the costly part: skipped while no
                 // page shows it.
-                let procs = processes_visible.load(Ordering::Relaxed).then(|| {
+                let procs = wanted.then(|| {
                     let windows = watcher.as_ref().and_then(|w| w.windows());
                     let rates = helper.map(|h| h.net);
                     let secs = started.duration_since(last).as_secs_f64();
@@ -53,8 +57,16 @@ impl Monitor {
                         rates.as_ref(),
                     ))
                 });
+                // Command lines are long and change rarely: every few samples.
+                let details =
+                    (wanted && (!was_wanted || count % 3 == 0)).then(|| json(&processes.details()));
+                count += 1;
+                was_wanted = wanted;
                 let queued = qt.queue(move |mut o| {
                     o.as_mut().set_snapshot(snapshot_json);
+                    if let Some(d) = details {
+                        o.as_mut().set_process_details(d);
+                    }
                     if let Some(p) = procs {
                         o.set_processes(p);
                     }

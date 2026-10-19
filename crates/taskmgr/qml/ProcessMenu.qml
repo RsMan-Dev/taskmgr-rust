@@ -8,6 +8,7 @@ QQC2.Menu {
 
     property var entry: null
     property bool expanded: false
+    property var processDetails: ({})
 
     signal endTask(var entry, bool force)
     signal toggleRequested(string groupKey)
@@ -47,7 +48,7 @@ QQC2.Menu {
             enabled: menu.entry?.type === "process" || menu.entry?.group?.processes.length === 1
             onTriggered: {
                 const p = menu.entry.type === "process" ? menu.entry.proc : menu.entry.group.processes[0]
-                clipboard.text = p.command
+                clipboard.text = menu.processDetails[p.pid]?.command ?? ""
                 clipboard.selectAll()
                 clipboard.copy()
             }

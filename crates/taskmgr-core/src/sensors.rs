@@ -63,6 +63,9 @@ fn label(chip: &str, raw: Option<&str>, n: u32) -> String {
 #[derive(Default)]
 pub struct SensorSampler {
     history: HashMap<String, History>,
+    /// Max and critical thresholds never change, and NVMe drives answer
+    /// each read with a command: read once.
+    limits: HashMap<String, (Option<f64>, Option<f64>)>,
 }
 
 impl SensorSampler {
@@ -107,15 +110,18 @@ impl SensorSampler {
                 .temps(root)
                 .into_iter()
                 .filter_map(|(n, raw, input)| {
-                    let value = root.read_i64(&input)? as f64 / 1000.0;
+                    let value = root.read_sensor(&input)? as f64 / 1000.0;
                     let key = format!("{base}:{n}");
+                    let (max, crit) = *self.limits.entry(key.clone()).or_insert_with(|| {
+                        (chip.limit(root, n, "max"), chip.limit(root, n, "crit"))
+                    });
                     Some(self.sensor(
                         &mut seen,
                         key,
                         label(&chip.name, raw.as_deref(), n),
                         value,
-                        chip.limit(root, n, "max"),
-                        chip.limit(root, n, "crit"),
+                        max,
+                        crit,
                     ))
                 })
                 .collect();

@@ -40,6 +40,8 @@ QQC2.ApplicationWindow {
     readonly property var snapshot: monitor.snapshot !== "" ? JSON.parse(monitor.snapshot) : null
     readonly property var systemInfo: monitor.info !== "" ? JSON.parse(monitor.info) : null
     readonly property var processes: monitor.processes !== "" ? JSON.parse(monitor.processes) : null
+    // pid -> { command, exe }, refreshed every few seconds.
+    readonly property var processDetails: monitor.processDetails !== "" ? JSON.parse(monitor.processDetails) : ({})
 
     readonly property var pages: [
         { text: qsTr("Processes"), icon: "nav-processes" },
@@ -270,6 +272,7 @@ QQC2.ApplicationWindow {
                 ProcessesPage {
                     onJournalRequested: (title, query) => journalDialog.show(title, query)
                     groups: window.shown(0, window.processes)
+                    processDetails: window.shown(0, window.processDetails) ?? ({})
                     snapshot: window.shown(0, window.snapshot)
                     monitor: monitor
                 }
@@ -288,6 +291,7 @@ QQC2.ApplicationWindow {
                     id: details
                     onJournalRequested: (title, query) => journalDialog.show(title, query)
                     groups: window.shown(2, window.processes)
+                    processDetails: window.shown(2, window.processDetails) ?? ({})
                     monitor: monitor
                     logical: window.snapshot?.cpu.logical ?? 1
                 }

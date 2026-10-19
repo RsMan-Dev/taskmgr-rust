@@ -9,6 +9,7 @@ ColumnLayout {
     required property var groups
     property var snapshot
     required property var monitor
+    property var processDetails: ({})
 
     property string sortColumn: "name"
     property bool sortDescending: false
@@ -344,6 +345,7 @@ ColumnLayout {
     ProcessMenu {
         id: menu
         expanded: entry?.type === "group" && !!page.expanded[entry.group.key]
+        processDetails: page.processDetails
         onEndTask: (entry, force) => page.endTask(entry, force)
         onToggleRequested: (key) => page.setExpanded(key, !page.expanded[key])
         onJournalRequested: (title, query) => page.journalRequested(title, query)

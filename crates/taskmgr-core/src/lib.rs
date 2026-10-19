@@ -59,6 +59,8 @@ pub struct Sampler {
     batteries: battery::BatterySampler,
     /// Core voltage from the root helper, used when no driver exposes one.
     pub fallback_voltage: Option<f64>,
+    /// Whether per-process GPU use is wanted (a process list is shown).
+    pub per_process: bool,
 }
 
 impl Sampler {
@@ -73,6 +75,7 @@ impl Sampler {
             energy: Default::default(),
             batteries: Default::default(),
             fallback_voltage: None,
+            per_process: true,
             last: None,
             root,
         }
@@ -87,7 +90,7 @@ impl Sampler {
         let root = &self.root;
         let chips = hwmon::chips(root);
         let disks = self.disks.sample(root, &chips, secs);
-        let gpus = self.gpus.sample(root, &chips);
+        let gpus = self.gpus.sample(root, &chips, self.per_process);
         Snapshot {
             cpu: self.cpu.sample(root, &chips, self.fallback_voltage),
             memory: self.memory.sample(root),

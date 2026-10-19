@@ -28,6 +28,8 @@ pub struct ProcessRow {
     pub memory: u64,
     pub disk_bps: Option<f64>,
     pub threads: u64,
+    /// Sent apart (`ProcessSampler::details`): long and nearly constant.
+    #[serde(skip)]
     pub command: String,
     pub ppid: u32,
     /// Start time (clock ticks since boot): with the pid, the identity used
@@ -37,6 +39,7 @@ pub struct ProcessRow {
     /// `R` running, `S` sleeping, `D` waiting on I/O, `T` stopped, `Z` zombie.
     pub state: char,
     pub nice: i32,
+    #[serde(skip)]
     pub exe: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub windows: Vec<String>,
@@ -73,11 +76,37 @@ struct Prev {
     io: Option<u64>,
 }
 
+const DETAILS_REFRESH: u64 = 10;
+
+#[derive(Clone, Serialize)]
+pub struct Details {
+    pub command: String,
+    pub exe: Option<String>,
+}
+
+impl Details {
+    fn read(root: &Root, pid: u32) -> Self {
+        let command = std::fs::read(root.path(format!("/proc/{pid}/cmdline")))
+            .map(|b| split_nul(&b).join(" "))
+            .unwrap_or_default();
+        Self {
+            command: command.chars().take(400).collect(),
+            exe: std::fs::read_link(root.path(format!("/proc/{pid}/exe")))
+                .ok()
+                .map(|p| p.to_string_lossy().into_owned()),
+        }
+    }
+}
+
 pub struct ProcessSampler {
     users: Users,
     catalog: Catalog,
     prev: HashMap<u32, Prev>,
     identities: HashMap<(u32, u64, String), Identity>,
+    /// Command line and executable per (pid, start): re-read now and then
+    /// (programs may retitle themselves), not every second.
+    details: HashMap<(u32, u64), Details>,
+    samples: u64,
     tick_hz: f64,
     cpus: f64,
 }
@@ -90,6 +119,8 @@ impl ProcessSampler {
             catalog: Catalog::load(root),
             prev: HashMap::new(),
             identities: HashMap::new(),
+            details: HashMap::new(),
+            samples: 0,
             tick_hz: if hz > 0 { hz as f64 } else { 100.0 },
             cpus: std::thread::available_parallelism().map_or(1, |n| n.get()) as f64,
         }
@@ -122,6 +153,12 @@ impl ProcessSampler {
                 .unwrap_or_default(),
             env,
         }
+    }
+
+    /// Command line and executable of every process seen in the last
+    /// sample, by pid.
+    pub fn details(&self) -> HashMap<u32, &Details> {
+        self.details.iter().map(|((pid, _), d)| (*pid, d)).collect()
     }
 
     pub fn sample(
@@ -194,9 +231,17 @@ impl ProcessSampler {
                     id
                 }
             };
-            let command = std::fs::read(root.path(format!("/proc/{pid}/cmdline")))
-                .map(|b| split_nul(&b).join(" "))
-                .unwrap_or_default();
+            let refresh = self.samples % DETAILS_REFRESH == 0;
+            let details = self
+                .details
+                .entry((pid, stat.start))
+                .and_modify(|d| {
+                    if refresh {
+                        *d = Details::read(root, pid);
+                    }
+                })
+                .or_insert_with(|| Details::read(root, pid))
+                .clone();
             let row = ProcessRow {
                 pid,
                 name: id.name.clone(),
@@ -207,7 +252,7 @@ impl ProcessSampler {
                     * 1024,
                 disk_bps,
                 threads: stat.threads,
-                command: command.chars().take(400).collect(),
+                command: details.command,
                 ppid: stat.ppid,
                 start: stat.start,
                 user: status_kb(&status, "Uid")
@@ -215,9 +260,7 @@ impl ProcessSampler {
                     .unwrap_or_default(),
                 state: stat.state,
                 nice: stat.nice,
-                exe: std::fs::read_link(root.path(format!("/proc/{pid}/exe")))
-                    .ok()
-                    .map(|p| p.to_string_lossy().into_owned()),
+                exe: details.exe,
                 windows: Vec::new(),
                 net: net.map(|n| n.get(&pid).copied().unwrap_or((0.0, 0.0))),
                 gpu: gpu_use
@@ -237,6 +280,9 @@ impl ProcessSampler {
         }
         self.identities
             .retain(|(pid, start, _), _| seen.get(pid).is_some_and(|p| p.start == *start));
+        self.details
+            .retain(|(pid, start), _| seen.get(pid).is_some_and(|p| p.start == *start));
+        self.samples += 1;
         self.prev = seen;
         grouping::group_by_tree(&mut entries);
         if let Some(windows) = windows {

@@ -309,26 +309,19 @@ fn core_mhz(root: &Root, logical: usize) -> Vec<Option<f64>> {
         .collect()
 }
 
+/// Processes from the /proc listing, threads from /proc/loadavg
+/// ("running/total" scheduling entities), without opening a file per
+/// process.
 fn task_counts(root: &Root) -> (usize, u64) {
-    let mut processes = 0;
-    let mut threads = 0;
-    for pid in root.list("/proc") {
-        if !pid.bytes().all(|b| b.is_ascii_digit()) {
-            continue;
-        }
-        let Some(stat) = root.read(format!("/proc/{pid}/stat")) else {
-            continue;
-        };
-        processes += 1;
-        // Field 20 (num_threads), counted after the parenthesised comm.
-        if let Some(rest) = stat.rsplit_once(')').map(|(_, r)| r) {
-            threads += rest
-                .split_whitespace()
-                .nth(17)
-                .and_then(|t| t.parse::<u64>().ok())
-                .unwrap_or(0);
-        }
-    }
+    let processes = root
+        .list("/proc")
+        .iter()
+        .filter(|p| p.bytes().all(|b| b.is_ascii_digit()))
+        .count();
+    let threads = root
+        .read("/proc/loadavg")
+        .and_then(|s| s.split_whitespace().nth(3)?.split_once('/')?.1.parse().ok())
+        .unwrap_or(0);
     (processes, threads)
 }
 

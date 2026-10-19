@@ -48,11 +48,11 @@ impl Chip {
             root.read_trimmed(format!("{}/{prefix}{n}_label", self.dir))
                 .is_some_and(|l| l.eq_ignore_ascii_case(label))
         })?;
-        root.read_i64(format!("{}/{prefix}{n}_input", self.dir))
+        root.read_sensor(format!("{}/{prefix}{n}_input", self.dir))
     }
 
     pub fn file(&self, root: &Root, name: &str) -> Option<i64> {
-        root.read_i64(format!("{}/{name}", self.dir))
+        root.read_sensor(format!("{}/{name}", self.dir))
     }
 
     pub fn temperature(&self, root: &Root, preferred: &[&str]) -> Option<f64> {
@@ -61,7 +61,7 @@ impl Chip {
             .iter()
             .find_map(|p| temps.iter().find(|(_, l, _)| l.as_deref() == Some(*p)))
             .or(temps.first())?;
-        root.read_i64(&pick.2).map(|m| m as f64 / 1000.0)
+        root.read_sensor(&pick.2).map(|m| m as f64 / 1000.0)
     }
 }
 

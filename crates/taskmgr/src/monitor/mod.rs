@@ -37,6 +37,7 @@ pub mod qobject {
         #[qproperty(QString, power)]
         #[qproperty(QString, crashes)]
         #[qproperty(QString, journal)]
+        #[qproperty(QString, process_details, cxx_name = "processDetails")]
         type SystemMonitor = super::SystemMonitorRust;
 
         #[qinvokable]
@@ -143,6 +144,7 @@ pub struct SystemMonitorRust {
     power: QString,
     crashes: QString,
     journal: QString,
+    process_details: QString,
     started: bool,
     net: Arc<Mutex<Option<taskmgr_core::netflow::HelperData>>>,
     interval_ms: Arc<AtomicU64>,

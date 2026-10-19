@@ -2,6 +2,8 @@
 
 use std::ffi::OsStr;
 
+use std::path::PathBuf;
+
 use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use nvml_wrapper::enums::device::UsedGpuMemory;
@@ -110,6 +112,9 @@ struct GpuState {
     memory: History,
     charts: Charts,
     nvml_seen: u64,
+    /// What does not change while the card is present, read once.
+    fixed: Option<GpuSnapshot>,
+    device_path: Option<PathBuf>,
 }
 
 pub struct GpuSampler {
@@ -135,105 +140,138 @@ impl GpuSampler {
             .collect()
     }
 
-    pub fn sample(&mut self, root: &Root, chips: &[Chip]) -> Vec<GpuSnapshot> {
+    /// Identity, limits and driver of a card: read on first sight only.
+    fn identify(&self, root: &Root, index: usize, dev: &str) -> (GpuSnapshot, Option<PathBuf>) {
+        let device_path = root.canonical(dev);
+        let pci_slot = device_path
+            .as_ref()
+            .and_then(|p| Some(p.file_name()?.to_string_lossy().into_owned()))
+            .unwrap_or_default();
+        let vendor_id = root
+            .read_trimmed(format!("{dev}/vendor"))
+            .unwrap_or_default();
+        let vendor = vendor_name(&vendor_id).to_owned();
+        let driver = root.link_name(format!("{dev}/driver")).unwrap_or_default();
+        let pci_model = root.udev_property(&format!("+pci:{pci_slot}"), "ID_MODEL_FROM_DATABASE");
+        let path_text = device_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let mut g = GpuSnapshot {
+            index,
+            dedicated: !is_integrated(&path_text, &pci_slot, &vendor_id),
+            name: pci_model
+                .map(|m| marketing_name(&vendor, &m))
+                .unwrap_or_else(|| format!("{vendor} GPU")),
+            vendor,
+            driver,
+            pci_slot,
+            ..Default::default()
+        };
+        if g.driver == "nvidia" {
+            if let Some(d) = self
+                .nvml
+                .as_ref()
+                .and_then(|n| n.device_by_pci_bus_id(g.pci_slot.as_str()).ok())
+            {
+                if let Ok(name) = d.name() {
+                    g.name = name;
+                }
+                g.core_max_mhz = d.max_clock_info(Clock::Graphics).ok().map(f64::from);
+                g.memory_max_mhz = d.max_clock_info(Clock::Memory).ok().map(f64::from);
+            }
+            g.driver_version = self.nvml.as_ref().and_then(|n| n.sys_driver_version().ok());
+        } else {
+            g.driver_version = root.read_trimmed(format!("/sys/module/{}/version", g.driver));
+            g.memory_total = root.read_u64(format!("{dev}/mem_info_vram_total"));
+            g.shared_total = root.read_u64(format!("{dev}/mem_info_gtt_total"));
+            g.core_max_mhz = root
+                .read(format!("{dev}/pp_dpm_sclk"))
+                .and_then(|t| dpm_max_mhz(&t));
+            g.memory_max_mhz = root
+                .read(format!("{dev}/pp_dpm_mclk"))
+                .and_then(|t| dpm_max_mhz(&t))
+                .filter(|_| g.dedicated);
+        }
+        (g, device_path)
+    }
+
+    /// `per_process`: also read which processes use each GPU (costly with
+    /// NVML), only needed while a process list is shown.
+    pub fn sample(&mut self, root: &Root, chips: &[Chip], per_process: bool) -> Vec<GpuSnapshot> {
         let mut cards = Self::cards(root);
         cards.sort_by_key(|c| c[4..].parse::<u32>().unwrap_or(0));
-        cards
-            .into_iter()
-            .enumerate()
-            .map(|(index, card)| {
-                let dev = format!("/sys/class/drm/{card}/device");
-                let pci_slot = root
-                    .canonical(&dev)
-                    .and_then(|p| Some(p.file_name()?.to_string_lossy().into_owned()))
-                    .unwrap_or_default();
-                let vendor_id = root
-                    .read_trimmed(format!("{dev}/vendor"))
-                    .unwrap_or_default();
-                let vendor = vendor_name(&vendor_id).to_owned();
-                let driver = root.link_name(format!("{dev}/driver")).unwrap_or_default();
-                let pci_model =
-                    root.udev_property(&format!("+pci:{pci_slot}"), "ID_MODEL_FROM_DATABASE");
-                let device_path = root
-                    .canonical(&dev)
-                    .map(|p| p.to_string_lossy().into_owned())
-                    .unwrap_or_default();
-                let mut g = GpuSnapshot {
-                    index,
-                    dedicated: !is_integrated(&device_path, &pci_slot, &vendor_id),
-                    name: pci_model
-                        .map(|m| marketing_name(&vendor, &m))
-                        .unwrap_or_else(|| format!("{vendor} GPU")),
-                    vendor,
-                    driver,
-                    pci_slot,
-                    ..Default::default()
-                };
-                let i = match self.state.iter().position(|(k, _)| *k == g.pci_slot) {
-                    Some(i) => i,
-                    None => {
-                        self.state.push((g.pci_slot.clone(), GpuState::default()));
-                        self.state.len() - 1
-                    }
-                };
-                if g.driver == "nvidia" {
-                    let seen = self.state[i].1.nvml_seen;
-                    self.state[i].1.nvml_seen = self.fill_nvml(&mut g, seen);
-                } else {
-                    fill_sysfs(root, &dev, &mut g);
-                    let chip = root
-                        .canonical(&dev)
-                        .and_then(|d| chips.iter().find(|c| c.device.as_ref() == Some(&d)));
-                    if let Some(c) = chip {
-                        g.temperature = c.temperature(root, &["edge"]);
-                        g.core_mhz = c.input(root, "freq", "sclk").map(|hz| hz as f64 / 1e6);
-                        g.memory_mhz = c
-                            .input(root, "freq", "mclk")
-                            .filter(|_| g.dedicated)
-                            .map(|hz| hz as f64 / 1e6);
-                        g.voltage_mv = c.input(root, "in", "vddgfx").map(|mv| mv as f64);
-                        g.power_watts = c
-                            .file(root, "power1_average")
-                            .or_else(|| c.file(root, "power1_input"))
-                            .map(|uw| uw as f64 / 1e6);
-                        g.power_limit_watts = c.file(root, "power1_cap").map(|uw| uw as f64 / 1e6);
-                    }
+        let mut out = Vec::new();
+        for (index, card) in cards.into_iter().enumerate() {
+            let dev = format!("/sys/class/drm/{card}/device");
+            let i = match self.state.iter().position(|(k, _)| *k == card) {
+                Some(i) => i,
+                None => {
+                    self.state.push((card.clone(), GpuState::default()));
+                    self.state.len() - 1
                 }
-                let st = &mut self.state[i].1;
-                st.charts.push(
-                    "memory",
-                    g.memory_used
-                        .zip(g.memory_total)
-                        .map(|(u, t)| u as f64 / t.max(1) as f64 * 100.0),
-                );
-                st.charts.push("core_clock", g.core_mhz);
-                st.charts.push("memory_clock", g.memory_mhz);
-                st.charts.push("voltage", g.voltage_mv);
-                st.charts.push("power", g.power_watts);
-                st.charts.push("encoder", g.encoder);
-                st.charts.push("decoder", g.decoder);
-                g.charts = st.charts.clone();
-                st.usage.push(g.usage.unwrap_or(0.0));
-                if let (Some(u), Some(t)) = (g.memory_used, g.memory_total) {
-                    st.memory.push(u as f64 / t.max(1) as f64 * 100.0);
+            };
+            if self.state[i].1.fixed.is_none() {
+                let (fixed, path) = self.identify(root, index, &dev);
+                self.state[i].1.fixed = Some(fixed);
+                self.state[i].1.device_path = path;
+            }
+            let Some(mut g) = self.state[i].1.fixed.clone() else {
+                continue;
+            };
+            g.index = index;
+            if g.driver == "nvidia" {
+                let seen = self.state[i].1.nvml_seen;
+                self.state[i].1.nvml_seen = self.fill_nvml(&mut g, seen, per_process);
+            } else {
+                fill_sysfs(root, &dev, &mut g);
+                let path = self.state[i].1.device_path.as_ref();
+                if let Some(c) = chips.iter().find(|c| c.device.as_ref() == path) {
+                    g.temperature = c.temperature(root, &["edge"]);
+                    g.core_mhz = c.input(root, "freq", "sclk").map(|hz| hz as f64 / 1e6);
+                    g.memory_mhz = c
+                        .input(root, "freq", "mclk")
+                        .filter(|_| g.dedicated)
+                        .map(|hz| hz as f64 / 1e6);
+                    g.voltage_mv = c.input(root, "in", "vddgfx").map(|mv| mv as f64);
+                    g.power_watts = c
+                        .file(root, "power1_average")
+                        .or_else(|| c.file(root, "power1_input"))
+                        .map(|uw| uw as f64 / 1e6);
+                    g.power_limit_watts = c.file(root, "power1_cap").map(|uw| uw as f64 / 1e6);
                 }
-                g.history = st.usage.clone();
-                g.memory_history = st.memory.clone();
-                g
-            })
-            .collect()
+            }
+            let st = &mut self.state[i].1;
+            st.charts.push(
+                "memory",
+                g.memory_used
+                    .zip(g.memory_total)
+                    .map(|(u, t)| u as f64 / t.max(1) as f64 * 100.0),
+            );
+            st.charts.push("core_clock", g.core_mhz);
+            st.charts.push("memory_clock", g.memory_mhz);
+            st.charts.push("voltage", g.voltage_mv);
+            st.charts.push("power", g.power_watts);
+            st.charts.push("encoder", g.encoder);
+            st.charts.push("decoder", g.decoder);
+            g.charts = st.charts.clone();
+            st.usage.push(g.usage.unwrap_or(0.0));
+            if let (Some(u), Some(t)) = (g.memory_used, g.memory_total) {
+                st.memory.push(u as f64 / t.max(1) as f64 * 100.0);
+            }
+            g.history = st.usage.clone();
+            g.memory_history = st.memory.clone();
+            out.push(g);
+        }
+        out
     }
 
     /// Returns the timestamp of the newest per-process sample read.
-    fn fill_nvml(&self, g: &mut GpuSnapshot, seen: u64) -> u64 {
+    fn fill_nvml(&self, g: &mut GpuSnapshot, seen: u64, per_process: bool) -> u64 {
         let Some(nvml) = &self.nvml else { return seen };
         let Ok(d) = nvml.device_by_pci_bus_id(g.pci_slot.as_str()) else {
             return seen;
         };
-        if let Ok(name) = d.name() {
-            g.name = name;
-        }
-        g.driver_version = nvml.sys_driver_version().ok();
         g.usage = d.utilization_rates().ok().map(|u| u.gpu as f64);
         g.encoder = d.encoder_utilization().ok().map(|u| u.utilization as f64);
         g.decoder = d.decoder_utilization().ok().map(|u| u.utilization as f64);
@@ -245,9 +283,10 @@ impl GpuSampler {
         g.power_watts = d.power_usage().ok().map(|mw| mw as f64 / 1000.0);
         g.power_limit_watts = d.enforced_power_limit().ok().map(|mw| mw as f64 / 1000.0);
         g.core_mhz = d.clock_info(Clock::Graphics).ok().map(f64::from);
-        g.core_max_mhz = d.max_clock_info(Clock::Graphics).ok().map(f64::from);
         g.memory_mhz = d.clock_info(Clock::Memory).ok().map(f64::from);
-        g.memory_max_mhz = d.max_clock_info(Clock::Memory).ok().map(f64::from);
+        if !per_process {
+            return seen;
+        }
 
         let mut newest = seen;
         let mut usage: std::collections::HashMap<u32, f64> = std::collections::HashMap::new();
@@ -294,17 +333,7 @@ fn fill_sysfs(root: &Root, dev: &str, g: &mut GpuSnapshot) {
         .read_u64(format!("{dev}/gpu_busy_percent"))
         .map(|v| v as f64);
     g.memory_used = root.read_u64(format!("{dev}/mem_info_vram_used"));
-    g.memory_total = root.read_u64(format!("{dev}/mem_info_vram_total"));
     g.shared_used = root.read_u64(format!("{dev}/mem_info_gtt_used"));
-    g.shared_total = root.read_u64(format!("{dev}/mem_info_gtt_total"));
-    g.driver_version = root.read_trimmed(format!("/sys/module/{}/version", g.driver));
-    g.core_max_mhz = root
-        .read(format!("{dev}/pp_dpm_sclk"))
-        .and_then(|t| dpm_max_mhz(&t));
-    g.memory_max_mhz = root
-        .read(format!("{dev}/pp_dpm_mclk"))
-        .and_then(|t| dpm_max_mhz(&t))
-        .filter(|_| g.dedicated);
 }
 
 #[cfg(test)]

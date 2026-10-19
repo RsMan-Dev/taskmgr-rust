@@ -26,6 +26,7 @@ ColumnLayout {
     ]
 
     property bool tree: false
+    property var processDetails: ({})
 
     signal journalRequested(string title, var query)
 
@@ -63,14 +64,27 @@ ColumnLayout {
 
     readonly property var shown: tree ? treeOrder(processes) : processes
 
+    // Application of each pid, so rows are the parsed objects themselves
+    // rather than copies made every second.
+    readonly property var appOf: {
+        const map = {}
+        for (const g of groups ?? []) {
+            const name = Tr.core(g.name)
+            for (const p of g.processes) {
+                map[p.pid] = name
+            }
+        }
+        return map
+    }
+
     readonly property var processes: {
         const out = []
         const q = search.text.trim().toLowerCase()
         for (const g of groups ?? []) {
             for (const p of g.processes) {
                 if (q === "" || p.name.toLowerCase().includes(q) || String(p.pid) === q
-                        || p.user.toLowerCase().includes(q) || p.command.toLowerCase().includes(q)) {
-                    out.push(Object.assign({ app: Tr.core(g.name) }, p))
+                        || p.user.toLowerCase().includes(q) || (processDetails[p.pid]?.command ?? "").toLowerCase().includes(q)) {
+                    out.push(p)
                 }
             }
         }
@@ -218,8 +232,8 @@ ColumnLayout {
             { key: "memory", title: qsTr("Memory"), widest: [Format.bytes(999 * 1048576), Format.bytes(99.9 * 1073741824)], value: r => r.memory, text: r => Format.bytes(r.memory), align: Qt.AlignRight },
             { key: "threads", title: qsTr("Threads"), widest: ["99999"], value: r => r.threads, text: r => r.threads, align: Qt.AlignRight },
             { key: "nice", title: qsTr("Priority"), value: r => r.nice, text: r => page.priorityName(r.nice) },
-            { key: "app", title: qsTr("Application"), maxWidth: page.unit * 12, text: r => r.app },
-            { key: "command", title: qsTr("Command line"), width: 0, text: r => r.command || "[" + r.name + "]" },
+            { key: "app", title: qsTr("Application"), maxWidth: page.unit * 12, text: r => page.appOf[r.pid] ?? "" },
+            { key: "command", title: qsTr("Command line"), width: 0, text: r => page.processDetails[r.pid]?.command || "[" + r.name + "]" },
         ]
         onContextMenuRequested: (row, item, position) => {
             menu.row = row
@@ -271,14 +285,14 @@ ColumnLayout {
         QQC2.MenuItem {
             text: qsTr("Open file location")
             icon.source: Icons.of("open-folder", Kirigami.Theme.textColor)
-            enabled: !!menu.row?.exe
-            onTriggered: Qt.openUrlExternally("file://" + page.folder(menu.row.exe))
+            enabled: !!page.processDetails[menu.row?.pid]?.exe
+            onTriggered: Qt.openUrlExternally("file://" + page.folder(page.processDetails[menu.row.pid].exe))
         }
         QQC2.MenuItem {
             text: qsTr("Copy command line")
             icon.source: Icons.of("copy", Kirigami.Theme.textColor)
             onTriggered: {
-                clipboard.text = menu.row.command
+                clipboard.text = page.processDetails[menu.row.pid]?.command ?? ""
                 clipboard.selectAll()
                 clipboard.copy()
             }
