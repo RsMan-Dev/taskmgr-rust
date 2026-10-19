@@ -5,7 +5,7 @@
 A task manager for Linux that names what is really running: a Proton game
 shows up as the game, not as `wine64-preloader` and `pressure-vessel`.
 
-![Processes](assets/screenshots/processes.png)
+![Processes](assets/screenshots/applications.png)
 
 - **Processes grouped by application**, through Flatpak, Wine and Proton,
   Steam, AppImage, Snap and NixOS wrappers.
