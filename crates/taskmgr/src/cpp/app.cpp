@@ -40,9 +40,10 @@ extern "C" int taskmgr_run(int argc, char **argv)
     static int s_argc = argc;
     QApplication app(s_argc, argv);
     app.setApplicationName(QStringLiteral("taskmgr"));
-    app.setOrganizationName(QStringLiteral("taskmgr"));
+    app.setOrganizationName(QStringLiteral("rsman"));
+    app.setOrganizationDomain(QStringLiteral("rsman.fr"));
     app.setApplicationDisplayName(QStringLiteral("Gestionnaire des tâches"));
-    app.setDesktopFileName(QStringLiteral("org.taskmgr"));
+    app.setDesktopFileName(QStringLiteral("fr.rsman.taskmgr-rust"));
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("utilities-system-monitor")));
     QIcon::setFallbackThemeName(QStringLiteral("breeze"));
     quitOnSignals(app);

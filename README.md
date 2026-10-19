@@ -53,4 +53,4 @@ Layout:
   global state.
 - `crates/taskmgr`: Qt Quick / Kirigami UI, bridged with cxx-qt.
 
-License: TBD.
+License: MIT (see `LICENSE`).

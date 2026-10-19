@@ -44,7 +44,7 @@
           '';
 
           postInstall = ''
-            install -Dm644 packaging/org.taskmgr.desktop $out/share/applications/org.taskmgr.desktop
+            install -Dm644 packaging/fr.rsman.taskmgr-rust.desktop $out/share/applications/fr.rsman.taskmgr-rust.desktop
           '';
 
           meta = {

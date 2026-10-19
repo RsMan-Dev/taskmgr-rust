@@ -12,7 +12,8 @@ use zbus::Connection;
 fn plugin(pid: u32) -> String {
     format!("taskmgr-windows-{pid}")
 }
-const INTERFACE: &str = "org.taskmgr.Windows";
+// D-Bus interface names cannot contain a dash.
+const INTERFACE: &str = "fr.rsman.taskmgr_rust.Windows";
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Window {
@@ -27,7 +28,7 @@ type Shared = Arc<Mutex<Option<Vec<Window>>>>;
 
 struct Receiver(Shared);
 
-#[zbus::interface(name = "org.taskmgr.Windows")]
+#[zbus::interface(name = "fr.rsman.taskmgr_rust.Windows")]
 impl Receiver {
     fn update(&self, json: String) {
         if let Ok(list) = serde_json::from_str::<Vec<Window>>(&json)
@@ -72,7 +73,7 @@ impl WindowWatcher {
 
     async fn start_async() -> Option<Self> {
         let shared: Shared = Arc::default();
-        let service = format!("org.taskmgr.instance{}", std::process::id());
+        let service = format!("fr.rsman.taskmgr_rust.instance{}", std::process::id());
         let conn = zbus::conn::Builder::session()
             .name(service.as_str())
             .serve_at("/windows", Receiver(shared.clone()))

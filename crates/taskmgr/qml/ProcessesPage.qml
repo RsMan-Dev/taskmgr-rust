@@ -204,13 +204,24 @@ ColumnLayout {
             Layout.minimumWidth: Kirigami.Units.gridUnit * 6
         }
         QQC2.Button {
-            display: page.width < Kirigami.Units.gridUnit * 30 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
-            QQC2.ToolTip.text: text
-            QQC2.ToolTip.visible: hovered && display === QQC2.AbstractButton.IconOnly
+            display: page.width < Kirigami.Units.gridUnit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
             text: "Fin de tâche"
             icon.name: "process-stop"
             enabled: page.selected !== null && page.selected.type !== "section"
             onClicked: page.endTask(page.selected, false)
+            QQC2.ToolTip.text: "Demande au processus de se terminer (SIGTERM)"
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
+        QQC2.Button {
+            display: page.width < Kirigami.Units.gridUnit * 36 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
+            text: "Tuer"
+            icon.name: "edit-delete"
+            enabled: page.selected !== null && page.selected.type !== "section"
+            onClicked: page.endTask(page.selected, true)
+            QQC2.ToolTip.text: "Arrête le processus immédiatement, sans lui laisser le temps de sauvegarder (SIGKILL)"
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
         }
     }
 
@@ -360,7 +371,7 @@ ColumnLayout {
             onTriggered: page.endTask(menu.entry, false)
         }
         QQC2.MenuItem {
-            text: "Forcer l'arrêt"
+            text: "Tuer la tâche"
             icon.name: "edit-delete"
             onTriggered: page.endTask(menu.entry, true)
         }

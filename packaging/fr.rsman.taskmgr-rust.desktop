@@ -11,4 +11,4 @@ Icon=utilities-system-monitor
 Terminal=false
 Categories=System;Monitor;Qt;KDE;
 Keywords=process;task;cpu;memory;disk;gpu;sensor;processus;tâche;
-StartupWMClass=taskmgr
+StartupWMClass=fr.rsman.taskmgr-rust
