@@ -58,8 +58,8 @@ impl Monitor {
                     ))
                 });
                 // Command lines are long and change rarely: every few samples.
-                let details =
-                    (wanted && (!was_wanted || count % 3 == 0)).then(|| json(&processes.details()));
+                let details = (wanted && (!was_wanted || count.is_multiple_of(3)))
+                    .then(|| json(&processes.details()));
                 count += 1;
                 was_wanted = wanted;
                 let queued = qt.queue(move |mut o| {

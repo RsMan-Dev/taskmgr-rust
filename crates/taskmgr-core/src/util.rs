@@ -14,12 +14,15 @@ pub const HISTORY_LEN: usize = 60;
 const SLOW_READ: Duration = Duration::from_micros(500);
 const SLOW_REFRESH: Duration = Duration::from_secs(5);
 
+/// Last value and read time of each slow sensor file.
+type SlowReads = HashMap<PathBuf, (Instant, Option<i64>)>;
+
 /// Root of /proc and /sys: `/` in production, a fixture tree in tests.
 /// Clones share the cache of slow sensors.
 #[derive(Clone, Debug)]
 pub struct Root {
     base: PathBuf,
-    slow: Arc<Mutex<HashMap<PathBuf, (Instant, Option<i64>)>>>,
+    slow: Arc<Mutex<SlowReads>>,
 }
 
 impl Root {

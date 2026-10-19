@@ -231,7 +231,7 @@ impl ProcessSampler {
                     id
                 }
             };
-            let refresh = self.samples % DETAILS_REFRESH == 0;
+            let refresh = self.samples.is_multiple_of(DETAILS_REFRESH);
             let details = self
                 .details
                 .entry((pid, stat.start))
