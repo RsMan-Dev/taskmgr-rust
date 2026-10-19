@@ -53,7 +53,8 @@ QQC2.ItemDelegate {
                 visible: row.isGroup
                 enabled: row.expandable
                 opacity: row.expandable ? 1 : 0
-                icon.name: row.expanded ? "arrow-down" : "arrow-right"
+                icon.source: Icons.of(row.expanded ? "collapse" : "expand")
+                icon.color: Kirigami.Theme.textColor
                 icon.width: Kirigami.Units.iconSizes.small
                 icon.height: Kirigami.Units.iconSizes.small
                 display: QQC2.AbstractButton.IconOnly
@@ -66,9 +67,12 @@ QQC2.ItemDelegate {
 
             Kirigami.Icon {
                 visible: row.isGroup
-                readonly property string generic: row.isGroup && row.group.kind === "app" ? "application-x-executable" : "system-run"
-                source: row.isGroup && row.group.icon ? row.group.icon : generic
+                readonly property string generic: Icons.of(row.isGroup ? row.group.kind : "app")
+                readonly property bool own: !(row.isGroup && row.group.icon)
+                source: own ? generic : row.group.icon
                 fallback: generic
+                isMask: own
+                color: Kirigami.Theme.textColor
                 Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                 Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
             }

@@ -59,6 +59,7 @@
 
           postInstall = ''
             install -Dm644 packaging/fr.rsman.taskmgr-rust.desktop $out/share/applications/fr.rsman.taskmgr-rust.desktop
+            install -Dm644 packaging/fr.rsman.taskmgr-rust.svg $out/share/icons/hicolor/scalable/apps/fr.rsman.taskmgr-rust.svg
           '';
 
           meta = {

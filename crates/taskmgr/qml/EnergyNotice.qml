@@ -20,7 +20,8 @@ Kirigami.InlineMessage {
     actions: [
         Kirigami.Action {
             text: qsTr("Allow access…")
-            icon.name: "security-high"
+            icon.source: Icons.of("admin")
+            icon.color: Kirigami.Theme.textColor
             enabled: notice.request !== "pending"
             tooltip: qsTr("Lets your user read the RAPL counter until the next reboot (see docs/energy.md).")
             onTriggered: notice.monitor.requestEnergyAccess()

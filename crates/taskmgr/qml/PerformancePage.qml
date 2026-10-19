@@ -610,7 +610,8 @@ Item {
         }
         QQC2.MenuItem {
             text: qsTr("Copy details")
-            icon.name: "edit-copy"
+            icon.source: Icons.of("copy")
+            icon.color: Kirigami.Theme.textColor
             onTriggered: {
                 clipboard.text = page.detailsText(page.selected)
                 clipboard.selectAll()

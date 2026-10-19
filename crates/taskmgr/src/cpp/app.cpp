@@ -46,7 +46,7 @@ extern "C" int taskmgr_run(int argc, char **argv)
     app.setOrganizationDomain(QStringLiteral("rsman.fr"));
     app.setApplicationDisplayName(QStringLiteral("Gestionnaire des tâches"));
     app.setDesktopFileName(QStringLiteral("fr.rsman.taskmgr-rust"));
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("utilities-system-monitor")));
+    app.setWindowIcon(QIcon(QStringLiteral(":/icons/logo.svg")));
     QIcon::setFallbackThemeName(QStringLiteral("breeze"));
 
     // "general/language": empty follows the system, "en" or "fr" forces it.

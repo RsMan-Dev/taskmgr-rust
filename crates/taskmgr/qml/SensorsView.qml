@@ -10,10 +10,10 @@ ColumnLayout {
 
     readonly property var icons: ({
         cpu: "cpu",
-        gpu: "video-display",
-        disk: "drive-harddisk",
-        board: "computer",
-        network: "network-wired",
+        gpu: "gpu",
+        disk: "disk",
+        board: "board",
+        network: "network",
     })
 
     spacing: Kirigami.Units.largeSpacing
@@ -49,7 +49,9 @@ ColumnLayout {
                     spacing: Kirigami.Units.largeSpacing
                     Layout.bottomMargin: Kirigami.Units.smallSpacing
                     Kirigami.Icon {
-                        source: view.icons[card.modelData.kind] ?? "dialog-information"
+                        source: Icons.of(view.icons[card.modelData.kind] ?? "sensor")
+                        isMask: true
+                        color: Kirigami.Theme.textColor
                         Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                         Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                     }

@@ -48,7 +48,9 @@ ColumnLayout {
 
                     RowLayout {
                         Kirigami.Icon {
-                            source: "media-flash"
+                            source: Icons.of("memory")
+                            isMask: true
+                            color: Kirigami.Theme.textColor
                             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                         }

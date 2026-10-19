@@ -73,6 +73,11 @@ QQC2.ScrollView {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: qsTr("About")
             }
+            Kirigami.Icon {
+                source: Icons.logo
+                Layout.preferredWidth: Kirigami.Units.iconSizes.large
+                Layout.preferredHeight: Kirigami.Units.iconSizes.large
+            }
             QQC2.Label {
                 Kirigami.FormData.label: qsTr("Application:")
                 text: "taskmgr-rust 0.1.0  (fr.rsman.taskmgr-rust)"

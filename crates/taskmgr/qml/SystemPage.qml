@@ -21,14 +21,14 @@ QQC2.ScrollView {
         const clean = rows => rows.filter(r => r[1] !== null && r[1] !== undefined && r[1] !== "")
         const cpu = i.cpu
         return [
-            [qsTr("System"), "preferences-system-linux", clean([
+            [qsTr("System"), "os", clean([
                 [qsTr("Device name"), i.hostname],
                 [qsTr("Operating system"), i.os],
                 [qsTr("Kernel"), i.kernel ? "Linux " + i.kernel : null],
                 [qsTr("Architecture"), i.architecture],
                 [qsTr("Desktop"), i.desktop ? i.desktop + (i.session ? " (" + i.session + ")" : "") : null],
             ])],
-            [qsTr("Motherboard"), "computer", clean([
+            [qsTr("Motherboard"), "board", clean([
                 [qsTr("Manufacturer"), i.vendor],
                 [qsTr("Product"), i.manufacturer !== i.board ? i.manufacturer : null],
                 [qsTr("Model"), i.board],
@@ -40,15 +40,15 @@ QQC2.ScrollView {
                 [qsTr("Cores"), qsTr("%1 cores, %2 logical processors").arg(cpu.cores).arg(cpu.logical)],
                 [qsTr("Usable memory"), Format.bytes(i.memory_total)],
             ])],
-            [qsTr("Graphics cards"), "video-display", s ? s.gpus.map(g => [
+            [qsTr("Graphics cards"), "gpu", s ? s.gpus.map(g => [
                 qsTr("GPU %1").arg(g.index),
                 qsTr("%1 (driver %2)").arg(g.name).arg(g.driver + (g.driver_version ? " " + g.driver_version : "")),
             ]) : []],
-            [qsTr("Disks"), "drive-harddisk", s ? s.disks.map(d => [
+            [qsTr("Disks"), "disk", s ? s.disks.map(d => [
                 qsTr("Disk %1").arg(d.index),
                 d.model + ", " + Format.bytes(d.capacity) + ", " + Tr.core(d.kind),
             ]) : []],
-            [qsTr("Network"), "network-wired", s ? s.networks.map(n => [n.kind + " (" + n.name + ")", n.adapter]) : []],
+            [qsTr("Network"), "network", s ? s.networks.map(n => [n.kind + " (" + n.name + ")", n.adapter]) : []],
         ].filter(sec => sec[2].length > 0)
     }
 
@@ -65,7 +65,8 @@ QQC2.ScrollView {
 
             QQC2.Button {
                 text: copied.running ? qsTr("Copied") : qsTr("Copy")
-                icon.name: copied.running ? "checkmark" : "edit-copy"
+                icon.source: Icons.of(copied.running ? "copied" : "copy")
+                icon.color: Kirigami.Theme.textColor
                 onClicked: {
                     clipboardHelper.text = page.asText()
                     clipboardHelper.selectAll()
@@ -95,7 +96,7 @@ QQC2.ScrollView {
                 anchors.margins: Kirigami.Units.gridUnit
 
                 Kirigami.Icon {
-                    source: "computer"
+                    source: Icons.logo
                     Layout.preferredWidth: Kirigami.Units.iconSizes.huge
                     Layout.preferredHeight: Kirigami.Units.iconSizes.huge
                 }
@@ -144,7 +145,9 @@ QQC2.ScrollView {
                         spacing: Kirigami.Units.largeSpacing
                         Layout.bottomMargin: Kirigami.Units.smallSpacing
                         Kirigami.Icon {
-                            source: card.modelData[1]
+                            source: Icons.of(card.modelData[1])
+                            isMask: true
+                            color: Kirigami.Theme.textColor
                             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                         }

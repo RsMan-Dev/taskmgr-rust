@@ -19,13 +19,13 @@ QQC2.ApplicationWindow {
     readonly property var processes: monitor.processes !== "" ? JSON.parse(monitor.processes) : null
 
     readonly property var pages: [
-        { text: qsTr("Processes"), icon: "view-process-tree" },
-        { text: qsTr("Performance"), icon: "office-chart-area" },
-        { text: qsTr("Details"), icon: "view-list-details" },
-        { text: qsTr("Startup apps"), icon: "system-run" },
-        { text: qsTr("Services"), icon: "preferences-system-services" },
-        { text: qsTr("System"), icon: "computer" },
-        { text: qsTr("Settings"), icon: "configure" },
+        { text: qsTr("Processes"), icon: "nav-processes" },
+        { text: qsTr("Performance"), icon: "nav-performance" },
+        { text: qsTr("Details"), icon: "nav-details" },
+        { text: qsTr("Startup apps"), icon: "nav-startup" },
+        { text: qsTr("Services"), icon: "nav-services" },
+        { text: qsTr("System"), icon: "nav-system" },
+        { text: qsTr("Settings"), icon: "nav-settings" },
     ]
     property int currentPage: Prefs.startPage
     property string initialSelection: ""
@@ -58,7 +58,8 @@ QQC2.ApplicationWindow {
         required property int index
         Layout.fillWidth: true
         text: modelData.text
-        icon.name: modelData.icon
+        icon.source: Icons.of(modelData.icon)
+        icon.color: highlighted ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
         display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
         highlighted: window.currentPage === index
         onClicked: window.currentPage = index
@@ -85,7 +86,8 @@ QQC2.ApplicationWindow {
             }
 
             QQC2.ToolButton {
-                icon.name: "application-menu"
+                icon.source: Icons.of("menu")
+                icon.color: Kirigami.Theme.textColor
                 display: QQC2.AbstractButton.IconOnly
                 text: window.sidebarCollapsed ? qsTr("Expand menu") : qsTr("Collapse menu")
                 onClicked: {

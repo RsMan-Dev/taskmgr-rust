@@ -106,19 +106,22 @@ ColumnLayout {
 
         QQC2.Button {
             text: qsTr("Start")
-            icon.name: "media-playback-start"
+            icon.source: Icons.of("start")
+            icon.color: Kirigami.Theme.textColor
             enabled: !page.busy && page.selected !== null && page.selected.active !== "active"
             onClicked: page.act("start")
         }
         QQC2.Button {
             text: qsTr("Stop")
-            icon.name: "media-playback-stop"
+            icon.source: Icons.of("stop")
+            icon.color: Kirigami.Theme.textColor
             enabled: !page.busy && page.selected !== null && page.selected.active === "active"
             onClicked: page.act("stop")
         }
         QQC2.Button {
             text: qsTr("Restart")
-            icon.name: "view-refresh"
+            icon.source: Icons.of("refresh")
+            icon.color: Kirigami.Theme.textColor
             enabled: !page.busy && page.selected !== null
             onClicked: page.act("restart")
         }
@@ -128,7 +131,8 @@ ColumnLayout {
         QQC2.Button {
             readonly property bool enabledAtBoot: page.selected?.file_state === "enabled"
             text: enabledAtBoot ? qsTr("Disable at startup") : qsTr("Enable at startup")
-            icon.name: enabledAtBoot ? "list-remove" : "list-add"
+            icon.source: Icons.of(enabledAtBoot ? "disable" : "enable")
+            icon.color: Kirigami.Theme.textColor
             enabled: !page.busy && page.selected !== null && ["enabled", "disabled"].includes(page.selected.file_state)
             onClicked: page.act(enabledAtBoot ? "disable" : "enable")
         }

@@ -25,7 +25,8 @@ QQC2.ScrollView {
 
             QQC2.Button {
                 text: qsTr("Refresh")
-                icon.name: "view-refresh"
+                icon.source: Icons.of("refresh")
+                icon.color: Kirigami.Theme.textColor
                 display: QQC2.AbstractButton.IconOnly
                 onClicked: page.monitor.refreshAutostart()
                 QQC2.ToolTip.text: text
@@ -46,7 +47,7 @@ QQC2.ScrollView {
 
         Kirigami.PlaceholderMessage {
             visible: page.entries.length === 0
-            icon.name: "system-run"
+            icon.source: Icons.of("nav-startup")
             text: qsTr("No application starts at login")
             Layout.fillWidth: true
             Layout.topMargin: Kirigami.Units.gridUnit * 4
@@ -71,8 +72,8 @@ QQC2.ScrollView {
                     spacing: Kirigami.Units.largeSpacing
 
                     Kirigami.Icon {
-                        source: card.modelData.icon || "application-x-executable"
-                        fallback: "application-x-executable"
+                        source: card.modelData.icon || Icons.of("app")
+                        fallback: Icons.of("app")
                         Layout.preferredWidth: Kirigami.Units.iconSizes.medium
                         Layout.preferredHeight: Kirigami.Units.iconSizes.medium
                     }
