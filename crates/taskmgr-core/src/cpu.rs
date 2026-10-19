@@ -88,8 +88,40 @@ fn parse_line(line: &str) -> Option<Times> {
     })
 }
 
+/// ARM cores have no "model name": decode implementer and part numbers.
+fn arm_core_name(implementer: &str, part: &str) -> Option<String> {
+    let part = u32::from_str_radix(part.trim_start_matches("0x"), 16).ok()?;
+    let name = match (implementer, part) {
+        ("0x41", 0xd03) => "Cortex-A53",
+        ("0x41", 0xd04) => "Cortex-A35",
+        ("0x41", 0xd05) => "Cortex-A55",
+        ("0x41", 0xd07) => "Cortex-A57",
+        ("0x41", 0xd08) => "Cortex-A72",
+        ("0x41", 0xd09) => "Cortex-A73",
+        ("0x41", 0xd0a) => "Cortex-A75",
+        ("0x41", 0xd0b) => "Cortex-A76",
+        ("0x41", 0xd0c) => "Neoverse-N1",
+        ("0x41", 0xd0d) => "Cortex-A77",
+        ("0x41", 0xd40) => "Neoverse-V1",
+        ("0x41", 0xd41) => "Cortex-A78",
+        ("0x41", 0xd44) => "Cortex-X1",
+        ("0x41", 0xd46) => "Cortex-A510",
+        ("0x41", 0xd47) => "Cortex-A710",
+        ("0x41", 0xd48) => "Cortex-X2",
+        ("0x41", 0xd49) => "Neoverse-N2",
+        ("0x41", 0xd4f) => "Neoverse-V2",
+        ("0x61", _) => return Some("Apple".to_owned()),
+        ("0x51", _) => return Some("Qualcomm".to_owned()),
+        ("0x41", _) => return Some(format!("ARM core 0x{part:03x}")),
+        _ => return None,
+    };
+    Some(format!("ARM {name}"))
+}
+
 pub fn info(root: &Root) -> CpuInfo {
     let cpuinfo = root.read("/proc/cpuinfo").unwrap_or_default();
+    let mut implementer: Option<String> = None;
+    let mut part: Option<String> = None;
     let mut model = None;
     let mut logical = 0;
     let mut sockets = BTreeSet::new();
@@ -104,6 +136,8 @@ pub fn info(root: &Root) -> CpuInfo {
         match k {
             "processor" => logical += 1,
             "model name" if model.is_none() => model = Some(v.to_owned()),
+            "CPU implementer" => implementer = Some(v.to_owned()),
+            "CPU part" if part.is_none() => part = Some(v.to_owned()),
             "physical id" => {
                 physical = v.to_owned();
                 sockets.insert(v.to_owned());
@@ -127,7 +161,13 @@ pub fn info(root: &Root) -> CpuInfo {
         .find_map(|f| root.read_u64(format!("/sys/devices/system/cpu/cpu0/cpufreq/{f}")))
         .map(|khz| khz as f64 / 1000.0);
     CpuInfo {
-        model: model.unwrap_or_else(|| "CPU".to_owned()),
+        model: model
+            .or_else(|| arm_core_name(implementer.as_deref()?, part.as_deref()?))
+            .or_else(|| {
+                root.read_trimmed("/sys/firmware/devicetree/base/model")
+                    .map(|m| m.trim_end_matches('\0').to_owned())
+            })
+            .unwrap_or_else(|| "CPU".to_owned()),
         sockets: sockets.len().max(1),
         cores: if cores.is_empty() {
             logical
@@ -318,6 +358,15 @@ mod tests {
                 total: 100
             }
         );
+    }
+
+    #[test]
+    fn arm_names() {
+        assert_eq!(
+            arm_core_name("0x41", "0xd09").as_deref(),
+            Some("ARM Cortex-A73")
+        );
+        assert_eq!(arm_core_name("0x99", "0x1"), None);
     }
 
     #[test]

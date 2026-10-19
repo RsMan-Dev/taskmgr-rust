@@ -23,8 +23,22 @@
         plasma-integration
         kiconthemes
       ];
+
+      # Same app for distributions without Nix (AppImage through
+      # `nix bundle --bundler github:ralismark/nix-appimage .#portable`).
+      # Nix's libglvnd looks for drivers in /run/opengl-driver, which only
+      # NixOS has: elsewhere the bundled Mesa is used instead.
+      portableFor = pkgs: pkgs.writeShellScriptBin "taskmgr" ''
+        if [ ! -e /run/opengl-driver ]; then
+          export __EGL_VENDOR_LIBRARY_DIRS=${pkgs.mesa}/share/glvnd/egl_vendor.d
+          export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
+          export GBM_BACKENDS_PATH=${pkgs.mesa}/lib/gbm
+        fi
+        exec ${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/taskmgr "$@"
+      '';
     in {
       packages = forAll (pkgs: {
+        portable = portableFor pkgs;
         default = pkgs.rustPlatform.buildRustPackage {
           pname = "taskmgr";
           version = "0.1.0";
@@ -54,6 +68,7 @@
           };
         };
       });
+
 
       # Static core binaries (examples + network helper), no Qt: runs on any
       # Linux of the same architecture. Used to collect data on servers.

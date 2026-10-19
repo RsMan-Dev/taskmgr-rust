@@ -73,6 +73,10 @@ fn model(root: &Root, name: &str) -> String {
     root.udev_property(&udev, "ID_MODEL_ENC")
         .or_else(|| root.udev_property(&udev, "ID_MODEL"))
         .or_else(|| root.read_trimmed(format!("/sys/block/{name}/device/model")))
+        .or_else(|| {
+            let driver = root.link_name(format!("/sys/block/{name}/device/driver"))?;
+            (driver == "virtio_blk").then(|| "VirtIO".to_owned())
+        })
         .unwrap_or_else(|| name.to_owned())
 }
 
@@ -81,14 +85,22 @@ fn kind(root: &Root, name: &str) -> String {
         .canonical(format!("/sys/block/{name}"))
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let base = if name.starts_with("nvme") {
+    let driver = root
+        .link_name(format!("/sys/block/{name}/device/driver"))
+        .unwrap_or_default();
+    // Virtual disks report rotational=1 by default: name them as such.
+    let base = if name.starts_with("sr") {
+        "Optical"
+    } else if name.starts_with("nvme") {
         "SSD (NVMe)"
+    } else if matches!(driver.as_str(), "virtio_blk" | "vbd" | "xen_blkfront")
+        || name.starts_with("xvd")
+    {
+        "Virtual disk"
     } else if root.read_u64(format!("/sys/block/{name}/queue/rotational")) == Some(1) {
         "HDD"
     } else if name.starts_with("mmcblk") {
         "SD card"
-    } else if name.starts_with("sr") {
-        "Optical"
     } else {
         "SSD"
     };

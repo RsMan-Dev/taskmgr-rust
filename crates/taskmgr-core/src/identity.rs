@@ -8,6 +8,8 @@ use serde::Serialize;
 use crate::catalog::Catalog;
 use crate::util::Root;
 
+pub const TREE: &str = "tree";
+
 pub const ENV_KEYS: [&str; 6] = [
     "SteamAppId",
     "SteamGameId",
@@ -131,8 +133,27 @@ pub fn process_name(f: &ProcFacts) -> String {
         base
     };
     if is_interpreter(&base) {
+        // Options whose value is not the program (java -cp, --module-path).
+        const VALUED: [&str; 6] = [
+            "-cp",
+            "-classpath",
+            "--class-path",
+            "-p",
+            "--module-path",
+            "-jar",
+        ];
         let mut rest = args.iter().skip(1);
         while let Some(a) = rest.next() {
+            if *a == "-jar" {
+                if let Some(jar) = rest.next() {
+                    return format!("{} ({base})", basename(jar));
+                }
+                break;
+            }
+            if VALUED.contains(a) {
+                rest.next();
+                continue;
+            }
             if *a == "-c" || *a == "-m" {
                 if *a == "-m"
                     && let Some(m) = rest.next()
@@ -394,13 +415,18 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
                     via: vec![],
                 }
             }
+            // No cgroup hierarchy (OpenRC, containers): grouped later by
+            // process tree, see process::group_by_tree.
+            Location::Other(path) if path.is_empty() || path == "/" => Group {
+                key: TREE.to_owned(),
+                name: None,
+                icon: None,
+                kind: Kind::System,
+                via: vec![],
+            },
             Location::Other(path) => Group {
                 key: format!("other:{path}"),
-                name: Some(if path == "/" {
-                    "Kernel".to_owned()
-                } else {
-                    path
-                }),
+                name: Some(path),
                 icon: None,
                 kind: Kind::System,
                 via: vec![],
@@ -638,6 +664,14 @@ mod tests {
         );
         assert_eq!(n("postgres", &["postgres: checkpointer "]), "postgres");
         assert_eq!(n("bash", &["bash"]), "bash");
+        assert_eq!(
+            n("java", &["java", "-Xmx1g", "-cp", "*", "org.Main"]),
+            "org.Main (java)"
+        );
+        assert_eq!(
+            n("java", &["/usr/bin/java", "-jar", "/opt/app/server.jar"]),
+            "server.jar (java)"
+        );
         assert_eq!(appimage_name("/a/Foo-1.2-x86_64.AppImage"), "Foo-1.2");
     }
 }

@@ -301,6 +301,7 @@ impl ProcessSampler {
         self.identities
             .retain(|(pid, start, _), _| seen.get(pid).is_some_and(|p| p.start == *start));
         self.prev = seen;
+        group_by_tree(&mut entries);
         if let Some(windows) = windows {
             apply_windows(&mut entries, windows, &self.catalog);
         }
@@ -362,7 +363,17 @@ impl ProcessSampler {
             g.processes.sort_by_key(|p| p.pid);
             if g.key.starts_with("system:docker-") {
                 let pids: Vec<u32> = g.processes.iter().map(|p| p.pid).collect();
-                if let Some(main) = g.processes.iter().find(|p| !pids.contains(&p.ppid)) {
+                // Init shims (docker-init, tini) only start the real program.
+                const SHIMS: [&str; 4] = ["docker-init", "tini", "catatonit", "dumb-init"];
+                let root = g.processes.iter().find(|p| !pids.contains(&p.ppid));
+                let main = root.and_then(|r| {
+                    if SHIMS.contains(&r.name.as_str()) {
+                        g.processes.iter().find(|p| p.ppid == r.pid).or(Some(r))
+                    } else {
+                        Some(r)
+                    }
+                });
+                if let Some(main) = main {
                     g.name = format!("Docker container ({})", main.name);
                 }
             }
@@ -384,6 +395,32 @@ struct Entry {
     group: Group,
     row: ProcessRow,
     ppid: u32,
+}
+
+/// Without cgroups, a process belongs to its ancestor started by init: a
+/// daemon with its children, a login session, a terminal.
+fn group_by_tree(entries: &mut [Entry]) {
+    let by_pid: HashMap<u32, (u32, String, String)> = entries
+        .iter()
+        .map(|e| (e.row.pid, (e.ppid, e.row.name.clone(), e.row.user.clone())))
+        .collect();
+    for e in entries.iter_mut().filter(|e| e.group.key == identity::TREE) {
+        let mut top = e.row.pid;
+        while let Some((parent, ..)) = by_pid.get(&top) {
+            if *parent <= 1 || !by_pid.contains_key(parent) {
+                break;
+            }
+            top = *parent;
+        }
+        let (_, name, user) = by_pid.get(&top).cloned().unwrap_or_default();
+        e.group.key = format!("tree:{top}");
+        e.group.name = Some(name);
+        e.group.kind = if user == "root" || top == 1 {
+            Kind::System
+        } else {
+            Kind::Background
+        };
+    }
 }
 
 /// A window whose `.desktop` id names another application moves its process
@@ -655,6 +692,31 @@ mod tests {
                 desktop: desktop.into(),
             }],
         )
+    }
+
+    #[test]
+    fn tree_groups_without_cgroups() {
+        let mut entries = vec![
+            entry(1, 0, identity::TREE, &[]),
+            entry(100, 1, identity::TREE, &[]),
+            entry(101, 100, identity::TREE, &[]),
+            entry(102, 101, identity::TREE, &[]),
+            entry(200, 1, identity::TREE, &[]),
+        ];
+        for (e, name) in entries
+            .iter_mut()
+            .zip(["init", "sshd", "sshd", "ash", "chronyd"])
+        {
+            e.row.name = name.into();
+            e.row.user = "root".into();
+        }
+        group_by_tree(&mut entries);
+        let keys: Vec<&str> = entries.iter().map(|e| e.group.key.as_str()).collect();
+        assert_eq!(
+            keys,
+            ["tree:1", "tree:100", "tree:100", "tree:100", "tree:200"]
+        );
+        assert_eq!(entries[3].group.name.as_deref(), Some("sshd"));
     }
 
     #[test]

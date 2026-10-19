@@ -20,6 +20,14 @@ Pages:
 Never run it as root. CPU power needs read access to RAPL, see
 `docs/energy.md`.
 
+## Without Nix (AppImage)
+
+```sh
+nix bundle --bundler github:ralismark/nix-appimage .#portable
+```
+
+The `portable` package ships Mesa for systems without `/run/opengl-driver`.
+
 ## Install (Nix)
 
 ```sh
@@ -44,6 +52,7 @@ cargo run -p taskmgr-core --example snapshot   # raw measurements as JSON
 cargo run -p taskmgr-core --example processes  # processes grouped by application
 cargo run -p taskmgr-core --example windows    # window list from KWin
 nix build                                      # package with desktop file
+nix build .#probes.x86_64-linux.native         # static core binaries (data collection)
 ```
 
 Layout:

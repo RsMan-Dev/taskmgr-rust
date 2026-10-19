@@ -23,9 +23,12 @@ pub struct NetSnapshot {
     pub tx_history: History,
 }
 
+/// Model from udev's hardware database, else the kernel driver (systems
+/// without udev, such as Alpine).
 fn adapter_name(root: &Root, iface: &str) -> Option<String> {
     let idx = root.read_trimmed(format!("/sys/class/net/{iface}/ifindex"))?;
     root.udev_property(&format!("n{idx}"), "ID_MODEL_FROM_DATABASE")
+        .or_else(|| root.link_name(format!("/sys/class/net/{iface}/device/driver")))
 }
 
 fn addresses() -> HashMap<String, (Vec<String>, Vec<String>)> {
