@@ -204,6 +204,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn toggling_a_system_entry_writes_a_user_override() {
+        let base = std::env::temp_dir().join(format!("taskmgr-autostart-{}", std::process::id()));
+        let (system, user) = (base.join("xdg"), base.join("config"));
+        std::fs::create_dir_all(system.join("autostart")).unwrap();
+        std::fs::write(
+            system.join("autostart/demo.desktop"),
+            "[Desktop Entry]\nName=Demo\nExec=demo\n",
+        )
+        .unwrap();
+        // SAFETY: no other test reads these variables.
+        unsafe {
+            std::env::set_var("XDG_CONFIG_DIRS", &system);
+            std::env::set_var("XDG_CONFIG_HOME", &user);
+        }
+        let root = Root::system();
+        let find = || {
+            entries(&root)
+                .into_iter()
+                .find(|e| e.id == "demo.desktop")
+                .unwrap()
+        };
+        assert!(find().enabled);
+        set_enabled(&root, "demo.desktop", false).unwrap();
+        let off = find();
+        assert!(!off.enabled && off.system);
+        assert_eq!(off.name, "Demo");
+        set_enabled(&root, "demo.desktop", true).unwrap();
+        assert!(find().enabled);
+        assert!(set_enabled(&root, "../x.desktop", true).is_err());
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
     fn hidden_and_desktop_filters() {
         let kde = vec!["KDE".to_owned()];
         let e = entry(
