@@ -113,6 +113,17 @@ fn app_group(id: &str, catalog: &Catalog, via: &mut Vec<&'static str>) -> Group 
     }
 }
 
+/// A Steam game, named from its app manifest.
+pub fn steam_group(id: &str, catalog: &mut Catalog, root: &Root) -> Group {
+    Group {
+        key: format!("steam:{id}"),
+        name: catalog.steam_game(root, id),
+        icon: catalog.steam_icon(root, id),
+        kind: Kind::App,
+        via: vec![],
+    }
+}
+
 pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
     let name = process_name(f);
     let role = role(f, &name);
@@ -132,14 +143,7 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
     let launched = steam_id.is_none() && launch.is_some();
     let mut group = if let Some(id) = steam_id {
         via.push("Steam");
-        let name = catalog.steam_game(root, &id);
-        Group {
-            key: format!("steam:{id}"),
-            name,
-            icon: catalog.steam_icon(root, &id),
-            kind: Kind::App,
-            via: vec![],
-        }
+        steam_group(&id, catalog, root)
     } else if let Some(id) = launch {
         app_group(&id, catalog, &mut via)
     } else {

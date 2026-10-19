@@ -20,7 +20,19 @@ fn usable_shell(current: Option<&str>, shells: &str, login: Option<&str>) -> Opt
     }
 }
 
+/// A sandbox that sets no_new_privs (appimage-run, bwrap, some containers)
+/// makes setuid programs such as pkexec run without their privileges.
+fn no_new_privs(status: &str) -> bool {
+    status.lines().any(|l| {
+        l.strip_prefix("NoNewPrivs:")
+            .is_some_and(|v| v.trim() == "1")
+    })
+}
+
 pub(crate) fn pkexec() -> Result<Command, String> {
+    if no_new_privs(&std::fs::read_to_string("/proc/self/status").unwrap_or_default()) {
+        return Err("Administrator rights are blocked by the sandbox this app runs in (no_new_privs, as under appimage-run).".to_owned());
+    }
     let path = find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
         .ok_or("pkexec not found (polkit package).")?;
     let mut command = Command::new(path);
@@ -50,6 +62,12 @@ pub(crate) fn outcome(status: ExitStatus) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sees_a_sandbox_without_new_privileges() {
+        assert!(no_new_privs("Name:\tx\nNoNewPrivs:\t1\nSeccomp:\t0\n"));
+        assert!(!no_new_privs("NoNewPrivs:\t0\n"));
+    }
 
     #[test]
     fn replaces_a_shell_pkexec_would_reject() {

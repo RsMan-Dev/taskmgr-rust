@@ -34,7 +34,9 @@ chmod +x taskmgr-x86_64.AppImage
 ./taskmgr-x86_64.AppImage
 ```
 
-On NixOS: `nix run github:RsMan-Dev/taskmgr-rust`.
+On NixOS, use `nix run github:RsMan-Dev/taskmgr-rust` rather than
+`appimage-run`: its sandbox hides part of what other processes are and
+blocks administrator actions.
 
 From source, with Rust 1.88+, Qt 6.5+ and Kirigami 6:
 `cargo build --release`.

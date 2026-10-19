@@ -24,6 +24,7 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "chown not found."),
         QT_TRANSLATE_NOOP("core", "No RAPL counter on this machine."),
         QT_TRANSLATE_NOOP("core", "Authorization denied or cancelled."),
+        QT_TRANSLATE_NOOP("core", "Administrator rights are blocked by the sandbox this app runs in (no_new_privs, as under appimage-run)."),
         QT_TRANSLATE_NOOP("core", "Administrator rights could not be requested: no polkit agent, or pkexec refused to start."),
         QT_TRANSLATE_NOOP("core", "renice not found."),
         QT_TRANSLATE_NOOP("core", "Invalid unit name."),

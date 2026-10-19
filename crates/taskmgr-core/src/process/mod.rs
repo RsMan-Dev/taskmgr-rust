@@ -317,6 +317,8 @@ impl ProcessSampler {
         self.prev = seen;
         grouping::join_launchers(&mut entries);
         grouping::group_by_tree(&mut entries);
+        let catalog = &mut self.catalog;
+        grouping::apply_steam_launches(&mut entries, |id| identity::steam_group(id, catalog, root));
         if let Some(windows) = windows {
             grouping::apply_windows(&mut entries, windows, &self.catalog);
         }
