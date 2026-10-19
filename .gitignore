@@ -1,4 +1,7 @@
 /target
-/result
 /.direnv
 *.strace
+/result*
+# Internal notes stay out of the repository; published documents
+# get an exception here (!/docs/<file>).
+/docs/*
