@@ -32,10 +32,11 @@ QtObject {
             maximumLabel: clocks ? Format.ghz(cpuMaxMhz(c)) : "100 %",
             caption: view === "numa" ? qsTr("% utilization per NUMA node")
                 : clocks ? qsTr("Frequency per logical processor")
-                : qsTr("% utilization per logical processor")
+                : qsTr("% utilization per logical processor") + (Prefs.kernelTimes && view === "logical" ? "  (" + qsTr("darker: kernel time") + ")" : "")
                   + (c.core_types.length > 0 ? "  " + qsTr("(P: performance cores, E: efficiency cores in green)") : ""),
             accent: clocks ? colors.clock : colors.cpu,
             types: view === "numa" ? [] : c.core_types,
+            kernel: view === "logical" && Prefs.kernelTimes ? c.core_kernel_history : null,
             numa: view === "numa",
         }
     }
@@ -53,10 +54,11 @@ QtObject {
         summary: ResourceKit.summary(Format.percent(c.usage), Format.ghz(c.mhz), c.temperature),
         header: c.model,
         color: colors.cpu,
-        chartLabel: qsTr("% utilization"),
+        chartLabel: qsTr("% utilization") + (Prefs.kernelTimes ? "  (" + qsTr("darker: kernel time") + ")" : ""),
         maximum: 100,
         maximumLabel: "100 %",
-        series: [ResourceKit.series(c.history, colors.cpu)],
+        series: [ResourceKit.series(c.history, colors.cpu)].concat(Prefs.kernelTimes
+            ? [ResourceKit.series(c.kernel_history, Qt.darker(colors.cpu, 1.6))] : []),
         cpu: true,
         hasClocks: c.core_mhz_history.length > 0,
         hasNuma: c.numa.length > 1,
@@ -91,6 +93,7 @@ QtObject {
             [qsTr("Cores"), c.cores],
             [qsTr("Logical processors"), c.logical],
             [qsTr("Virtualization"), c.virtualization],
+            [qsTr("Virtual machine"), c.virtual_machine ? Tr.core(c.virtual_machine) : null],
         ].concat(c.caches.map(k => [qsTr("Cache %1").arg(k.name), Format.bytes(k.bytes)]))),
     }
     }
@@ -177,6 +180,10 @@ QtObject {
             [qsTr("Design capacity"), b.design_wh !== null ? qsTr("%1 Wh").arg(Format.num(b.design_wh, 1)) : null],
             [qsTr("Health"), b.full_wh !== null && b.design_wh ? Format.percent(b.full_wh / b.design_wh * 100) : null],
             [qsTr("Charge cycles"), b.cycles],
+            [qsTr("Charge limit"), b.charge_end !== null ? (b.charge_start !== null
+                ? qsTr("%1 to %2").arg(Format.percent(b.charge_start)).arg(Format.percent(b.charge_end))
+                : qsTr("up to %1").arg(Format.percent(b.charge_end))) : null],
+            [qsTr("Temperature"), b.temperature !== null ? Format.temperature(b.temperature) : null],
             [qsTr("Technology"), b.technology],
         ]),
     }

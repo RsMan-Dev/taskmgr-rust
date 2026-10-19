@@ -11,6 +11,7 @@ Settings {
     property int intervalMs: 1000
     property int startPage: 0
     property bool cpuPerCore: false
+    property bool kernelTimes: false
     property string theme: ""
     property bool miniPinned: false
     property string hiddenColumns: "threads,gpumem0,gpumem1,gpumem2,video"

@@ -29,6 +29,7 @@ pub mod smart;
 pub mod sysinfo;
 pub mod util;
 pub mod windows;
+pub mod wireless;
 
 use std::time::Instant;
 

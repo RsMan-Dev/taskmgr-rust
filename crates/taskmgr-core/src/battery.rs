@@ -25,6 +25,11 @@ pub struct BatterySnapshot {
     /// Until empty when discharging, until full when charging.
     pub seconds_left: Option<u64>,
     pub cycles: Option<u64>,
+    /// Charging starts below and stops at these levels, when the firmware
+    /// limits it to spare the battery.
+    pub charge_start: Option<u8>,
+    pub charge_end: Option<u8>,
+    pub temperature: Option<f64>,
     pub percent_history: History,
     pub watts_history: History,
 }
@@ -108,6 +113,13 @@ impl BatterySampler {
                 cycles: read(&name, "cycle_count")
                     .and_then(|c| c.parse().ok())
                     .filter(|c| *c > 0),
+                charge_start: read(&name, "charge_control_start_threshold")
+                    .and_then(|v| v.parse().ok())
+                    .filter(|v| *v > 0),
+                charge_end: read(&name, "charge_control_end_threshold")
+                    .and_then(|v| v.parse().ok())
+                    .filter(|v| *v < 100),
+                temperature: num(&name, "temp").map(|t| t / 10.0),
                 percent_history: ph.clone(),
                 watts_history: wh_hist.clone(),
                 name,

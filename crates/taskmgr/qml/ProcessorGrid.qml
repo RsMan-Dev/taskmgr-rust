@@ -40,7 +40,8 @@ ColumnLayout {
                 required property int index
                 readonly property string type: block.grid?.types?.[index] ?? ""
                 compact: true
-                series: [{ values: coreGrid.lines[index] ?? [], color: accent }]
+                series: [{ values: coreGrid.lines[index] ?? [], color: accent }].concat(block.grid?.kernel
+                    ? [{ values: block.grid.kernel[index] ?? [], color: Qt.darker(accent, 1.6) }] : [])
                 maximum: block.grid?.maximum ?? 100
                 accent: type === "E" ? block.colors.efficiency : block.grid?.accent ?? block.colors.cpu
                 Layout.fillWidth: true

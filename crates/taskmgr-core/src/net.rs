@@ -5,6 +5,10 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 use crate::util::{History, Root, rate};
+use crate::wireless::{self, Wireless};
+
+/// D-Bus round trips: the Wi-Fi details are refreshed every few samples.
+const WIRELESS_EVERY: u32 = 5;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct NetSnapshot {
@@ -15,6 +19,7 @@ pub struct NetSnapshot {
     pub mac: Option<String>,
     pub ipv4: Vec<String>,
     pub ipv6: Vec<String>,
+    pub wireless: Option<Wireless>,
     pub rx_bps: f64,
     pub tx_bps: f64,
     /// Bytes since the interface came up.
@@ -66,6 +71,7 @@ fn connected_adapters(root: &Root) -> Vec<String> {
 #[derive(Default)]
 struct NetState {
     prev: Option<(u64, u64)>,
+    wireless: Option<Wireless>,
     rx: History,
     tx: History,
 }
@@ -73,6 +79,7 @@ struct NetState {
 #[derive(Default)]
 pub struct NetSampler {
     state: HashMap<String, NetState>,
+    samples: u32,
 }
 
 impl NetSampler {
@@ -80,6 +87,8 @@ impl NetSampler {
         let names = connected_adapters(root);
         self.state.retain(|k, _| names.contains(k));
         let mut addrs = addresses();
+        let refresh = self.samples.is_multiple_of(WIRELESS_EVERY);
+        self.samples += 1;
         names
             .into_iter()
             .map(|name| {
@@ -102,7 +111,11 @@ impl NetSampler {
                 st.prev = Some(cur);
                 let (ipv4, ipv6) = addrs.remove(&name).unwrap_or_default();
                 let wireless = root.exists(format!("{base}/wireless"));
+                if wireless && (refresh || st.wireless.is_none()) {
+                    st.wireless = Some(wireless::read(root, &name));
+                }
                 NetSnapshot {
+                    wireless: st.wireless.clone(),
                     kind: if wireless { "Wi-Fi" } else { "Ethernet" }.to_owned(),
                     adapter: adapter_name(root, &name).unwrap_or_else(|| name.clone()),
                     link_mbps: root

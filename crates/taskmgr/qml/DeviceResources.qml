@@ -81,10 +81,12 @@ QtObject {
     }
     const rxTop = Format.niceMax(Math.max(...n.rx_history, 0), 128 * 1024)
     const txTop = Format.niceMax(Math.max(...n.tx_history, 0), 128 * 1024)
-    const load = n.link_mbps ? Math.max(n.rx_bps, n.tx_bps) * 8 / (n.link_mbps * 1e6) * 100 : null
+    const w = n.wireless
+    const linkMbps = n.link_mbps ?? (w?.bitrate_kbps ? w.bitrate_kbps / 1000 : null)
+    const load = linkMbps ? Math.max(n.rx_bps, n.tx_bps) * 8 / (linkMbps * 1e6) * 100 : null
     return {
         title: n.kind,
-        subtitle: n.name,
+        subtitle: w?.ssid ?? n.name,
         summary: ResourceKit.summary(load !== null ? Format.percent(load) : "", qsTr("R %1  S %2").arg(Format.bits(n.rx_bps)).arg(Format.bits(n.tx_bps))),
         header: n.adapter,
         color: colors.network,
@@ -108,7 +110,10 @@ QtObject {
             [qsTr("Adapter"), n.adapter],
             [qsTr("Interface"), n.name],
             [qsTr("Connection type"), n.kind],
-            [qsTr("Link speed"), n.link_mbps ? Format.link(n.link_mbps) : null],
+            [qsTr("Link speed"), linkMbps ? Format.link(linkMbps) : null],
+            [qsTr("Network name (SSID)"), w?.ssid],
+            [qsTr("Signal strength"), w?.signal_percent != null ? Format.percent(w.signal_percent) : null],
+            [qsTr("Frequency"), w?.frequency_mhz ? qsTr("%1 GHz").arg(Format.num(w.frequency_mhz / 1000, 2)) : null],
             [qsTr("IPv4 address"), n.ipv4.join("\n")],
             [qsTr("IPv6 address"), n.ipv6.join("\n")],
             [qsTr("MAC address"), n.mac],
@@ -159,6 +164,8 @@ QtObject {
             [qsTr("Driver"), g.driver],
             [qsTr("Driver version"), g.driver_version],
             [qsTr("Max clock"), g.core_max_mhz ? Format.mhz(g.core_max_mhz) : null],
+            [qsTr("Bus"), g.pcie_now ? (g.pcie_max && g.pcie_max !== g.pcie_now
+                ? qsTr("%1 (maximum %2)").arg(g.pcie_now).arg(g.pcie_max) : g.pcie_now) : null],
             [qsTr("PCI slot"), g.pci_slot],
         ]),
     }

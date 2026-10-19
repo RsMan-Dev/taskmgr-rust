@@ -44,6 +44,9 @@ pub struct GpuSnapshot {
     pub voltage_mv: Option<f64>,
     /// Fan speed in percent of its maximum (NVML).
     pub fan_percent: Option<f64>,
+    /// "PCIe 4.0 x16": the link drops to a lower speed when idle.
+    pub pcie_now: Option<String>,
+    pub pcie_max: Option<String>,
     pub history: History,
     pub memory_history: History,
     pub charts: Charts,
@@ -58,6 +61,29 @@ pub struct GpuProcess {
     pub memory: Option<u64>,
     pub encoder: Option<f64>,
     pub decoder: Option<f64>,
+}
+
+/// "PCIe 4.0 x16" from the kernel's "16.0 GT/s PCIe" and the lane count.
+fn pcie(speed: Option<String>, width: Option<String>) -> Option<String> {
+    let gts: f64 = speed?.split_whitespace().next()?.parse().ok()?;
+    let generation = match gts as u32 {
+        0..=2 => "1.0",
+        3..=5 => "2.0",
+        6..=8 => "3.0",
+        9..=16 => "4.0",
+        17..=32 => "5.0",
+        _ => "6.0",
+    };
+    Some(format!("PCIe {generation} x{}", width?))
+}
+
+/// Current and maximum link of a PCI device.
+pub fn pcie_link(root: &Root, slot: &str) -> (Option<String>, Option<String>) {
+    let read = |f: &str| root.read_trimmed(format!("/sys/bus/pci/devices/{slot}/{f}"));
+    (
+        pcie(read("current_link_speed"), read("current_link_width")),
+        pcie(read("max_link_speed"), read("max_link_width")),
+    )
 }
 
 /// AMD APU graphics sit behind the 00:08.1 bridge, Intel's at 00:02.0.
@@ -268,6 +294,7 @@ impl GpuSampler {
                     g.power_limit_watts = c.file(root, "power1_cap").map(|uw| uw as f64 / 1e6);
                 }
             }
+            (g.pcie_now, g.pcie_max) = pcie_link(root, &g.pci_slot);
             let st = &mut self.state[i].1;
             st.charts.push(
                 "memory",
@@ -375,6 +402,20 @@ fn fill_sysfs(root: &Root, dev: &str, g: &mut GpuSnapshot) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pcie_generations() {
+        let s = |v: &str| Some(v.to_owned());
+        assert_eq!(
+            pcie(s("16.0 GT/s PCIe"), s("16")).as_deref(),
+            Some("PCIe 4.0 x16")
+        );
+        assert_eq!(
+            pcie(s("2.5 GT/s PCIe"), s("1")).as_deref(),
+            Some("PCIe 1.0 x1")
+        );
+        assert_eq!(pcie(s("Unknown"), s("0")), None);
+    }
 
     #[test]
     fn dpm_tables_and_integration() {

@@ -6,21 +6,12 @@ use crate::disk::DiskSnapshot;
 use crate::gpu::GpuSnapshot;
 use crate::net::NetSnapshot;
 
-/// "16.0 GT/s PCIe x16 (maximum 16.0 GT/s PCIe x16)".
-fn pcie_link(root: &Root, slot: &str) -> Option<String> {
-    let dev = format!("/sys/bus/pci/devices/{slot}");
-    let read = |f: &str| root.read_trimmed(format!("{dev}/{f}"));
-    let now = format!(
-        "{} x{}",
-        read("current_link_speed")?,
-        read("current_link_width")?
-    );
-    let max = format!("{} x{}", read("max_link_speed")?, read("max_link_width")?);
-    Some(if now == max {
-        now
-    } else {
-        format!("{now} (maximum {max})")
-    })
+fn pcie_text(root: &Root, slot: &str) -> Option<String> {
+    let (now, max) = crate::gpu::pcie_link(root, slot);
+    match (now, max) {
+        (Some(n), Some(m)) if n != m => Some(format!("{n} (maximum {m})")),
+        (n, m) => n.or(m),
+    }
 }
 
 pub(super) fn graphics(root: &Root, gpus: &[GpuSnapshot]) -> Node {
@@ -52,7 +43,7 @@ pub(super) fn graphics(root: &Root, gpus: &[GpuSnapshot]) -> Node {
                 "Video BIOS",
                 root.read_trimmed(format!("/sys/bus/pci/devices/{}/vbios_version", g.pci_slot)),
             )
-            .text("PCI Express link", pcie_link(root, &g.pci_slot))
+            .text("PCI Express link", pcie_text(root, &g.pci_slot))
             .text("PCI slot", Some(g.pci_slot.clone()));
         n.child(c);
     }

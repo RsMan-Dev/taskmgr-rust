@@ -200,6 +200,14 @@ Item {
             checked: page.cpuView === "numa"
             onTriggered: page.cpuView = "numa"
         }
+        QQC2.MenuItem {
+            visible: !!page.selected?.cpu
+            height: visible ? implicitHeight : 0
+            text: qsTr("Show kernel times")
+            checkable: true
+            checked: Prefs.kernelTimes
+            onTriggered: Prefs.kernelTimes = !Prefs.kernelTimes
+        }
         QQC2.MenuSeparator {
             visible: !!page.selected?.cpu
             height: visible ? implicitHeight : 0

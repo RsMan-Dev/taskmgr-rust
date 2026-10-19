@@ -164,6 +164,7 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "Integrated"),
         QT_TRANSLATE_NOOP("core", "Chassis"),
         QT_TRANSLATE_NOOP("core", "Other"),
+        QT_TRANSLATE_NOOP("core", "Unknown hypervisor"),
     ]
 
     readonly property var patterns: [

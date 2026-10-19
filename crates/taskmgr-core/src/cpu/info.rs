@@ -1,9 +1,10 @@
+//! What the processor is: model, topology, caches, virtualization.
+
 use std::collections::BTreeSet;
 
 use serde::Serialize;
 
-use crate::hwmon::{self, Chip};
-use crate::util::{Charts, History, Root};
+use crate::util::Root;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CacheLevel {
@@ -19,6 +20,8 @@ pub struct CpuInfo {
     pub logical: usize,
     pub max_mhz: Option<f64>,
     pub virtualization: Option<String>,
+    /// Hypervisor this system runs in, when it is a virtual machine.
+    pub virtual_machine: Option<String>,
     pub caches: Vec<CacheLevel>,
     /// Per logical processor on hybrid Intel CPUs: "P" or "E"; empty otherwise.
     pub core_types: Vec<String>,
@@ -36,78 +39,6 @@ fn cpu_list(s: &str) -> Vec<usize> {
         })
         .flatten()
         .collect()
-}
-
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct CpuSnapshot {
-    #[serde(flatten)]
-    pub info: CpuInfo,
-    pub usage: f64,
-    pub history: History,
-    pub mhz: Option<f64>,
-    pub processes: usize,
-    pub threads: u64,
-    pub uptime_secs: u64,
-    pub temperature: Option<f64>,
-    pub voltage: Option<f64>,
-    /// "sensor" (hwmon driver) or "vid" (requested voltage read from MSRs).
-    pub voltage_source: Option<&'static str>,
-    /// Intel thermal throttling events since boot, when the kernel counts them.
-    pub throttle_count: Option<u64>,
-    pub core_history: Vec<History>,
-    /// MHz per logical processor; empty without cpufreq.
-    pub core_mhz_history: Vec<History>,
-    pub charts: Charts,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct Times {
-    busy: u64,
-    total: u64,
-}
-
-fn parse_stat(stat: &str) -> Option<Times> {
-    parse_line(stat.lines().find(|l| l.starts_with("cpu "))?)
-}
-
-/// Per logical processor, in `/proc/stat` order.
-fn parse_cores(stat: &str) -> Vec<Times> {
-    stat.lines()
-        .filter(|l| l.starts_with("cpu") && !l.starts_with("cpu "))
-        .filter_map(parse_line)
-        .collect()
-}
-
-fn busy_percent(prev: Times, cur: Times) -> Option<f64> {
-    (cur.total > prev.total).then(|| {
-        cur.busy.saturating_sub(prev.busy) as f64 / (cur.total - prev.total) as f64 * 100.0
-    })
-}
-
-/// Core voltage, only exposed by Super I/O and SMU drivers (nct6775, it87,
-/// zenpower), never by k10temp.
-fn core_voltage(root: &Root, chips: &[Chip]) -> Option<f64> {
-    chips.iter().find_map(|c| {
-        ["Vcore", "CPU Vcore", "SVI2_Core", "VDDCR_CPU"]
-            .iter()
-            .find_map(|l| c.input(root, "in", l))
-            .map(|mv| mv as f64 / 1000.0)
-    })
-}
-
-fn parse_line(line: &str) -> Option<Times> {
-    let v: Vec<u64> = line
-        .split_whitespace()
-        .skip(1)
-        .filter_map(|x| x.parse().ok())
-        .collect();
-    // user nice system idle iowait irq softirq steal (guest is already in user)
-    let total: u64 = v.iter().take(8).sum();
-    let idle = v.get(3).copied().unwrap_or(0) + v.get(4).copied().unwrap_or(0);
-    Some(Times {
-        busy: total - idle,
-        total,
-    })
 }
 
 /// ARM cores have no "model name": decode implementer and part numbers.
@@ -138,6 +69,33 @@ fn arm_core_name(implementer: &str, part: &str) -> Option<String> {
         _ => return None,
     };
     Some(format!("ARM {name}"))
+}
+
+/// Named from the firmware the hypervisor presents.
+fn hypervisor(root: &Root) -> String {
+    let dmi = |f: &str| {
+        root.read_trimmed(format!("/sys/class/dmi/id/{f}"))
+            .unwrap_or_default()
+    };
+    let text = format!("{} {}", dmi("sys_vendor"), dmi("product_name")).to_lowercase();
+    let known = [
+        ("qemu", "QEMU/KVM"),
+        ("kvm", "KVM"),
+        ("vmware", "VMware"),
+        ("virtualbox", "VirtualBox"),
+        ("innotek", "VirtualBox"),
+        ("microsoft", "Hyper-V"),
+        ("xen", "Xen"),
+        ("parallels", "Parallels"),
+        ("amazon", "Amazon EC2"),
+        ("google", "Google Compute Engine"),
+    ];
+    known
+        .iter()
+        .find(|(k, _)| text.contains(k))
+        .map(|(_, n)| (*n).to_owned())
+        .or_else(|| root.read_trimmed("/sys/hypervisor/type"))
+        .unwrap_or_else(|| "Unknown hypervisor".to_owned())
 }
 
 pub fn info(root: &Root) -> CpuInfo {
@@ -199,6 +157,10 @@ pub fn info(root: &Root) -> CpuInfo {
         logical,
         max_mhz,
         virtualization,
+        virtual_machine: flags
+            .split_whitespace()
+            .any(|f| f == "hypervisor")
+            .then(|| hypervisor(root)),
         caches: caches(root),
         core_types: {
             let p = root
@@ -297,150 +259,9 @@ fn parse_size(s: &str) -> u64 {
     num.parse::<u64>().unwrap_or(0) * mult
 }
 
-/// Current MHz of each logical processor (None when cpufreq is absent).
-fn core_mhz(root: &Root, logical: usize) -> Vec<Option<f64>> {
-    (0..logical)
-        .map(|i| {
-            root.read_u64(format!(
-                "/sys/devices/system/cpu/cpu{i}/cpufreq/scaling_cur_freq"
-            ))
-            .map(|khz| khz as f64 / 1000.0)
-        })
-        .collect()
-}
-
-/// Processes from the /proc listing, threads from /proc/loadavg
-/// ("running/total" scheduling entities), without opening a file per
-/// process.
-fn task_counts(root: &Root) -> (usize, u64) {
-    let processes = root
-        .list("/proc")
-        .iter()
-        .filter(|p| p.bytes().all(|b| b.is_ascii_digit()))
-        .count();
-    let threads = root
-        .read("/proc/loadavg")
-        .and_then(|s| s.split_whitespace().nth(3)?.split_once('/')?.1.parse().ok())
-        .unwrap_or(0);
-    (processes, threads)
-}
-
-pub struct CpuSampler {
-    info: CpuInfo,
-    prev: Option<Times>,
-    history: History,
-    prev_cores: Vec<Times>,
-    cores: Vec<History>,
-    core_mhz: Vec<History>,
-    charts: Charts,
-}
-
-impl CpuSampler {
-    pub fn new(root: &Root) -> Self {
-        Self {
-            info: info(root),
-            prev: None,
-            history: History::default(),
-            prev_cores: Vec::new(),
-            cores: Vec::new(),
-            core_mhz: Vec::new(),
-            charts: Charts::default(),
-        }
-    }
-
-    /// `fallback_voltage`: from the root helper when no driver exposes it.
-    pub fn sample(
-        &mut self,
-        root: &Root,
-        chips: &[Chip],
-        fallback_voltage: Option<f64>,
-    ) -> CpuSnapshot {
-        let stat = root.read("/proc/stat").unwrap_or_default();
-        let cur = parse_stat(&stat);
-        let usage = self
-            .prev
-            .zip(cur)
-            .and_then(|(p, c)| busy_percent(p, c))
-            .unwrap_or(0.0);
-        if self.prev.is_some() {
-            self.history.push(usage);
-        }
-        self.prev = cur;
-        let cores = parse_cores(&stat);
-        self.cores.resize_with(cores.len(), History::default);
-        for (i, c) in cores.iter().enumerate() {
-            if let Some(u) = self.prev_cores.get(i).and_then(|p| busy_percent(*p, *c)) {
-                self.cores[i].push(u);
-            }
-        }
-        self.prev_cores = cores;
-        let per_core = core_mhz(root, self.info.logical);
-        let known: Vec<f64> = per_core.iter().flatten().copied().collect();
-        let mhz = (!known.is_empty()).then(|| known.iter().sum::<f64>() / known.len() as f64);
-        if known.is_empty() {
-            self.core_mhz.clear();
-        } else {
-            self.core_mhz.resize_with(per_core.len(), History::default);
-            for (h, v) in self.core_mhz.iter_mut().zip(&per_core) {
-                h.push(v.unwrap_or(0.0));
-            }
-        }
-        let temperature = hwmon::cpu_temperature(root, chips);
-        let (voltage, voltage_source) = match core_voltage(root, chips) {
-            Some(v) => (Some(v), Some("sensor")),
-            None => (fallback_voltage, fallback_voltage.map(|_| "vid")),
-        };
-        self.charts.push("temperature", temperature);
-        self.charts.push("clock", mhz);
-        self.charts.push("voltage", voltage);
-        let (processes, threads) = task_counts(root);
-        let uptime_secs = root
-            .read("/proc/uptime")
-            .and_then(|s| s.split_whitespace().next()?.parse::<f64>().ok())
-            .unwrap_or(0.0) as u64;
-        CpuSnapshot {
-            info: self.info.clone(),
-            usage,
-            history: self.history.clone(),
-            mhz,
-            processes,
-            threads,
-            uptime_secs,
-            temperature,
-            voltage,
-            voltage_source,
-            throttle_count: {
-                let counts: Vec<u64> = (0..self.info.logical)
-                    .filter_map(|i| {
-                        root.read_u64(format!(
-                            "/sys/devices/system/cpu/cpu{i}/thermal_throttle/core_throttle_count"
-                        ))
-                    })
-                    .collect();
-                (!counts.is_empty()).then(|| counts.iter().sum())
-            },
-            core_history: self.cores.clone(),
-            core_mhz_history: self.core_mhz.clone(),
-            charts: self.charts.clone(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn stat_excludes_idle_and_iowait() {
-        let t = parse_stat("cpu  10 0 5 80 5 0 0 0 0 0\ncpu0 1 2 3\n").unwrap();
-        assert_eq!(
-            t,
-            Times {
-                busy: 15,
-                total: 100
-            }
-        );
-    }
 
     #[test]
     fn arm_names() {
