@@ -14,6 +14,9 @@ ColumnLayout {
     property color accent: Kirigami.Theme.highlightColor
     // Shown instead of the graph when the metric cannot be read.
     property string unavailable: ""
+    property string note: ""
+    property string actionText: ""
+    signal actionTriggered()
 
     spacing: Kirigami.Units.smallSpacing / 2
 
@@ -61,5 +64,21 @@ ColumnLayout {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
+    }
+
+    QQC2.Label {
+        visible: mini.note !== ""
+        text: mini.note
+        wrapMode: Text.Wrap
+        opacity: 0.6
+        font: Kirigami.Theme.smallFont
+        Layout.fillWidth: true
+    }
+
+    QQC2.Button {
+        visible: mini.actionText !== ""
+        text: mini.actionText
+        icon.source: Icons.of("admin", Kirigami.Theme.textColor)
+        onClicked: mini.actionTriggered()
     }
 }

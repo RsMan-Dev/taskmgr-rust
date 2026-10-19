@@ -50,6 +50,8 @@ pub struct CpuSnapshot {
     pub uptime_secs: u64,
     pub temperature: Option<f64>,
     pub voltage: Option<f64>,
+    /// "sensor" (hwmon driver) or "vid" (requested voltage read from MSRs).
+    pub voltage_source: Option<&'static str>,
     /// Intel thermal throttling events since boot, when the kernel counts them.
     pub throttle_count: Option<u64>,
     pub core_history: Vec<History>,
@@ -348,7 +350,13 @@ impl CpuSampler {
         }
     }
 
-    pub fn sample(&mut self, root: &Root, chips: &[Chip]) -> CpuSnapshot {
+    /// `fallback_voltage`: from the root helper when no driver exposes it.
+    pub fn sample(
+        &mut self,
+        root: &Root,
+        chips: &[Chip],
+        fallback_voltage: Option<f64>,
+    ) -> CpuSnapshot {
         let stat = root.read("/proc/stat").unwrap_or_default();
         let cur = parse_stat(&stat);
         let usage = self
@@ -370,7 +378,10 @@ impl CpuSampler {
         self.prev_cores = cores;
         let mhz = average_mhz(root, self.info.logical);
         let temperature = hwmon::cpu_temperature(root, chips);
-        let voltage = core_voltage(root, chips);
+        let (voltage, voltage_source) = match core_voltage(root, chips) {
+            Some(v) => (Some(v), Some("sensor")),
+            None => (fallback_voltage, fallback_voltage.map(|_| "vid")),
+        };
         self.charts.push("temperature", temperature);
         self.charts.push("clock", mhz);
         self.charts.push("voltage", voltage);
@@ -389,6 +400,7 @@ impl CpuSampler {
             uptime_secs,
             temperature,
             voltage,
+            voltage_source,
             throttle_count: {
                 let counts: Vec<u64> = (0..self.info.logical)
                     .filter_map(|i| {

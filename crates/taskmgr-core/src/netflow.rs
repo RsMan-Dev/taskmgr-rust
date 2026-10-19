@@ -1,6 +1,6 @@
 //! Per-process network traffic. Packet headers are read from an AF_PACKET
 //! socket (root only), attributed to a local port, then to the process
-//! owning a socket on that port. Used by the `taskmgr-nethelper` binary,
+//! owning a socket on that port. Used by the `taskmgr-helper` binary,
 //! which the interface starts through pkexec.
 
 use std::collections::HashMap;
@@ -126,16 +126,30 @@ impl Counters {
 
 pub type Rates = HashMap<u32, (f64, f64)>;
 
+/// Latest line printed by the root helper.
+#[derive(Clone, Debug, Default)]
+pub struct HelperData {
+    pub net: Rates,
+    /// Per logical processor, from MSRs (see `msr`).
+    pub vcore: Option<Vec<f64>>,
+}
+
+#[derive(serde::Deserialize)]
+struct HelperLine {
+    net: HashMap<String, (f64, f64)>,
+    vcore: Option<Vec<f64>>,
+}
+
 /// The helper sits next to the interface binary, or on the PATH.
 pub fn helper_path() -> Option<String> {
     let beside = std::env::current_exe()
         .ok()?
         .parent()?
-        .join("taskmgr-nethelper");
+        .join("taskmgr-helper");
     if beside.is_file() {
         return Some(beside.to_string_lossy().into_owned());
     }
-    crate::energy::find_program("taskmgr-nethelper", &[])
+    crate::energy::find_program("taskmgr-helper", &[])
 }
 
 /// Starts the helper through pkexec and stores each line it prints in
@@ -143,11 +157,11 @@ pub fn helper_path() -> Option<String> {
 /// helper stops. The helper's stdin stays open for as long as this runs:
 /// when the interface exits, the pipe closes and the helper quits.
 pub fn run_helper(
-    latest: &std::sync::Mutex<Option<Rates>>,
+    latest: &std::sync::Mutex<Option<HelperData>>,
     mut on_start: impl FnMut(),
 ) -> Result<(), String> {
     use std::io::BufRead;
-    let helper = helper_path().ok_or("taskmgr-nethelper not found.")?;
+    let helper = helper_path().ok_or("taskmgr-helper not found.")?;
     let pkexec =
         crate::energy::find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
             .ok_or("pkexec not found (polkit package).")?;
@@ -163,15 +177,19 @@ pub fn run_helper(
     let mut started = false;
     for line in std::io::BufReader::new(stdout).lines() {
         let Ok(line) = line else { break };
-        let Ok(map) = serde_json::from_str::<HashMap<String, (f64, f64)>>(&line) else {
+        let Ok(parsed) = serde_json::from_str::<HelperLine>(&line) else {
             continue;
         };
-        let rates: Rates = map
+        let net: Rates = parsed
+            .net
             .into_iter()
             .filter_map(|(k, v)| Some((k.parse().ok()?, v)))
             .collect();
         if let Ok(mut l) = latest.lock() {
-            *l = Some(rates);
+            *l = Some(HelperData {
+                net,
+                vcore: parsed.vcore,
+            });
         }
         if !started {
             started = true;

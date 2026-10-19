@@ -1,6 +1,6 @@
 //! Root helper started by the interface through pkexec. Prints one JSON line
-//! per second, `{"<pid>": [received B/s, sent B/s], ...}`, and exits when its
-//! standard input closes (the interface quit).
+//! per second, `{"net": {"<pid>": [received B/s, sent B/s]}, "vcore": [V]}`,
+//! and exits when its standard input closes (the interface quit).
 
 use std::io::{Read, Write};
 use std::time::{Duration, Instant};
@@ -18,7 +18,7 @@ fn main() {
         )
     };
     if fd < 0 {
-        eprintln!("taskmgr-nethelper: {}", std::io::Error::last_os_error());
+        eprintln!("taskmgr-helper: {}", std::io::Error::last_os_error());
         std::process::exit(1);
     }
     let timeout = libc::timeval {
@@ -42,6 +42,7 @@ fn main() {
     });
 
     let root = Root::system();
+    taskmgr_core::msr::ensure_module(&root);
     let loopback = std::fs::read_to_string("/sys/class/net/lo/ifindex")
         .ok()
         .and_then(|s| s.trim().parse::<i32>().ok());
@@ -75,7 +76,7 @@ fn main() {
         if elapsed >= Duration::from_secs(1) {
             last = Instant::now();
             let secs = elapsed.as_secs_f64();
-            let line: serde_json::Map<String, serde_json::Value> = counters
+            let net: serde_json::Map<String, serde_json::Value> = counters
                 .drain_per_pid(&root)
                 .into_iter()
                 .map(|(pid, (rx, tx))| {
@@ -85,11 +86,10 @@ fn main() {
                     )
                 })
                 .collect();
+            let line =
+                serde_json::json!({ "net": net, "vcore": taskmgr_core::msr::core_voltages(&root) });
             let mut out = std::io::stdout().lock();
-            if writeln!(out, "{}", serde_json::Value::Object(line))
-                .and_then(|_| out.flush())
-                .is_err()
-            {
+            if writeln!(out, "{line}").and_then(|_| out.flush()).is_err() {
                 std::process::exit(0);
             }
         }

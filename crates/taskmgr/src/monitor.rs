@@ -108,7 +108,7 @@ pub struct SystemMonitorRust {
     action_result: QString,
     network_access: QString,
     started: bool,
-    net: Arc<std::sync::Mutex<Option<taskmgr_core::netflow::Rates>>>,
+    net: Arc<std::sync::Mutex<Option<taskmgr_core::netflow::HelperData>>>,
     interval_ms: Arc<AtomicU64>,
     processes_visible: Arc<AtomicBool>,
 }
@@ -163,13 +163,19 @@ impl qobject::SystemMonitor {
             let mut last = Instant::now();
             loop {
                 let started = Instant::now();
+                let helper = net.lock().ok().and_then(|n| n.clone());
+                sampler.fallback_voltage = helper
+                    .as_ref()
+                    .and_then(|h| h.vcore.as_ref())
+                    .filter(|v| !v.is_empty())
+                    .map(|v| v.iter().sum::<f64>() / v.len() as f64);
                 let snapshot = sampler.sample();
                 let json = serde_json::to_string(&snapshot).unwrap_or_default();
                 // The process list is the costly part: skipped while no
                 // page shows it.
                 let procs = processes_visible.load(Ordering::Relaxed).then(|| {
                     let windows = watcher.as_ref().and_then(|w| w.windows());
-                    let rates = net.lock().ok().and_then(|n| n.clone());
+                    let rates = helper.map(|h| h.net);
                     let groups = processes.sample(
                         &root,
                         started.duration_since(last).as_secs_f64(),

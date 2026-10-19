@@ -10,6 +10,7 @@ pub mod gpu;
 pub mod hwmon;
 pub mod identity;
 pub mod memory;
+pub mod msr;
 pub mod net;
 pub mod netflow;
 pub mod process;
@@ -48,6 +49,8 @@ pub struct Sampler {
     gpus: gpu::GpuSampler,
     sensors: sensors::SensorSampler,
     energy: energy::EnergySampler,
+    /// Core voltage from the root helper, used when no driver exposes one.
+    pub fallback_voltage: Option<f64>,
 }
 
 impl Sampler {
@@ -60,6 +63,7 @@ impl Sampler {
             gpus: gpu::GpuSampler::new(),
             sensors: Default::default(),
             energy: Default::default(),
+            fallback_voltage: None,
             last: None,
             root,
         }
@@ -76,7 +80,7 @@ impl Sampler {
         let disks = self.disks.sample(root, &chips, secs);
         let gpus = self.gpus.sample(root, &chips);
         Snapshot {
-            cpu: self.cpu.sample(root, &chips),
+            cpu: self.cpu.sample(root, &chips, self.fallback_voltage),
             memory: self.memory.sample(root),
             networks: self.networks.sample(root, secs),
             sensors: self.sensors.sample(root, &chips, &disks, &gpus),

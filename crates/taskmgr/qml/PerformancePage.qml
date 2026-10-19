@@ -105,8 +105,14 @@ Item {
                     mini(qsTr("Temperature"), Format.temperature(c.temperature), ch.temperature, 100, colors.temperature,
                          c.temperature === null ? qsTr("No CPU temperature sensor") : ""),
                     mini(qsTr("Average clock"), Format.mhz(c.mhz), ch.clock, c.max_mhz ?? 1, colors.clock),
-                    mini(qsTr("Voltage"), c.voltage !== null ? Format.num(c.voltage, 3) + " V" : "", ch.voltage, 1.5, colors.voltage,
-                         c.voltage === null ? qsTr("Not exposed: no motherboard sensor driver (nct6775, it87, zenpower)") : ""),
+                    Object.assign(mini(c.voltage_source === "vid" ? qsTr("Voltage (requested)") : qsTr("Voltage"),
+                         c.voltage !== null ? (c.voltage_source === "vid" ? "\u2248 " : "") + Format.num(c.voltage, 3) + " V" : "",
+                         ch.voltage, 1.5, colors.voltage,
+                         c.voltage === null ? qsTr("No driver exposes it.") : ""), {
+                        note: c.voltage_source === "vid" ? qsTr("Approximate. More precise with %1 installed.").arg(
+                            c.model.includes("AMD") ? "zenpower, it87 " + qsTr("or") + " nct6775" : "nct6775 " + qsTr("or") + " it87") : "",
+                        actionText: c.voltage === null && page.monitor.networkAccess !== "active" ? qsTr("Estimate (root)…") : "",
+                    }),
                 ],
                 stats: [
                     [qsTr("Utilization"), Format.percent(c.usage)],
@@ -563,6 +569,9 @@ Item {
                                 model: detail.r?.charts ?? []
                                 MiniChart {
                                     required property var modelData
+                                    note: modelData.note ?? ""
+                                    actionText: modelData.actionText ?? ""
+                                    onActionTriggered: page.monitor.enableNetworkMonitor()
                                     label: modelData.label
                                     value: modelData.value
                                     values: modelData.values

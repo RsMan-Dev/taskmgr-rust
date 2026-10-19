@@ -26,7 +26,7 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "Authorization denied or cancelled."),
         QT_TRANSLATE_NOOP("core", "renice not found."),
         QT_TRANSLATE_NOOP("core", "Invalid unit name."),
-        QT_TRANSLATE_NOOP("core", "taskmgr-nethelper not found."),
+        QT_TRANSLATE_NOOP("core", "taskmgr-helper not found."),
     ]
 
     readonly property var patterns: [
