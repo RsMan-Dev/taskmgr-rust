@@ -3,9 +3,7 @@ pragma Singleton
 import QtCore
 import QtQuick
 
-// Settings shared by every page, saved across runs. `language` and `theme`
-// are also read by app.cpp before the interface loads. ("general" would
-// clash with the INI format's reserved [General] section.)
+// Saved settings; app.cpp reads language and theme ("general" is reserved in INI).
 Settings {
     category: "prefs"
 
@@ -13,7 +11,6 @@ Settings {
     property int intervalMs: 1000
     property int startPage: 0
     property bool cpuPerCore: false
-    // "", "light" or "dark"; read by app.cpp at start.
     property string theme: ""
     property bool miniPinned: false
     property string hiddenColumns: "threads,gpumem0,gpumem1,gpumem2"
