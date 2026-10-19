@@ -20,22 +20,24 @@ shows up as the game, not as `wine64-preloader` and `pressure-vessel`.
 
 ## Install
 
+> [!WARNING]
+> taskmgr-rust is very young and has been tested on a handful of systems
+> only. If something is missing, wrong or crashes on yours, please
+> [open an issue](https://github.com/RsMan-Dev/taskmgr-rust/issues) with
+> your distribution, desktop and what you saw.
+
+Download `taskmgr-x86_64.AppImage` from the
+[releases](https://github.com/RsMan-Dev/taskmgr-rust/releases), then:
+
 ```sh
-nix run github:RsMan-Dev/taskmgr-rust
+chmod +x taskmgr-x86_64.AppImage
+./taskmgr-x86_64.AppImage
 ```
 
-Or build the AppImage (any x86_64 distribution since about 2018):
-
-```sh
-nix build github:RsMan-Dev/taskmgr-rust#appimage
-```
+On NixOS: `nix run github:RsMan-Dev/taskmgr-rust`.
 
 From source, with Rust 1.88+, Qt 6.5+ and Kirigami 6:
-
-```sh
-cargo build --release
-./target/release/taskmgr
-```
+`cargo build --release`.
 
 ## Permissions
 
