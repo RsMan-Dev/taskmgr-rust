@@ -25,6 +25,10 @@ Item {
     })
 
     property string selectedKey: "cpu"
+    // On a phone-sized window the list and the details take turns.
+    readonly property bool compact: width < Kirigami.Units.gridUnit * 30
+    property bool detailShown: false
+    readonly property real detailMinimum: compact ? 0 : Kirigami.Units.gridUnit * 22
     // Entries hidden from the list; all are shown while rearranging.
     readonly property var hidden: Prefs.hiddenResources.split(",").filter(k => k !== "")
     property bool showHidden: false
@@ -115,7 +119,17 @@ Item {
         spacing: 0
 
         PageHeader {
-            title: qsTr("Performance")
+            title: page.compact && page.detailShown ? page.selected?.title ?? "" : qsTr("Performance")
+
+            QQC2.ToolButton {
+                visible: page.compact && page.detailShown
+                icon.source: Icons.of("back", Kirigami.Theme.textColor)
+                text: qsTr("Back")
+                display: QQC2.AbstractButton.IconOnly
+                onClicked: page.detailShown = false
+                QQC2.ToolTip.text: text
+                QQC2.ToolTip.visible: hovered
+            }
         }
 
         RowLayout {
@@ -124,8 +138,10 @@ Item {
             spacing: 0
 
             ThinScrollView {
-                Layout.preferredWidth: Math.min(Kirigami.Units.gridUnit * 16, Math.max(Kirigami.Units.gridUnit * 11, page.width * 0.32))
-                Layout.fillWidth: false
+                visible: !page.compact || !page.detailShown
+                Layout.preferredWidth: page.compact ? page.width
+                    : Math.min(Kirigami.Units.gridUnit * 16, Math.max(Kirigami.Units.gridUnit * 11, page.width * 0.32))
+                Layout.fillWidth: page.compact
                 Layout.fillHeight: true
                 QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
 
@@ -166,6 +182,7 @@ Item {
                         }
                         onClicked: {
                             page.selectedKey = modelData
+                            page.detailShown = true
                             ListView.view.forceActiveFocus()
                         }
                     }
@@ -173,16 +190,21 @@ Item {
             }
 
             Kirigami.Separator {
+                visible: !page.compact
                 Layout.fillHeight: true
             }
 
             ThinScrollView {
                 id: detailScroll
+                visible: !page.compact || page.detailShown
+                // A constant implicit width: the layout must not size the
+                // view from the content width it derives from that size.
+                implicitWidth: Kirigami.Units.gridUnit * 10
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 // Scrolls sideways instead of clipping once the content
                 // reaches its minimum width.
-                contentWidth: Math.max(availableWidth, Kirigami.Units.gridUnit * 22)
+                contentWidth: Math.max(availableWidth, page.detailMinimum)
 
                 ResourceDetail {
                     r: page.selected

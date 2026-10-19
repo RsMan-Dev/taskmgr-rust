@@ -42,6 +42,7 @@ QtObject {
         "open-folder": "folder_open",
         "hide": "eye_off",
         "expand": "chevron_right",
+        "back": "arrow_left",
         "collapse": "chevron_down",
         "sort-up": "arrow_sort_up",
         "sort-down": "arrow_sort_down",

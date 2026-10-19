@@ -58,6 +58,10 @@ ColumnLayout {
                     acceptedButtons: Qt.RightButton
                     onTapped: block.menuRequested()
                 }
+                TapHandler {
+                    acceptedDevices: PointerDevice.TouchScreen
+                    onLongPressed: block.menuRequested()
+                }
             }
         }
     }

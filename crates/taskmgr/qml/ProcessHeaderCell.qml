@@ -28,6 +28,10 @@ QQC2.ItemDelegate {
         acceptedButtons: Qt.RightButton
         onTapped: cell.columnsMenuRequested()
     }
+    TapHandler {
+        acceptedDevices: PointerDevice.TouchScreen
+        onLongPressed: cell.columnsMenuRequested()
+    }
     background: Rectangle {
         color: cell.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, 0.08) : "transparent"
     }

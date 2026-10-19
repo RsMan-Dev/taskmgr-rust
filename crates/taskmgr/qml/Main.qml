@@ -9,8 +9,8 @@ QQC2.ApplicationWindow {
 
     width: Kirigami.Units.gridUnit * 56
     height: Kirigami.Units.gridUnit * 38
-    minimumWidth: Kirigami.Units.gridUnit * (mini ? 14 : 36)
-    minimumHeight: Kirigami.Units.gridUnit * (mini ? 12 : 24)
+    minimumWidth: Kirigami.Units.gridUnit * (mini ? 14 : 20)
+    minimumHeight: Kirigami.Units.gridUnit * (mini ? 12 : 22)
     visible: true
     title: qsTr("Task Manager")
 

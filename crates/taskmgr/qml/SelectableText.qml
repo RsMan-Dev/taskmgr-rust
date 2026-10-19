@@ -27,6 +27,10 @@ TextEdit {
         acceptedButtons: Qt.RightButton
         onTapped: menu.popup()
     }
+    TapHandler {
+        acceptedDevices: PointerDevice.TouchScreen
+        onLongPressed: menu.popup()
+    }
 
     QQC2.Menu {
         id: menu

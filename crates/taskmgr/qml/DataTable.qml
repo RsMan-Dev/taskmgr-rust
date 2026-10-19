@@ -316,6 +316,13 @@ ColumnLayout {
                     table.contextMenuRequested(rowItem.row, rowItem, point.position)
                 }
             }
+            TapHandler {
+                acceptedDevices: PointerDevice.TouchScreen
+                onLongPressed: {
+                    table.selectedKey = rowItem.key
+                    table.contextMenuRequested(rowItem.row, rowItem, point.position)
+                }
+            }
 
             contentItem: Row {
                 Repeater {

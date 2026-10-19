@@ -2156,67 +2156,72 @@
 <context>
     <name>PerformancePage</name>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="264"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="286"/>
         <source>Logical processors</source>
         <translation>Processeurs logiques</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="118"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="122"/>
         <source>Performance</source>
         <translation>Performances</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="208"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="127"/>
+        <source>Back</source>
+        <translation>Retour</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="230"/>
         <source>Show in the list</source>
         <translation>Afficher dans la liste</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="208"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="230"/>
         <source>Hide from the list</source>
         <translation>Masquer de la liste</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="214"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="236"/>
         <source>Move up</source>
         <translation>Monter</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="219"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="241"/>
         <source>Move down</source>
         <translation>Descendre</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="225"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="247"/>
         <source>Show hidden entries</source>
         <translation>Afficher les entrées masquées</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="232"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="254"/>
         <source>Reset the list</source>
         <translation>Réinitialiser la liste</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="256"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="278"/>
         <source>Overall utilization</source>
         <translation>Utilisation globale</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="272"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="294"/>
         <source>Frequency per processor</source>
         <translation>Fréquence par processeur</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="280"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="302"/>
         <source>NUMA nodes</source>
         <translation>Nœuds NUMA</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="288"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="310"/>
         <source>Show kernel times</source>
         <translation>Afficher les temps noyau</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="298"/>
+        <location filename="../crates/taskmgr/qml/PerformancePage.qml" line="320"/>
         <source>Copy details</source>
         <translation>Copier les détails</translation>
     </message>
@@ -2358,22 +2363,22 @@
 <context>
     <name>ProcessRow</name>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="62"/>
+        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="66"/>
         <source>Collapse</source>
         <translation>Réduire</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="62"/>
+        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="66"/>
         <source>Expand</source>
         <translation>Développer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="110"/>
+        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="114"/>
         <source>wrapper</source>
         <translation>enveloppe</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="115"/>
+        <location filename="../crates/taskmgr/qml/ProcessRow.qml" line="119"/>
         <source>PID %1</source>
         <translation>PID %1</translation>
     </message>
@@ -2381,87 +2386,87 @@
 <context>
     <name>ProcessesPage</name>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="37"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="39"/>
         <source>Apps</source>
         <translation>Applications</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="38"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="40"/>
         <source>Background processes</source>
         <translation>Processus en arrière-plan</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="39"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="41"/>
         <source>System processes</source>
         <translation>Processus système</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="125"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="127"/>
         <source>Access denied: this process belongs to another user or to the system.</source>
         <translation>Accès refusé : ce processus appartient à un autre utilisateur ou au système.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="149"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="151"/>
         <source>Processes</source>
         <translation>Processus</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="153"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="155"/>
         <source>Search a name or PID</source>
         <translation>Rechercher un nom ou un PID</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="161"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="163"/>
         <source>End task</source>
         <translation>Fin de tâche</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="165"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="167"/>
         <source>Asks the process to quit (SIGTERM)</source>
         <translation>Demande au processus de se terminer (SIGTERM)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="171"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="173"/>
         <source>Kill</source>
         <translation>Tuer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="175"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="177"/>
         <source>Stops the process at once, without giving it time to save (SIGKILL)</source>
         <translation>Arrête le processus immédiatement, sans lui laisser le temps de sauvegarder (SIGKILL)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="186"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="188"/>
         <source>Waiting for the administrator password…</source>
         <translation>En attente du mot de passe administrateur…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="188"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="190"/>
         <source>The Network column measures each process&apos;s traffic and needs administrator rights.</source>
         <translation>La colonne Réseau mesure le trafic de chaque processus et demande les droits administrateur.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="191"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="193"/>
         <source>Enable…</source>
         <translation>Activer…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="197"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="199"/>
         <source>Hide the column</source>
         <translation>Masquer la colonne</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="233"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="235"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="343"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="345"/>
         <source>No matching process</source>
         <translation>Aucun processus ne correspond</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="376"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="378"/>
         <source>CPU as % of one core (like top)</source>
         <translation>Processeur en % d&apos;un cœur (comme top)</translation>
     </message>
@@ -2495,12 +2500,12 @@
 <context>
     <name>SelectableText</name>
     <message>
-        <location filename="../crates/taskmgr/qml/SelectableText.qml" line="34"/>
+        <location filename="../crates/taskmgr/qml/SelectableText.qml" line="38"/>
         <source>Copy</source>
         <translation>Copier</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SelectableText.qml" line="39"/>
+        <location filename="../crates/taskmgr/qml/SelectableText.qml" line="43"/>
         <source>Select all</source>
         <translation>Tout sélectionner</translation>
     </message>
@@ -2731,168 +2736,168 @@
         <translation>Sombre</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="30"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="32"/>
         <source>Settings</source>
         <translation>Paramètres</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="38"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="40"/>
         <source>Language:</source>
         <translation>Langue :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="45"/>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="58"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="47"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="60"/>
         <source>Takes effect at the next start.</source>
         <translation>Prend effet au prochain démarrage.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="51"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="53"/>
         <source>Theme:</source>
         <translation>Thème :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="64"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="66"/>
         <source>Update speed:</source>
         <translation>Fréquence de mise à jour :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="71"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="73"/>
         <source>Start page:</source>
         <translation>Page au démarrage :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="78"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="81"/>
         <source>CPU:</source>
         <translation>Processeur :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="79"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="82"/>
         <source>Show process CPU as % of one core (like top)</source>
         <translation>Afficher le processeur des processus en % d&apos;un cœur (comme top)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="85"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="88"/>
         <source>Columns:</source>
         <translation>Colonnes :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="86"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="89"/>
         <source>Right click a column header of the process list.</source>
         <translation>Clic droit sur un en-tête de colonne de la liste des processus.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="92"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="96"/>
         <source>Grey out values that are zero</source>
         <translation>Griser les valeurs nulles</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="97"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="102"/>
         <source>Show column separators</source>
         <translation>Afficher les séparateurs de colonnes</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="104"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="109"/>
         <source>Graphs</source>
         <translation>Graphiques</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="107"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="112"/>
         <source>Points per graph:</source>
         <translation>Points par graphique :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="108"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="113"/>
         <source>%1 (%2)</source>
         <translation>%1 (%2)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="113"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="119"/>
         <source>Smooth curves</source>
         <translation>Courbes lissées</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="118"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="125"/>
         <source>Show kernel times in the CPU graphs</source>
         <translation>Afficher les temps noyau dans les graphiques du processeur</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="123"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="131"/>
         <source>Scale network graphs to the link speed</source>
         <translation>Échelle des graphiques réseau sur la vitesse de liaison</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="128"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="137"/>
         <source>Network:</source>
         <translation>Réseau :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="129"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="138"/>
         <source>Also show VPN, bridges and virtual adapters</source>
         <translation>Afficher aussi les VPN, ponts et cartes virtuelles</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="134"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="143"/>
         <source>Performance list:</source>
         <translation>Liste Performances :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="135"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="144"/>
         <source>Right click an entry to hide it or move it.</source>
         <translation>Clic droit sur une entrée pour la masquer ou la déplacer.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="143"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="152"/>
         <source>Units</source>
         <translation>Unités</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="146"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="155"/>
         <source>Sizes:</source>
         <translation>Tailles :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="147"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="156"/>
         <source>Powers of 1024 (1 KB = 1024 B)</source>
         <translation>Puissances de 1024 (1 Ko = 1024 o)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="147"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="156"/>
         <source>Powers of 1000 (1 kB = 1000 B)</source>
         <translation>Puissances de 1000 (1 ko = 1000 o)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="152"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="161"/>
         <source>Network speed:</source>
         <translation>Débit réseau :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="153"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="162"/>
         <source>Bits per second (Mb/s)</source>
         <translation>Bits par seconde (Mb/s)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="153"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="162"/>
         <source>Bits, powers of 1024 (Mib/s)</source>
         <translation>Bits, puissances de 1024 (Mib/s)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="153"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="162"/>
         <source>Bytes per second (MB/s)</source>
         <translation>Octets par seconde (Mo/s)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="163"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="172"/>
         <source>About</source>
         <translation>À propos</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="171"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="180"/>
         <source>Application:</source>
         <translation>Application :</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="175"/>
+        <location filename="../crates/taskmgr/qml/SettingsPage.qml" line="184"/>
         <source>License:</source>
         <translation>Licence :</translation>
     </message>

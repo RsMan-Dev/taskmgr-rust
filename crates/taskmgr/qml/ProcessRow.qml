@@ -36,6 +36,10 @@ QQC2.ItemDelegate {
         acceptedButtons: Qt.RightButton
         onTapped: (point) => row.menuRequested(point.position)
     }
+    TapHandler {
+        acceptedDevices: PointerDevice.TouchScreen
+        onLongPressed: row.menuRequested(point.position)
+    }
 
     contentItem: RowLayout {
         spacing: 0

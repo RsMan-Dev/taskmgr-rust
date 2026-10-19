@@ -34,6 +34,10 @@ ColumnLayout {
             acceptedButtons: Qt.RightButton
             onTapped: (point) => block.contextMenuRequested(point.position)
         }
+        TapHandler {
+            acceptedDevices: PointerDevice.TouchScreen
+            onLongPressed: block.contextMenuRequested(point.position)
+        }
     }
     RowLayout {
         Caption {

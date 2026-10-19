@@ -17,6 +17,8 @@ ThinScrollView {
     readonly property var themes: [["", qsTr("System")], ["light", qsTr("Light")], ["dark", qsTr("Dark")]]
 
     contentWidth: availableWidth
+    // Check box labels wrap instead of running off a narrow window.
+    readonly property real textWidth: Math.max(Kirigami.Units.gridUnit * 10, availableWidth - Kirigami.Units.gridUnit * (Kirigami.Settings.isMobile || availableWidth < Kirigami.Units.gridUnit * 30 ? 4 : 18))
     Component.onCompleted: {
         startLanguage = Prefs.language
         startTheme = Prefs.theme
@@ -75,6 +77,7 @@ ThinScrollView {
             }
 
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 Kirigami.FormData.label: qsTr("CPU:")
                 text: qsTr("Show process CPU as % of one core (like top)")
                 checked: Prefs.cpuPerCore
@@ -89,11 +92,13 @@ ThinScrollView {
                 Layout.maximumWidth: Kirigami.Units.gridUnit * 22
             }
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 text: qsTr("Grey out values that are zero")
                 checked: Prefs.dimZeros
                 onToggled: Prefs.dimZeros = checked
             }
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 text: qsTr("Show column separators")
                 checked: Prefs.columnSeparators
                 onToggled: Prefs.columnSeparators = checked
@@ -110,21 +115,25 @@ ThinScrollView {
                 onActivated: (i) => Prefs.historyPoints = page.points[i]
             }
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 text: qsTr("Smooth curves")
                 checked: Prefs.smoothGraphs
                 onToggled: Prefs.smoothGraphs = checked
             }
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 text: qsTr("Show kernel times in the CPU graphs")
                 checked: Prefs.kernelTimes
                 onToggled: Prefs.kernelTimes = checked
             }
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 text: qsTr("Scale network graphs to the link speed")
                 checked: Prefs.networkScaleLink
                 onToggled: Prefs.networkScaleLink = checked
             }
             QQC2.CheckBox {
+                Layout.maximumWidth: page.textWidth
                 Kirigami.FormData.label: qsTr("Network:")
                 text: qsTr("Also show VPN, bridges and virtual adapters")
                 checked: Prefs.showVirtualNetworks
