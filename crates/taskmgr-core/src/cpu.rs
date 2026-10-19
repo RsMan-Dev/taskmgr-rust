@@ -55,6 +55,8 @@ pub struct CpuSnapshot {
     /// Intel thermal throttling events since boot, when the kernel counts them.
     pub throttle_count: Option<u64>,
     pub core_history: Vec<History>,
+    /// MHz per logical processor; empty without cpufreq.
+    pub core_mhz_history: Vec<History>,
     pub charts: Charts,
 }
 
@@ -295,15 +297,16 @@ fn parse_size(s: &str) -> u64 {
     num.parse::<u64>().unwrap_or(0) * mult
 }
 
-fn average_mhz(root: &Root, logical: usize) -> Option<f64> {
-    let khz: Vec<u64> = (0..logical)
-        .filter_map(|i| {
+/// Current MHz of each logical processor (None when cpufreq is absent).
+fn core_mhz(root: &Root, logical: usize) -> Vec<Option<f64>> {
+    (0..logical)
+        .map(|i| {
             root.read_u64(format!(
                 "/sys/devices/system/cpu/cpu{i}/cpufreq/scaling_cur_freq"
             ))
+            .map(|khz| khz as f64 / 1000.0)
         })
-        .collect();
-    (!khz.is_empty()).then(|| khz.iter().sum::<u64>() as f64 / khz.len() as f64 / 1000.0)
+        .collect()
 }
 
 fn task_counts(root: &Root) -> (usize, u64) {
@@ -335,6 +338,7 @@ pub struct CpuSampler {
     history: History,
     prev_cores: Vec<Times>,
     cores: Vec<History>,
+    core_mhz: Vec<History>,
     charts: Charts,
 }
 
@@ -346,6 +350,7 @@ impl CpuSampler {
             history: History::default(),
             prev_cores: Vec::new(),
             cores: Vec::new(),
+            core_mhz: Vec::new(),
             charts: Charts::default(),
         }
     }
@@ -376,7 +381,17 @@ impl CpuSampler {
             }
         }
         self.prev_cores = cores;
-        let mhz = average_mhz(root, self.info.logical);
+        let per_core = core_mhz(root, self.info.logical);
+        let known: Vec<f64> = per_core.iter().flatten().copied().collect();
+        let mhz = (!known.is_empty()).then(|| known.iter().sum::<f64>() / known.len() as f64);
+        if known.is_empty() {
+            self.core_mhz.clear();
+        } else {
+            self.core_mhz.resize_with(per_core.len(), History::default);
+            for (h, v) in self.core_mhz.iter_mut().zip(&per_core) {
+                h.push(v.unwrap_or(0.0));
+            }
+        }
         let temperature = hwmon::cpu_temperature(root, chips);
         let (voltage, voltage_source) = match core_voltage(root, chips) {
             Some(v) => (Some(v), Some("sensor")),
@@ -412,6 +427,7 @@ impl CpuSampler {
                 (!counts.is_empty()).then(|| counts.iter().sum())
             },
             core_history: self.cores.clone(),
+            core_mhz_history: self.core_mhz.clone(),
             charts: self.charts.clone(),
         }
     }

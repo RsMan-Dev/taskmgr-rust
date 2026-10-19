@@ -27,6 +27,9 @@ pub mod qobject {
         #[qproperty(QString, energy_request, cxx_name = "energyRequest")]
         #[qproperty(QString, action_result, cxx_name = "actionResult")]
         #[qproperty(QString, network_access, cxx_name = "networkAccess")]
+        #[qproperty(QString, health)]
+        #[qproperty(QString, connections)]
+        #[qproperty(QString, power)]
         type SystemMonitor = super::SystemMonitorRust;
 
         #[qinvokable]
@@ -83,6 +86,19 @@ pub mod qobject {
         );
 
         #[qinvokable]
+        #[cxx_name = "refreshPower"]
+        fn refresh_power(self: Pin<&mut SystemMonitor>);
+
+        /// power-saver, balanced or performance.
+        #[qinvokable]
+        #[cxx_name = "setPowerProfile"]
+        fn set_power_profile(self: Pin<&mut SystemMonitor>, profile: &QString);
+
+        #[qinvokable]
+        #[cxx_name = "refreshConnections"]
+        fn refresh_connections(self: Pin<&mut SystemMonitor>);
+
+        #[qinvokable]
         #[cxx_name = "refreshAutostart"]
         fn refresh_autostart(self: Pin<&mut SystemMonitor>);
 
@@ -107,6 +123,9 @@ pub struct SystemMonitorRust {
     energy_request: QString,
     action_result: QString,
     network_access: QString,
+    health: QString,
+    connections: QString,
+    power: QString,
     started: bool,
     net: Arc<std::sync::Mutex<Option<taskmgr_core::netflow::HelperData>>>,
     interval_ms: Arc<AtomicU64>,
@@ -124,6 +143,9 @@ impl Default for SystemMonitorRust {
             energy_request: QString::default(),
             action_result: QString::default(),
             network_access: QString::default(),
+            health: QString::default(),
+            connections: QString::default(),
+            power: QString::default(),
             started: false,
             net: Arc::default(),
             interval_ms: Arc::new(AtomicU64::new(1000)),
@@ -152,6 +174,20 @@ impl qobject::SystemMonitor {
         self.as_mut().set_info(QString::from(&info));
 
         let qt_thread = self.qt_thread();
+        // SMART data changes slowly and UDisks2 itself polls every 10 min.
+        let health_thread = self.qt_thread();
+        thread::spawn(move || {
+            loop {
+                let json = serde_json::to_string(&taskmgr_core::smart::read()).unwrap_or_default();
+                if health_thread
+                    .queue(move |o| o.set_health(QString::from(&json)))
+                    .is_err()
+                {
+                    break;
+                }
+                thread::sleep(Duration::from_secs(600));
+            }
+        });
         let interval = self.interval_ms.clone();
         let processes_visible = self.processes_visible.clone();
         let net = self.net.clone();
@@ -308,6 +344,38 @@ impl qobject::SystemMonitor {
                 o.as_mut().set_services(QString::from(&json));
                 o.set_action_result(result_json("service", r));
             });
+        });
+    }
+
+    pub fn refresh_power(self: Pin<&mut Self>) {
+        let qt_thread = self.qt_thread();
+        thread::spawn(move || {
+            let json = serde_json::to_string(&taskmgr_core::power::read(&Root::system()))
+                .unwrap_or_default();
+            let _ = qt_thread.queue(move |o| o.set_power(QString::from(&json)));
+        });
+    }
+
+    pub fn set_power_profile(self: Pin<&mut Self>, profile: &QString) {
+        let profile = profile.to_string();
+        let qt_thread = self.qt_thread();
+        thread::spawn(move || {
+            let r = taskmgr_core::power::set_profile(&profile);
+            let json = serde_json::to_string(&taskmgr_core::power::read(&Root::system()))
+                .unwrap_or_default();
+            let _ = qt_thread.queue(move |mut o| {
+                o.as_mut().set_power(QString::from(&json));
+                o.set_action_result(result_json("power", r));
+            });
+        });
+    }
+
+    pub fn refresh_connections(self: Pin<&mut Self>) {
+        let qt_thread = self.qt_thread();
+        thread::spawn(move || {
+            let list = taskmgr_core::connections::list(&Root::system());
+            let json = serde_json::to_string(&list).unwrap_or_default();
+            let _ = qt_thread.queue(move |o| o.set_connections(QString::from(&json)));
         });
     }
 

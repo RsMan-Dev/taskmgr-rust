@@ -119,10 +119,10 @@ struct Prev {
 
 /// uid to login name, from /etc/passwd (cached; NSS users fall back to the uid).
 #[derive(Default)]
-struct Users(HashMap<u32, String>);
+pub(crate) struct Users(HashMap<u32, String>);
 
 impl Users {
-    fn name(&mut self, root: &Root, uid: u32) -> String {
+    pub(crate) fn name(&mut self, root: &Root, uid: u32) -> String {
         if self.0.is_empty() {
             for line in root.read("/etc/passwd").unwrap_or_default().lines() {
                 let f: Vec<&str> = line.split(':').collect();

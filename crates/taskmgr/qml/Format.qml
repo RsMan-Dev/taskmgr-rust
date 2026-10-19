@@ -75,6 +75,13 @@ QtObject {
         return d + ":" + pad(h) + ":" + pad(m) + ":" + pad(Math.floor(secs % 60))
     }
 
+    // Remaining time, "2 h 05" or "35 min".
+    function duration(secs) {
+        const h = Math.floor(secs / 3600)
+        const m = Math.floor(secs % 3600 / 60)
+        return h > 0 ? qsTr("%1 h %2").arg(h).arg(String(m).padStart(2, "0")) : qsTr("%1 min").arg(m)
+    }
+
     function niceMax(v, floor) {
         v = Math.max(v, floor)
         const p = Math.pow(10, Math.floor(Math.log10(v)))

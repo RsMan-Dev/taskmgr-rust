@@ -15,6 +15,7 @@ QtObject {
         "nav-startup": "rocket",
         "nav-services": "puzzle_piece",
         "nav-users": "people",
+        "nav-connections": "globe",
         "tree": "text_bullet_list_tree",
         "nav-system": "desktop",
         "nav-settings": "settings",

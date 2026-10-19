@@ -2,7 +2,9 @@
 //! from `/proc` and `/sys` without root.
 
 pub mod autostart;
+pub mod battery;
 pub mod catalog;
+pub mod connections;
 pub mod cpu;
 pub mod disk;
 pub mod energy;
@@ -13,9 +15,11 @@ pub mod memory;
 pub mod msr;
 pub mod net;
 pub mod netflow;
+pub mod power;
 pub mod process;
 pub mod sensors;
 pub mod services;
+pub mod smart;
 pub mod sysinfo;
 pub mod util;
 pub mod windows;
@@ -37,6 +41,7 @@ pub struct Snapshot {
     pub gpus: Vec<gpu::GpuSnapshot>,
     pub sensors: Vec<sensors::SensorGroup>,
     pub energy: energy::EnergySnapshot,
+    pub batteries: Vec<battery::BatterySnapshot>,
 }
 
 pub struct Sampler {
@@ -49,6 +54,7 @@ pub struct Sampler {
     gpus: gpu::GpuSampler,
     sensors: sensors::SensorSampler,
     energy: energy::EnergySampler,
+    batteries: battery::BatterySampler,
     /// Core voltage from the root helper, used when no driver exposes one.
     pub fallback_voltage: Option<f64>,
 }
@@ -63,6 +69,7 @@ impl Sampler {
             gpus: gpu::GpuSampler::new(),
             sensors: Default::default(),
             energy: Default::default(),
+            batteries: Default::default(),
             fallback_voltage: None,
             last: None,
             root,
@@ -85,6 +92,7 @@ impl Sampler {
             networks: self.networks.sample(root, secs),
             sensors: self.sensors.sample(root, &chips, &disks, &gpus),
             energy: self.energy.sample(root, secs),
+            batteries: self.batteries.sample(root),
             disks,
             gpus,
         }

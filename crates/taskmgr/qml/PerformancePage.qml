@@ -23,8 +23,50 @@ Item {
         efficiency: "#1abc9c",
     })
 
+    // SMART health by block device name, from UDisks2.
+    readonly property var health: monitor.health !== "" ? JSON.parse(monitor.health) : ({})
+    readonly property var healthText: ({
+        good: qsTr("Good"),
+        warning: qsTr("Needs attention"),
+        failing: qsTr("Failing"),
+    })
+    readonly property var healthReasons: ({
+        "failing": qsTr("the drive predicts its own failure"),
+        "attributes-failing": qsTr("an attribute is below its threshold"),
+        "attributes-failed-past": qsTr("an attribute fell below its threshold in the past"),
+        "overheated-past": qsTr("overheated in the past"),
+        "bad-sectors": qsTr("bad sectors"),
+        "critical-warning": qsTr("critical warning from the controller"),
+        "spare-low": qsTr("spare blocks nearly exhausted"),
+        "worn": qsTr("rated endurance nearly used up"),
+        "media-errors": qsTr("media errors"),
+    })
+
+    readonly property var power: monitor.power !== "" ? JSON.parse(monitor.power) : null
+    readonly property var profileNames: ({
+        "power-saver": qsTr("Power saver"),
+        "balanced": qsTr("Balanced"),
+        "performance": qsTr("Performance"),
+    })
+    readonly property var batteryStatus: ({
+        "Charging": qsTr("Charging"),
+        "Discharging": qsTr("On battery"),
+        "Full": qsTr("Full"),
+        "Not charging": qsTr("Plugged in, not charging"),
+    })
+
     property string selectedKey: "cpu"
-    // CPU graph: "overall", "logical" (one per processor) or "numa".
+
+    // The profile can change from the desktop's own controls.
+    Timer {
+        interval: 10000
+        repeat: true
+        triggeredOnStart: true
+        running: page.visible
+        onTriggered: page.monitor.refreshPower()
+    }
+    // CPU graph: "overall", "logical" (one per processor), "clocks" (MHz
+    // per processor) or "numa".
     property string cpuView: "overall"
 
     // Changes only when a device comes or goes, so delegates and selection
@@ -38,6 +80,7 @@ Item {
             .concat(s.disks.map(d => "disk:" + d.name))
             .concat(s.networks.map(n => "net:" + n.name))
             .concat(s.gpus.map(g => "gpu:" + g.pci_slot))
+            .concat(s.batteries.map(b => "battery:" + b.name))
             .concat(s.sensors.length > 0 ? ["sensors"] : [])
             .join(",")
     }
@@ -98,6 +141,9 @@ Item {
                 maximumLabel: "100 %",
                 series: [series(c.history, colors.cpu)],
                 cores: c.core_history,
+                clocks: c.core_mhz_history,
+                maxMhz: c.max_mhz ?? Math.max(1, ...c.core_mhz_history.map(h => Math.max(0, ...h))),
+                profile: page.power?.profile ? page.power : null,
                 coreTypes: c.core_types,
                 numa: c.numa.map(list => average(list.map(i => c.core_history[i] ?? []))),
                 energy: true,
@@ -129,7 +175,49 @@ Item {
                     [qsTr("Cores"), c.cores],
                     [qsTr("Logical processors"), c.logical],
                     [qsTr("Virtualization"), c.virtualization],
+                    [qsTr("Frequency driver"), page.power?.driver],
+                    [qsTr("Governor"), page.power?.governor],
+                    [qsTr("Energy preference"), page.power?.epp],
                 ].concat(c.caches.map(k => [qsTr("Cache %1").arg(k.name), Format.bytes(k.bytes)]))),
+            }
+        }
+        case "battery": {
+            const b = s.batteries.find(x => x.name === id)
+            if (!b) {
+                return null
+            }
+            const status = batteryStatus[b.status] ?? (b.on_ac ? qsTr("Plugged in") : qsTr("On battery"))
+            const left = b.seconds_left !== null
+                ? (b.status === "Charging" ? qsTr("%1 until full") : qsTr("%1 left")).arg(Format.duration(b.seconds_left)) : ""
+            const topW = Format.niceMax(Math.max(...b.watts_history, 0), 5)
+            return {
+                title: qsTr("Battery"),
+                subtitle: status,
+                summary: summary(Format.percent(b.percent), left),
+                header: b.model,
+                color: colors.power,
+                chartLabel: qsTr("Charge"),
+                maximum: 100,
+                maximumLabel: "100 %",
+                series: [series(b.percent_history, colors.power)],
+                secondChart: {
+                    label: b.status === "Charging" ? qsTr("Charging power") : qsTr("Power draw"),
+                    maximum: topW,
+                    maximumLabel: Format.watts(topW),
+                    series: [series(b.watts_history, colors.clock)],
+                },
+                stats: [
+                    [qsTr("Charge"), Format.percent(b.percent)],
+                    [qsTr("Status"), status],
+                ].concat(left ? [[b.status === "Charging" ? qsTr("Until full") : qsTr("Time left"), Format.duration(b.seconds_left)]] : [])
+                 .concat(b.watts !== null ? [[qsTr("Power"), Format.watts(b.watts)]] : []),
+                details: details([
+                    [qsTr("Energy"), b.energy_wh !== null && b.full_wh !== null ? qsTr("%1 / %2 Wh").arg(Format.num(b.energy_wh, 1)).arg(Format.num(b.full_wh, 1)) : null],
+                    [qsTr("Design capacity"), b.design_wh !== null ? qsTr("%1 Wh").arg(Format.num(b.design_wh, 1)) : null],
+                    [qsTr("Health"), b.full_wh !== null && b.design_wh ? Format.percent(b.full_wh / b.design_wh * 100) : null],
+                    [qsTr("Charge cycles"), b.cycles],
+                    [qsTr("Technology"), b.technology],
+                ]),
             }
         }
         case "memory": {
@@ -173,10 +261,13 @@ Item {
                 return null
             }
             const top = Format.niceMax(Math.max(...d.read_history, ...d.write_history, 0), 1024 * 1024)
+            const h = health[d.name] ?? null
+            const temperature = d.temperature ?? h?.temperature ?? null
+            const opt = (v, f) => v === null || v === undefined ? null : f(v)
             return {
                 title: qsTr("Disk %1 (%2)").arg(d.index).arg(d.name),
-                subtitle: Tr.core(d.kind),
-                summary: summary(Format.percent(d.active), Format.rate(d.read_bps + d.write_bps), d.temperature),
+                subtitle: Tr.core(d.kind) + (h && h.status !== "good" ? "  \u2022  " + healthText[h.status] : ""),
+                summary: summary(Format.percent(d.active), Format.rate(d.read_bps + d.write_bps), temperature),
                 header: d.model,
                 color: colors.disk,
                 chartLabel: qsTr("Active time (at least one request in flight)"),
@@ -194,12 +285,20 @@ Item {
                     [qsTr("Average response time"), qsTr("%1 ms").arg(Format.num(d.response_ms, 1))],
                     [qsTr("Read speed"), Format.rate(d.read_bps)],
                     [qsTr("Write speed"), Format.rate(d.write_bps)],
-                ].concat(d.temperature !== null ? [[qsTr("Temperature"), Format.temperature(d.temperature)]] : []),
+                ].concat(temperature !== null ? [[qsTr("Temperature"), Format.temperature(temperature)]] : [])
+                 .concat(h ? [[qsTr("Health"), healthText[h.status]]] : []),
                 details: details([
                     [qsTr("Capacity"), Format.bytes(d.capacity)],
                     [qsTr("Type"), Tr.core(d.kind)],
                     [qsTr("System disk"), d.system_disk ? qsTr("Yes") : qsTr("No")],
                     [qsTr("Mount points"), d.mounts.join(", ") || qsTr("None")],
+                    [qsTr("Health"), h && h.reasons.length > 0 ? h.reasons.map(r => healthReasons[r] ?? r).join(", ") : null],
+                    [qsTr("Powered on"), opt(h?.power_on_hours, v => qsTr("%1 h").arg(Format.num(v, 0)))],
+                    [qsTr("Endurance used"), opt(h?.wear_percent, v => Format.percent(v))],
+                    [qsTr("Spare blocks"), opt(h?.spare_percent, v => Format.percent(v))],
+                    [qsTr("Data written"), opt(h?.written_bytes, v => Format.bytes(v))],
+                    [qsTr("Bad sectors"), opt(h?.bad_sectors, v => Format.num(v, 0))],
+                    [qsTr("Unsafe shutdowns"), opt(h?.unsafe_shutdowns, v => Format.num(v, 0))],
                 ]),
             }
         }
@@ -474,6 +573,27 @@ Item {
                             Layout.fillWidth: true
                         }
 
+                        RowLayout {
+                            visible: !!detail.r?.profile
+                            spacing: Kirigami.Units.largeSpacing
+                            QQC2.Label {
+                                text: qsTr("Power profile")
+                            }
+                            QQC2.ComboBox {
+                                readonly property var profiles: detail.r?.profile?.profiles ?? []
+                                model: profiles.map(p => page.profileNames[p] ?? p)
+                                currentIndex: profiles.indexOf(detail.r?.profile?.profile ?? "")
+                                onActivated: (i) => page.monitor.setPowerProfile(profiles[i])
+                            }
+                            QQC2.Label {
+                                visible: (detail.r?.profile?.degraded ?? "") !== ""
+                                text: qsTr("Performance held back: %1").arg(detail.r?.profile?.degraded ?? "")
+                                opacity: 0.7
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+
                         SensorsView {
                             visible: !!detail.r?.sensors
                             groups: detail.r?.sensors ? page.snapshot.sensors : []
@@ -506,17 +626,19 @@ Item {
                             RowLayout {
                                 Caption {
                                     text: page.cpuView === "numa" ? qsTr("% utilization per NUMA node")
+                                        : page.cpuView === "clocks" ? qsTr("Frequency per logical processor")
                                         : qsTr("% utilization per logical processor")
                                         + ((detail.r?.coreTypes?.length ?? 0) > 0 ? "  " + qsTr("(P: performance cores, E: efficiency cores in green)") : "")
                                     Layout.fillWidth: true
                                 }
                                 Caption {
-                                    text: "100 %"
+                                    text: page.cpuView === "clocks" ? Format.ghz(detail.r?.maxMhz ?? 0) : "100 %"
                                 }
                             }
                             GridLayout {
                                 id: coreGrid
-                                readonly property var lines: (page.cpuView === "numa" ? detail.r?.numa : detail.r?.cores) ?? []
+                                readonly property var lines: (page.cpuView === "numa" ? detail.r?.numa
+                                    : page.cpuView === "clocks" ? detail.r?.clocks : detail.r?.cores) ?? []
                                 readonly property int count: lines.length
                                 columns: Math.max(1, Math.ceil(Math.sqrt(count * 2)))
                                 columnSpacing: Kirigami.Units.smallSpacing
@@ -528,9 +650,10 @@ Item {
                                     UsageChart {
                                         required property int index
                                         compact: true
-                                        readonly property bool efficient: page.cpuView === "logical" && detail.r?.coreTypes?.[index] === "E"
+                                        readonly property bool efficient: page.cpuView !== "numa" && detail.r?.coreTypes?.[index] === "E"
                                         series: [{ values: coreGrid.lines[index] ?? [], color: accent }]
-                                        accent: efficient ? page.colors.efficiency : page.colors.cpu
+                                        maximum: page.cpuView === "clocks" ? detail.r?.maxMhz ?? 1 : 100
+                                        accent: efficient ? page.colors.efficiency : page.cpuView === "clocks" ? page.colors.clock : page.colors.cpu
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Math.max(Kirigami.Units.gridUnit * 2.5,
                                             page.height * 0.42 / Math.ceil(coreGrid.count / coreGrid.columns))
@@ -656,6 +779,14 @@ Item {
             checkable: true
             checked: page.cpuView === "logical"
             onTriggered: page.cpuView = "logical"
+        }
+        QQC2.MenuItem {
+            visible: (page.selected?.clocks?.length ?? 0) > 0
+            height: visible ? implicitHeight : 0
+            text: qsTr("Frequency per processor")
+            checkable: true
+            checked: page.cpuView === "clocks"
+            onTriggered: page.cpuView = "clocks"
         }
         QQC2.MenuItem {
             visible: (page.selected?.numa?.length ?? 0) > 1

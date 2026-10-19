@@ -48,6 +48,7 @@ QQC2.ApplicationWindow {
         { text: qsTr("Startup apps"), icon: "nav-startup" },
         { text: qsTr("Users"), icon: "nav-users" },
         { text: qsTr("Services"), icon: "nav-services" },
+        { text: qsTr("Connections"), icon: "nav-connections" },
         { text: qsTr("System"), icon: "nav-system" },
         { text: qsTr("Settings"), icon: "nav-settings" },
     ]
@@ -135,7 +136,7 @@ QQC2.ApplicationWindow {
     }
 
     // The process list is only sampled while a page shows it.
-    readonly property bool processesShown: mini || [0, 2, 4].includes(currentPage)
+    readonly property bool processesShown: mini || [0, 2, 4, 6].includes(currentPage)
     onProcessesShownChanged: monitor.setProcessesVisible(processesShown)
     Component.onCompleted: {
         monitor.setProcessesVisible(processesShown)
@@ -291,6 +292,15 @@ QQC2.ApplicationWindow {
                 ServicesPage {
                     monitor: monitor
                     active: window.currentPage === 5
+                }
+                ConnectionsPage {
+                    monitor: monitor
+                    groups: window.processes
+                    active: window.currentPage === 6
+                    onShowProcess: (pid) => {
+                        details.query = String(pid)
+                        window.currentPage = 2
+                    }
                 }
                 SystemPage {
                     info: window.systemInfo
