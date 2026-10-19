@@ -341,7 +341,7 @@ Item {
             spacing: 0
 
             QQC2.ScrollView {
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 16
+                Layout.preferredWidth: Math.min(Kirigami.Units.gridUnit * 16, Math.max(Kirigami.Units.gridUnit * 11, page.width * 0.32))
                 Layout.fillWidth: false
                 Layout.fillHeight: true
                 QQC2.ScrollBar.horizontal.policy: QQC2.ScrollBar.AlwaysOff
@@ -392,14 +392,16 @@ Item {
                 id: detailScroll
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentWidth: availableWidth
+                // Scrolls sideways instead of clipping once the content
+                // reaches its minimum width.
+                contentWidth: Math.max(availableWidth, Kirigami.Units.gridUnit * 22)
 
                 ColumnLayout {
                     id: detail
                     readonly property var r: page.selected
                     readonly property real inner: width - Kirigami.Units.gridUnit * 2
                     visible: r !== null
-                    width: detailScroll.availableWidth
+                    width: detailScroll.contentWidth
                     spacing: Kirigami.Units.largeSpacing
 
                     Item {
@@ -538,7 +540,7 @@ Item {
                             Layout.fillWidth: true
 
                             GridLayout {
-                                columns: 2
+                                columns: detail.inner > Kirigami.Units.gridUnit * 24 ? 2 : 1
                                 columnSpacing: Kirigami.Units.gridUnit * 2
                                 rowSpacing: Kirigami.Units.largeSpacing
                                 Layout.alignment: Qt.AlignTop

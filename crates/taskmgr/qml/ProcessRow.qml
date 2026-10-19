@@ -42,8 +42,11 @@ QQC2.ItemDelegate {
 
         RowLayout {
             spacing: Kirigami.Units.smallSpacing
+            clip: true
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // Without this the cell would never be narrower than its chips.
+            Layout.minimumWidth: 0
             Layout.leftMargin: row.isGroup ? Kirigami.Units.smallSpacing : Kirigami.Units.gridUnit * 2.6
             Layout.rightMargin: Kirigami.Units.smallSpacing
 
@@ -77,8 +80,9 @@ QQC2.ItemDelegate {
                     : row.proc.name
                 elide: Text.ElideRight
                 opacity: row.secondary ? 0.6 : 1
-                Layout.fillWidth: implicitWidth > width
-                Layout.maximumWidth: implicitWidth
+                Layout.fillWidth: true
+                // Text widths are fractional: without slack, pixel rounding elides.
+                Layout.maximumWidth: Math.ceil(implicitWidth) + 1
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 4
             }
 
@@ -88,8 +92,8 @@ QQC2.ItemDelegate {
                 text: titles.length > 0 ? titles[0] : ""
                 opacity: 0.6
                 elide: Text.ElideRight
-                Layout.fillWidth: implicitWidth > width
-                Layout.maximumWidth: implicitWidth
+                Layout.fillWidth: true
+                Layout.maximumWidth: Math.ceil(implicitWidth) + 1
                 Layout.minimumWidth: Math.min(implicitWidth, Kirigami.Units.gridUnit * 4)
             }
 
@@ -111,9 +115,12 @@ QQC2.ItemDelegate {
                 text: "PID " + (row.isGroup ? row.group.processes[0].pid : row.proc.pid)
                 opacity: 0.5
                 font: Kirigami.Theme.smallFont
+                Layout.minimumWidth: implicitWidth
             }
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         Repeater {
@@ -133,6 +140,8 @@ QQC2.ItemDelegate {
 
     component Chip: Rectangle {
         property alias text: chipLabel.text
+        // The name is elided first; chips keep their size.
+        Layout.minimumWidth: implicitWidth
         radius: height / 2
         color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
         implicitWidth: chipLabel.implicitWidth + Kirigami.Units.largeSpacing * 2

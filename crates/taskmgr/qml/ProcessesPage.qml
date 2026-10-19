@@ -18,6 +18,10 @@ ColumnLayout {
     property string error: ""
 
     readonly property real columnWidth: Kirigami.Units.gridUnit * 6.5
+    readonly property real nameMinimumWidth: Kirigami.Units.gridUnit * 14
+    readonly property real viewportWidth: list.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
+    // Names shrink down to their minimum, then the table scrolls sideways.
+    readonly property real tableWidth: Math.max(viewportWidth, nameMinimumWidth + columns.length * columnWidth)
     readonly property int logical: snapshot?.cpu.logical ?? 1
     readonly property var dedicatedGpus: snapshot ? snapshot.gpus.filter(g => g.dedicated) : []
 
@@ -194,9 +198,15 @@ ColumnLayout {
         Kirigami.SearchField {
             id: search
             placeholderText: "Rechercher un nom ou un PID"
+            Layout.fillWidth: true
             Layout.preferredWidth: Kirigami.Units.gridUnit * 16
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 16
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 6
         }
         QQC2.Button {
+            display: page.width < Kirigami.Units.gridUnit * 30 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
+            QQC2.ToolTip.text: text
+            QQC2.ToolTip.visible: hovered && display === QQC2.AbstractButton.IconOnly
             text: "Fin de tâche"
             icon.name: "process-stop"
             enabled: page.selected !== null && page.selected.type !== "section"
@@ -216,10 +226,16 @@ ColumnLayout {
         Layout.bottomMargin: Kirigami.Units.smallSpacing
     }
 
-    RowLayout {
-        spacing: 0
+    Item {
+        clip: true
+        implicitHeight: header.implicitHeight
         Layout.fillWidth: true
-        Layout.rightMargin: list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0
+
+        RowLayout {
+            id: header
+            x: -list.contentX
+            width: page.tableWidth
+            spacing: 0
 
         HeaderCell {
             column: "name"
@@ -238,6 +254,7 @@ ColumnLayout {
                 Layout.preferredWidth: page.columnWidth
             }
         }
+        }
     }
 
     Kirigami.Separator {
@@ -253,8 +270,11 @@ ColumnLayout {
         reuseItems: true
         Layout.fillWidth: true
         Layout.fillHeight: true
+        contentWidth: page.tableWidth
+        flickableDirection: Flickable.AutoFlickIfNeeded
 
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+        QQC2.ScrollBar.horizontal: QQC2.ScrollBar {}
 
         model: ListModel { id: rows }
 
@@ -276,7 +296,7 @@ ColumnLayout {
             id: slot
             required property string key
             readonly property var entry: page.table.data[key] ?? null
-            width: ListView.view.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
+            width: page.tableWidth
             sourceComponent: entry?.type === "section" ? sectionComponent : rowComponent
 
             Component {

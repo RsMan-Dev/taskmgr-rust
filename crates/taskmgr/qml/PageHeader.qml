@@ -17,7 +17,7 @@ RowLayout {
         id: heading
         level: 1
         Layout.fillWidth: true
-        elide: Text.ElideRight
+        Layout.minimumWidth: implicitWidth
     }
 
     RowLayout {

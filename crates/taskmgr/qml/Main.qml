@@ -20,7 +20,10 @@ QQC2.ApplicationWindow {
 
     property int currentPage: 0
     property string initialSelection: ""
-    property bool sidebarCollapsed: false
+    property bool sidebarFolded: false
+    property bool sidebarOpenedNarrow: false
+    readonly property bool narrow: width < Kirigami.Units.gridUnit * 46
+    readonly property bool sidebarCollapsed: narrow ? !sidebarOpenedNarrow : sidebarFolded
 
     SystemMonitor {
         id: monitor
@@ -48,7 +51,13 @@ QQC2.ApplicationWindow {
                 icon.name: "application-menu"
                 display: QQC2.AbstractButton.IconOnly
                 text: window.sidebarCollapsed ? "Déplier le menu" : "Replier le menu"
-                onClicked: window.sidebarCollapsed = !window.sidebarCollapsed
+                onClicked: {
+                    if (window.narrow) {
+                        window.sidebarOpenedNarrow = !window.sidebarOpenedNarrow
+                    } else {
+                        window.sidebarFolded = !window.sidebarFolded
+                    }
+                }
                 QQC2.ToolTip.text: text
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay

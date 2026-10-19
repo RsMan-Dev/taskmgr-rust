@@ -77,7 +77,8 @@ extern "C" int taskmgr_run(int argc, char **argv)
         });
         if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
             window && !qEnvironmentVariableIsEmpty("TASKMGR_GRAB_HEIGHT")) {
-            window->resize(window->width(), qEnvironmentVariableIntValue("TASKMGR_GRAB_HEIGHT"));
+            const int w = qEnvironmentVariableIntValue("TASKMGR_GRAB_WIDTH");
+            window->resize(w > 0 ? w : window->width(), qEnvironmentVariableIntValue("TASKMGR_GRAB_HEIGHT"));
         }
     }
     return app.exec();
