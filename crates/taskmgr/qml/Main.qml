@@ -19,6 +19,7 @@ QQC2.ApplicationWindow {
     readonly property var processes: monitor.processes !== "" ? JSON.parse(monitor.processes) : null
 
     property int currentPage: 0
+    property string initialSelection: ""
     property bool sidebarCollapsed: false
 
     SystemMonitor {
@@ -101,6 +102,14 @@ QQC2.ApplicationWindow {
                 }
                 PerformancePage {
                     snapshot: window.snapshot
+                    monitor: monitor
+                    Component.onCompleted: {
+                        const [key, option] = window.initialSelection.split("+")
+                        if (key) {
+                            selectedKey = key
+                        }
+                        logicalProcessors = option === "logical"
+                    }
                 }
                 SystemPage {
                     info: window.systemInfo

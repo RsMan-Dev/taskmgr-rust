@@ -2,6 +2,8 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
+#include <QQuickWindow>
+#include <QTimer>
 #include <QSocketNotifier>
 
 #include <csignal>
@@ -38,6 +40,7 @@ extern "C" int taskmgr_run(int argc, char **argv)
     static int s_argc = argc;
     QApplication app(s_argc, argv);
     app.setApplicationName(QStringLiteral("taskmgr"));
+    app.setOrganizationName(QStringLiteral("taskmgr"));
     app.setApplicationDisplayName(QStringLiteral("Gestionnaire des tâches"));
     app.setDesktopFileName(QStringLiteral("org.taskmgr"));
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("utilities-system-monitor")));
@@ -52,6 +55,30 @@ extern "C" int taskmgr_run(int argc, char **argv)
     QQmlApplicationEngine engine;
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                      [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
+    // Development aid: TASKMGR_PAGE / TASKMGR_SELECT pick the view,
+    // TASKMGR_GRAB saves the window to a file after a few seconds and quits.
+    QVariantMap initial;
+    if (!qEnvironmentVariableIsEmpty("TASKMGR_PAGE")) {
+        initial.insert(QStringLiteral("currentPage"), qEnvironmentVariableIntValue("TASKMGR_PAGE"));
+    }
+    if (!qEnvironmentVariableIsEmpty("TASKMGR_SELECT")) {
+        initial.insert(QStringLiteral("initialSelection"), qEnvironmentVariable("TASKMGR_SELECT"));
+    }
+    engine.setInitialProperties(initial);
     engine.loadFromModule("org.taskmgr", "Main");
+
+    const QString grab = qEnvironmentVariable("TASKMGR_GRAB");
+    if (!grab.isEmpty()) {
+        QTimer::singleShot(qEnvironmentVariableIntValue("TASKMGR_GRAB_DELAY") * 1000 + 8000, &app, [&engine, grab] {
+            if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0))) {
+                window->grabWindow().save(grab);
+            }
+            QCoreApplication::quit();
+        });
+        if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
+            window && !qEnvironmentVariableIsEmpty("TASKMGR_GRAB_HEIGHT")) {
+            window->resize(window->width(), qEnvironmentVariableIntValue("TASKMGR_GRAB_HEIGHT"));
+        }
+    }
     return app.exec();
 }

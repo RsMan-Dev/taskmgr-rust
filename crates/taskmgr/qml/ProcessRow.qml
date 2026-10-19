@@ -10,6 +10,7 @@ QQC2.ItemDelegate {
     property bool selected: false
     property bool expanded: false
     property real columnWidth: Kirigami.Units.gridUnit * 6
+    property var columns: []
 
     signal toggleRequested()
     signal menuRequested(point position)
@@ -115,29 +116,18 @@ QQC2.ItemDelegate {
             Item { Layout.fillWidth: true }
         }
 
-        HeatCell {
-            value: row.metrics.cpu
-            reference: 25
-            text: Format.num(row.metrics.cpu, 1) + " %"
-            emphasized: row.isGroup
-            Layout.preferredWidth: row.columnWidth
-            Layout.fillHeight: true
-        }
-        HeatCell {
-            value: row.metrics.memory
-            reference: 2 * 1024 * 1024 * 1024
-            text: Format.bytes(row.metrics.memory)
-            emphasized: row.isGroup
-            Layout.preferredWidth: row.columnWidth
-            Layout.fillHeight: true
-        }
-        HeatCell {
-            value: row.metrics.disk_bps ?? 0
-            reference: 20 * 1024 * 1024
-            text: row.metrics.disk_bps === null ? "" : Format.num(row.metrics.disk_bps / 1048576, 1) + " Mo/s"
-            emphasized: row.isGroup
-            Layout.preferredWidth: row.columnWidth
-            Layout.fillHeight: true
+        Repeater {
+            model: row.columns
+            HeatCell {
+                required property var modelData
+                readonly property real v: modelData.value(row.metrics)
+                value: v
+                reference: modelData.reference
+                text: modelData.text(v)
+                emphasized: row.isGroup
+                Layout.preferredWidth: row.columnWidth
+                Layout.fillHeight: true
+            }
         }
     }
 

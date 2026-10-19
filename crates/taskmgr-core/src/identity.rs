@@ -338,7 +338,7 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
         Group {
             key: format!("steam:{id}"),
             name,
-            icon: Some(format!("steam_icon_{id}")),
+            icon: catalog.steam_icon(root, &id),
             kind: Kind::App,
             via: vec![],
         }

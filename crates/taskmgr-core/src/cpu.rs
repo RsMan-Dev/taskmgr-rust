@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use serde::Serialize;
 
 use crate::hwmon::{self, Chip};
-use crate::util::{History, Root};
+use crate::util::{Charts, History, Root};
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CacheLevel {
@@ -33,6 +33,9 @@ pub struct CpuSnapshot {
     pub threads: u64,
     pub uptime_secs: u64,
     pub temperature: Option<f64>,
+    pub voltage: Option<f64>,
+    pub core_history: Vec<History>,
+    pub charts: Charts,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -42,7 +45,35 @@ struct Times {
 }
 
 fn parse_stat(stat: &str) -> Option<Times> {
-    let line = stat.lines().find(|l| l.starts_with("cpu "))?;
+    parse_line(stat.lines().find(|l| l.starts_with("cpu "))?)
+}
+
+/// Per logical processor, in `/proc/stat` order.
+fn parse_cores(stat: &str) -> Vec<Times> {
+    stat.lines()
+        .filter(|l| l.starts_with("cpu") && !l.starts_with("cpu "))
+        .filter_map(parse_line)
+        .collect()
+}
+
+fn busy_percent(prev: Times, cur: Times) -> Option<f64> {
+    (cur.total > prev.total).then(|| {
+        cur.busy.saturating_sub(prev.busy) as f64 / (cur.total - prev.total) as f64 * 100.0
+    })
+}
+
+/// Core voltage, only exposed by Super I/O and SMU drivers (nct6775, it87,
+/// zenpower), never by k10temp.
+fn core_voltage(root: &Root, chips: &[Chip]) -> Option<f64> {
+    chips.iter().find_map(|c| {
+        ["Vcore", "CPU Vcore", "SVI2_Core", "VDDCR_CPU"]
+            .iter()
+            .find_map(|l| c.input(root, "in", l))
+            .map(|mv| mv as f64 / 1000.0)
+    })
+}
+
+fn parse_line(line: &str) -> Option<Times> {
     let v: Vec<u64> = line
         .split_whitespace()
         .skip(1)
@@ -209,6 +240,9 @@ pub struct CpuSampler {
     info: CpuInfo,
     prev: Option<Times>,
     history: History,
+    prev_cores: Vec<Times>,
+    cores: Vec<History>,
+    charts: Charts,
 }
 
 impl CpuSampler {
@@ -217,21 +251,38 @@ impl CpuSampler {
             info: info(root),
             prev: None,
             history: History::default(),
+            prev_cores: Vec::new(),
+            cores: Vec::new(),
+            charts: Charts::default(),
         }
     }
 
     pub fn sample(&mut self, root: &Root, chips: &[Chip]) -> CpuSnapshot {
-        let cur = root.read("/proc/stat").and_then(|s| parse_stat(&s));
-        let usage = match (self.prev, cur) {
-            (Some(p), Some(c)) if c.total > p.total => {
-                (c.busy.saturating_sub(p.busy)) as f64 / (c.total - p.total) as f64 * 100.0
-            }
-            _ => 0.0,
-        };
+        let stat = root.read("/proc/stat").unwrap_or_default();
+        let cur = parse_stat(&stat);
+        let usage = self
+            .prev
+            .zip(cur)
+            .and_then(|(p, c)| busy_percent(p, c))
+            .unwrap_or(0.0);
         if self.prev.is_some() {
             self.history.push(usage);
         }
         self.prev = cur;
+        let cores = parse_cores(&stat);
+        self.cores.resize_with(cores.len(), History::default);
+        for (i, c) in cores.iter().enumerate() {
+            if let Some(u) = self.prev_cores.get(i).and_then(|p| busy_percent(*p, *c)) {
+                self.cores[i].push(u);
+            }
+        }
+        self.prev_cores = cores;
+        let mhz = average_mhz(root, self.info.logical);
+        let temperature = hwmon::cpu_temperature(root, chips);
+        let voltage = core_voltage(root, chips);
+        self.charts.push("temperature", temperature);
+        self.charts.push("clock", mhz);
+        self.charts.push("voltage", voltage);
         let (processes, threads) = task_counts(root);
         let uptime_secs = root
             .read("/proc/uptime")
@@ -241,11 +292,14 @@ impl CpuSampler {
             info: self.info.clone(),
             usage,
             history: self.history.clone(),
-            mhz: average_mhz(root, self.info.logical),
+            mhz,
             processes,
             threads,
             uptime_secs,
-            temperature: hwmon::cpu_temperature(root, chips),
+            temperature,
+            voltage,
+            core_history: self.cores.clone(),
+            charts: self.charts.clone(),
         }
     }
 }

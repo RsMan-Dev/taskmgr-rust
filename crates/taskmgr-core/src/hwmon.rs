@@ -42,6 +42,19 @@ impl Chip {
         (v > 0.0 && v < 200.0).then_some(v)
     }
 
+    /// Raw value of the `<prefix>N_input` labelled `label`.
+    pub fn input(&self, root: &Root, prefix: &str, label: &str) -> Option<i64> {
+        let n = (0..16).find(|n| {
+            root.read_trimmed(format!("{}/{prefix}{n}_label", self.dir))
+                .is_some_and(|l| l.eq_ignore_ascii_case(label))
+        })?;
+        root.read_i64(format!("{}/{prefix}{n}_input", self.dir))
+    }
+
+    pub fn file(&self, root: &Root, name: &str) -> Option<i64> {
+        root.read_i64(format!("{}/{name}", self.dir))
+    }
+
     pub fn temperature(&self, root: &Root, preferred: &[&str]) -> Option<f64> {
         let temps = self.temps(root);
         let pick = preferred

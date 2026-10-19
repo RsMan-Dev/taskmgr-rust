@@ -53,3 +53,52 @@ impl EnergySampler {
         }
     }
 }
+
+fn find_program(name: &str, extra: &[&str]) -> Option<String> {
+    std::env::var("PATH")
+        .unwrap_or_default()
+        .split(':')
+        .map(|d| format!("{d}/{name}"))
+        .chain(extra.iter().map(|s| (*s).to_owned()))
+        .find(|p| std::path::Path::new(p).is_file())
+}
+
+/// Hands the RAPL counters to the current user until the next reboot
+/// (sysfs permissions are not persistent). pkexec asks for the password
+/// through the desktop's polkit agent. Blocks until the dialog is answered.
+pub fn grant_access(root: &Root) -> Result<(), String> {
+    let pkexec = find_program("pkexec", &["/run/wrappers/bin/pkexec", "/usr/bin/pkexec"])
+        .ok_or("pkexec est introuvable (paquet polkit).")?;
+    let chown = find_program(
+        "chown",
+        &[
+            "/run/current-system/sw/bin/chown",
+            "/usr/bin/chown",
+            "/bin/chown",
+        ],
+    )
+    .ok_or("chown est introuvable.")?;
+    let files: Vec<String> = root
+        .list("/sys/class/powercap")
+        .into_iter()
+        .filter(|d| d.starts_with("intel-rapl:"))
+        .map(|d| format!("/sys/class/powercap/{d}/energy_uj"))
+        .filter(|f| root.exists(f))
+        .collect();
+    if files.is_empty() {
+        return Err("Aucun compteur RAPL sur cette machine.".to_owned());
+    }
+    // SAFETY: getuid cannot fail.
+    let uid = unsafe { libc::getuid() };
+    let status = std::process::Command::new(pkexec)
+        .arg(chown)
+        .arg(uid.to_string())
+        .args(&files)
+        .status()
+        .map_err(|e| e.to_string())?;
+    match status.code() {
+        Some(0) => Ok(()),
+        Some(126) | Some(127) => Err("Autorisation refusée ou annulée.".to_owned()),
+        _ => Err(format!("La commande a échoué ({status}).")),
+    }
+}

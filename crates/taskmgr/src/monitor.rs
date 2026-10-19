@@ -19,10 +19,15 @@ pub mod qobject {
         #[qproperty(QString, snapshot)]
         #[qproperty(QString, info)]
         #[qproperty(QString, processes)]
+        #[qproperty(QString, energy_request, cxx_name = "energyRequest")]
         type SystemMonitor = super::SystemMonitorRust;
 
         #[qinvokable]
         fn start(self: Pin<&mut SystemMonitor>);
+
+        #[qinvokable]
+        #[cxx_name = "requestEnergyAccess"]
+        fn request_energy_access(self: Pin<&mut SystemMonitor>);
 
         #[qinvokable]
         fn terminate(self: &SystemMonitor, pids: &QString, force: bool) -> QString;
@@ -38,6 +43,7 @@ pub struct SystemMonitorRust {
     snapshot: QString,
     info: QString,
     processes: QString,
+    energy_request: QString,
     started: bool,
 }
 
@@ -60,12 +66,14 @@ impl qobject::SystemMonitor {
             let mut last = Instant::now();
             loop {
                 let started = Instant::now();
-                let json = serde_json::to_string(&sampler.sample()).unwrap_or_default();
+                let snapshot = sampler.sample();
+                let json = serde_json::to_string(&snapshot).unwrap_or_default();
                 let windows = watcher.as_ref().and_then(|w| w.windows());
                 let groups = processes.sample(
                     &root,
                     started.duration_since(last).as_secs_f64(),
                     windows.as_ref(),
+                    &snapshot.gpus,
                 );
                 last = started;
                 let procs = serde_json::to_string(&groups).unwrap_or_default();
@@ -93,5 +101,22 @@ impl qobject::SystemMonitor {
         } else {
             "Accès refusé : ce processus appartient à un autre utilisateur ou au système."
         })
+    }
+
+    /// Runs pkexec off the GUI thread; `energyRequest` becomes "pending",
+    /// then "granted" or the error message.
+    pub fn request_energy_access(mut self: Pin<&mut Self>) {
+        if self.energy_request.to_string() == "pending" {
+            return;
+        }
+        self.as_mut().set_energy_request(QString::from("pending"));
+        let qt_thread = self.qt_thread();
+        thread::spawn(move || {
+            let result = match taskmgr_core::energy::grant_access(&Root::system()) {
+                Ok(()) => "granted".to_owned(),
+                Err(e) => e,
+            };
+            let _ = qt_thread.queue(move |o| o.set_energy_request(QString::from(&result)));
+        });
     }
 }

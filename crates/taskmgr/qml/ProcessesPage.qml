@@ -1,3 +1,4 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -17,6 +18,48 @@ ColumnLayout {
     property string error: ""
 
     readonly property real columnWidth: Kirigami.Units.gridUnit * 6.5
+    readonly property int logical: snapshot?.cpu.logical ?? 1
+    readonly property var dedicatedGpus: snapshot ? snapshot.gpus.filter(g => g.dedicated) : []
+
+    // Every metric column: key, header, header total, value and cell text.
+    readonly property var allColumns: {
+        const factor = prefs.cpuPerCore ? logical : 1
+        const s = snapshot
+        const cols = [
+            { key: "cpu", title: "Processeur", total: s ? Format.percent(s.cpu.usage * factor) : "",
+              value: x => x.cpu * factor, reference: 25 * factor, text: v => Format.num(v, 1) + " %" },
+            { key: "memory", title: "Mémoire", total: s ? Format.percent(s.memory.usage) : "",
+              value: x => x.memory, reference: 2 * 1024 * 1024 * 1024, text: v => Format.bytes(v) },
+            { key: "disk", title: "Disque",
+              total: s ? Format.num(s.disks.reduce((a, d) => a + d.read_bps + d.write_bps, 0) / 1048576, 1) + " Mo/s" : "",
+              value: x => x.disk_bps ?? -1, reference: 20 * 1024 * 1024,
+              text: v => v < 0 ? "" : Format.num(v / 1048576, 1) + " Mo/s" },
+        ]
+        for (const g of dedicatedGpus) {
+            cols.push({ key: "gpu" + g.index, title: "GPU " + g.index, tip: g.name, total: Format.percent(g.usage),
+                        value: x => x.gpu?.[g.index] ?? 0, reference: 50, text: v => Format.num(v, 0) + " %" })
+            cols.push({ key: "gpumem" + g.index, title: "Mém. GPU " + g.index, tip: g.name,
+                        total: g.memory_total ? Format.percent(g.memory_used / g.memory_total * 100) : "",
+                        value: x => x.gpu_memory?.[g.index] ?? 0, reference: 4 * 1024 * 1024 * 1024, text: v => v > 0 ? Format.bytes(v) : "" })
+        }
+        cols.push({ key: "threads", title: "Threads", total: s ? Format.num(s.cpu.threads, 0) : "",
+                    value: x => x.threads ?? (x.processes ?? []).reduce((a, p) => a + p.threads, 0), reference: 1e9, text: v => Format.num(v, 0) })
+        return cols
+    }
+    readonly property var columns: allColumns.filter(c => !prefs.hiddenList.includes(c.key))
+
+    Settings {
+        id: prefs
+        category: "processes"
+        property string hidden: "threads,gpumem1,gpumem0,gpumem2"
+        property bool cpuPerCore: false
+        readonly property var hiddenList: hidden.split(",")
+
+        function toggle(key) {
+            const list = hiddenList.filter(k => k !== "" && k !== key)
+            hidden = (hiddenList.includes(key) ? list : list.concat([key])).join(",")
+        }
+    }
     readonly property var sectionTitles: [
         ["app", "Applications"],
         ["background", "Processus en arrière-plan"],
@@ -29,7 +72,8 @@ ColumnLayout {
     spacing: 0
 
     function compare(column, descending) {
-        const value = x => column === "name" ? 0 : column === "disk" ? (x.disk_bps ?? -1) : x[column]
+        const def = allColumns.find(c => c.key === column)
+        const value = x => def ? def.value(x) : 0
         return (a, b) => {
             const r = column === "name"
                 ? a.name.localeCompare(b.name, Qt.locale().name, { sensitivity: "base" })
@@ -183,24 +227,16 @@ ColumnLayout {
             alignment: Qt.AlignLeft
             Layout.fillWidth: true
         }
-        HeaderCell {
-            column: "cpu"
-            title: "Processeur"
-            total: page.snapshot ? Format.percent(page.snapshot.cpu.usage) : ""
-            Layout.preferredWidth: page.columnWidth
-        }
-        HeaderCell {
-            column: "memory"
-            title: "Mémoire"
-            total: page.snapshot ? Format.percent(page.snapshot.memory.usage) : ""
-            Layout.preferredWidth: page.columnWidth
-        }
-        HeaderCell {
-            column: "disk"
-            title: "Disque"
-            total: page.snapshot && page.snapshot.disks.length > 0
-                ? Format.percent(Math.max(...page.snapshot.disks.map(d => d.active))) : ""
-            Layout.preferredWidth: page.columnWidth
+        Repeater {
+            model: page.columns
+            HeaderCell {
+                required property var modelData
+                column: modelData.key
+                title: modelData.title
+                total: modelData.total
+                tip: modelData.tip ?? ""
+                Layout.preferredWidth: page.columnWidth
+            }
         }
     }
 
@@ -261,6 +297,7 @@ ColumnLayout {
                 id: rowComponent
                 ProcessRow {
                     entry: slot.entry
+                    columns: page.columns
                     height: Kirigami.Units.gridUnit * 1.9
                     columnWidth: page.columnWidth
                     selected: page.selectedKey === slot.key
@@ -333,16 +370,47 @@ ColumnLayout {
         visible: false
     }
 
+    QQC2.Menu {
+        id: columnMenu
+
+        Repeater {
+            model: page.allColumns
+            QQC2.MenuItem {
+                required property var modelData
+                text: modelData.title + (modelData.tip ? "  (" + modelData.tip + ")" : "")
+                checkable: true
+                checked: !prefs.hiddenList.includes(modelData.key)
+                onTriggered: prefs.toggle(modelData.key)
+            }
+        }
+        QQC2.MenuSeparator {}
+        QQC2.MenuItem {
+            text: "Processeur en % d'un cœur (comme top)"
+            checkable: true
+            checked: prefs.cpuPerCore
+            onTriggered: prefs.cpuPerCore = !prefs.cpuPerCore
+        }
+    }
+
     component HeaderCell: QQC2.ItemDelegate {
         id: cell
         property string column
         property string title
         property string total: ""
+        property string tip: ""
         property int alignment: Qt.AlignRight
 
         padding: 0
         implicitHeight: Kirigami.Units.gridUnit * 3
         onClicked: page.sortBy(column)
+        QQC2.ToolTip.text: (tip ? tip + "\n" : "") + "Clic droit : choisir les colonnes"
+        QQC2.ToolTip.visible: hovered
+        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onTapped: columnMenu.popup()
+        }
         background: Rectangle {
             color: cell.hovered ? Qt.alpha(Kirigami.Theme.highlightColor, 0.08) : "transparent"
         }

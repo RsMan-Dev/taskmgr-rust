@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
 
 use crate::catalog::Catalog;
+use crate::gpu::GpuSnapshot;
 use crate::identity::{self, ENV_KEYS, Group, Identity, Kind, ProcFacts, Role};
 use crate::util::Root;
 use crate::windows::Window;
@@ -19,6 +20,11 @@ pub struct ProcessRow {
     pub command: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub windows: Vec<String>,
+    /// Keyed by GPU index, dedicated GPUs only.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub gpu: BTreeMap<usize, f64>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub gpu_memory: BTreeMap<usize, u64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -32,6 +38,8 @@ pub struct ProcessGroup {
     pub memory: u64,
     pub disk_bps: Option<f64>,
     pub windows: Vec<String>,
+    pub gpu: BTreeMap<usize, f64>,
+    pub gpu_memory: BTreeMap<usize, u64>,
     pub processes: Vec<ProcessRow>,
 }
 
@@ -150,7 +158,17 @@ impl ProcessSampler {
         root: &Root,
         secs: f64,
         windows: Option<&HashMap<u32, Vec<Window>>>,
+        gpus: &[GpuSnapshot],
     ) -> Vec<ProcessGroup> {
+        let mut gpu_use: HashMap<u32, Vec<(usize, f64, Option<u64>)>> = HashMap::new();
+        for g in gpus.iter().filter(|g| g.dedicated) {
+            for p in &g.processes {
+                gpu_use
+                    .entry(p.pid)
+                    .or_default()
+                    .push((g.index, p.usage, p.memory));
+            }
+        }
         let mut entries: Vec<Entry> = Vec::new();
         let mut seen = HashMap::new();
         for entry in root.list("/proc") {
@@ -219,6 +237,14 @@ impl ProcessSampler {
                 threads: stat.threads,
                 command: command.chars().take(400).collect(),
                 windows: Vec::new(),
+                gpu: gpu_use
+                    .get(&pid)
+                    .map(|v| v.iter().map(|(i, u, _)| (*i, *u)).collect())
+                    .unwrap_or_default(),
+                gpu_memory: gpu_use
+                    .get(&pid)
+                    .map(|v| v.iter().filter_map(|(i, _, m)| Some((*i, (*m)?))).collect())
+                    .unwrap_or_default(),
             };
             entries.push(Entry {
                 group: id.group,
@@ -247,6 +273,8 @@ impl ProcessSampler {
                     memory: 0,
                     disk_bps: None,
                     windows: Vec::new(),
+                    gpu: BTreeMap::new(),
+                    gpu_memory: BTreeMap::new(),
                     processes: Vec::new(),
                 });
             for v in &group.via {
@@ -260,6 +288,12 @@ impl ProcessSampler {
                 g.disk_bps = Some(g.disk_bps.unwrap_or(0.0) + d);
             }
             g.windows.extend(row.windows.iter().cloned());
+            for (i, u) in &row.gpu {
+                *g.gpu.entry(*i).or_default() += u;
+            }
+            for (i, m) in &row.gpu_memory {
+                *g.gpu_memory.entry(*i).or_default() += m;
+            }
             g.processes.push(row);
         }
 
@@ -391,7 +425,11 @@ mod tests {
         assert!(terminate(&[child.id() as i32], false));
         assert!(!child.wait().unwrap().success());
         // In a build sandbox pid 1 may be ours: only check denial when it is not.
-        let uid = |pid: &str| std::fs::read_to_string(format!("/proc/{pid}/status")).ok().and_then(|s| status_kb(&s, "Uid"));
+        let uid = |pid: &str| {
+            std::fs::read_to_string(format!("/proc/{pid}/status"))
+                .ok()
+                .and_then(|s| status_kb(&s, "Uid"))
+        };
         if uid("1").is_some() && uid("1") != uid("self") {
             assert!(!terminate(&[1], false));
         }
@@ -417,6 +455,8 @@ mod tests {
                 threads: 1,
                 command: String::new(),
                 windows: Vec::new(),
+                gpu: BTreeMap::new(),
+                gpu_memory: BTreeMap::new(),
             },
             ppid,
         }

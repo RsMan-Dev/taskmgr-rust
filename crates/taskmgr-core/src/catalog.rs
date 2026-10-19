@@ -19,6 +19,7 @@ pub struct Catalog {
     system_unit_dirs: Vec<String>,
     units: HashMap<(bool, String), Option<String>>,
     steam_libraries: Vec<String>,
+    icon_dirs: Vec<String>,
     steam: HashMap<String, Option<String>>,
 }
 
@@ -99,6 +100,10 @@ impl Catalog {
         c.user_unit_dirs = unit_dirs("user");
         c.system_unit_dirs = unit_dirs("system");
         c.steam_libraries = steam_libraries(root, &home);
+        c.icon_dirs = data_dirs
+            .iter()
+            .map(|d| format!("{d}/icons/hicolor"))
+            .collect();
         c
     }
 
@@ -179,6 +184,36 @@ impl Catalog {
         });
         self.steam.insert(app_id.to_owned(), name.clone());
         name
+    }
+}
+
+impl Catalog {
+    /// `steam_icon_<id>` exists only for games with a desktop shortcut; the
+    /// client icon in Steam's library cache is the fallback (a file path).
+    pub fn steam_icon(&self, root: &Root, app_id: &str) -> Option<String> {
+        let name = format!("steam_icon_{app_id}");
+        let themed = self.icon_dirs.iter().any(|d| {
+            root.list(d)
+                .iter()
+                .any(|size| root.exists(format!("{d}/{size}/apps/{name}.png")))
+        });
+        if themed {
+            return Some(name);
+        }
+        self.steam_libraries.iter().find_map(|lib| {
+            let dir = format!("{lib}/appcache/librarycache/{app_id}");
+            root.list(&dir)
+                .into_iter()
+                .filter(|f| f.ends_with(".jpg") || f.ends_with(".png") || f.ends_with(".ico"))
+                .map(|f| format!("{dir}/{f}"))
+                .filter(|p| root.path(p).is_file())
+                .min_by_key(|p| {
+                    std::fs::metadata(root.path(p))
+                        .map(|m| m.len())
+                        .unwrap_or(u64::MAX)
+                })
+                .map(|p| root.path(p).to_string_lossy().into_owned())
+        })
     }
 }
 

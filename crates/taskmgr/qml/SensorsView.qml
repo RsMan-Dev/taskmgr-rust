@@ -7,7 +7,6 @@ ColumnLayout {
     id: view
 
     property var groups: []
-    property var energy: null
 
     readonly property var icons: ({
         cpu: "cpu",
@@ -27,15 +26,6 @@ ColumnLayout {
             return Kirigami.Theme.neutralTextColor
         }
         return Kirigami.Theme.textColor
-    }
-
-    Kirigami.InlineMessage {
-        visible: view.energy?.status === "denied"
-        type: Kirigami.MessageType.Information
-        text: "Consommation du processeur indisponible : le noyau réserve le compteur RAPL à root. "
-            + "La règle udev qui l'ouvre, et son compromis de sécurité, sont décrits dans docs/energy.md."
-        Layout.fillWidth: true
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 48
     }
 
     Repeater {

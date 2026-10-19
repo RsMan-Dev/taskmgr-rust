@@ -130,6 +130,19 @@ impl Serialize for History {
     }
 }
 
+/// Named series for the small graphs under a main graph.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Charts(std::collections::BTreeMap<&'static str, History>);
+
+impl Charts {
+    /// Missing values are skipped, so a series exists only once measured.
+    pub fn push(&mut self, name: &'static str, value: Option<f64>) {
+        if let Some(v) = value {
+            self.0.entry(name).or_default().push(v);
+        }
+    }
+}
+
 pub fn rate(prev: u64, cur: u64, secs: f64) -> f64 {
     if secs <= 0.0 || cur < prev {
         0.0

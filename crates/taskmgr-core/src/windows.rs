@@ -7,7 +7,11 @@ use std::sync::{Arc, Mutex};
 use serde::Deserialize;
 use zbus::Connection;
 
-const PLUGIN: &str = "taskmgr-windows";
+/// One script per instance, so two windows of the app do not steal it from
+/// each other.
+fn plugin(pid: u32) -> String {
+    format!("taskmgr-windows-{pid}")
+}
 const INTERFACE: &str = "org.taskmgr.Windows";
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -76,7 +80,7 @@ impl WindowWatcher {
             .await
             .ok()?;
         let path = script_path();
-        remove_stale_scripts(&path);
+        remove_stale_scripts(&conn, &path).await;
         std::fs::write(&path, script(&service)).ok()?;
 
         let scripting = |method: &'static str| {
@@ -88,9 +92,13 @@ impl WindowWatcher {
             )
         };
         let (d, p, i, m) = scripting("unloadScript");
-        let _ = conn.call_method(d, p, i, m, &(PLUGIN,)).await;
+        let _ = conn
+            .call_method(d, p, i, m, &(plugin(std::process::id()),))
+            .await;
         let (d, p, i, m) = scripting("loadScript");
-        let reply = conn.call_method(d, p, i, m, &(path.as_str(), PLUGIN)).await;
+        let reply = conn
+            .call_method(d, p, i, m, &(path.as_str(), plugin(std::process::id())))
+            .await;
         let id: i32 = reply.ok()?.body().deserialize().ok()?;
         if id < 0 {
             let _ = std::fs::remove_file(&path);
@@ -129,15 +137,15 @@ pub fn unload() {
             "/Scripting",
             Some("org.kde.kwin.Scripting"),
             "unloadScript",
-            &(PLUGIN,),
+            &(plugin(std::process::id()),),
         )
         .await
     });
     let _ = std::fs::remove_file(script_path());
 }
 
-/// Files left by instances that were killed.
-fn remove_stale_scripts(current: &str) {
+/// Scripts and files left by instances that were killed.
+async fn remove_stale_scripts(conn: &Connection, current: &str) {
     let Some(dir) = std::path::Path::new(current).parent() else {
         return;
     };
@@ -149,8 +157,19 @@ fn remove_stale_scripts(current: &str) {
         let pid = name
             .strip_prefix("taskmgr-windows-")
             .and_then(|n| n.strip_suffix(".js"));
-        if pid.is_some_and(|p| !std::path::Path::new(&format!("/proc/{p}")).exists()) {
+        if let Some(p) = pid.and_then(|p| p.parse::<u32>().ok())
+            && !std::path::Path::new(&format!("/proc/{p}")).exists()
+        {
             let _ = std::fs::remove_file(e.path());
+            let _ = conn
+                .call_method(
+                    Some("org.kde.KWin"),
+                    "/Scripting",
+                    Some("org.kde.kwin.Scripting"),
+                    "unloadScript",
+                    &(plugin(p),),
+                )
+                .await;
         }
     }
 }
@@ -168,7 +187,7 @@ impl Drop for WindowWatcher {
             "/Scripting",
             Some("org.kde.kwin.Scripting"),
             "unloadScript",
-            &(PLUGIN,),
+            &(plugin(std::process::id()),),
         ));
         let _ = std::fs::remove_file(&self.path);
     }

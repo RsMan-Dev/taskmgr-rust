@@ -43,6 +43,25 @@ QtObject {
         return mhz ? num(mhz / 1000, 2) + " GHz" : "—"
     }
 
+    function mhz(v) {
+        if (v === null || v === undefined) {
+            return "—"
+        }
+        return v >= 1000 ? num(v / 1000, 2) + " GHz" : num(v, 0) + " MHz"
+    }
+
+    function watts(v) {
+        return v === null || v === undefined ? "—" : num(v, v < 10 ? 1 : 0) + " W"
+    }
+
+    function millivolts(v) {
+        return v === null || v === undefined ? "—" : num(v / 1000, 3) + " V"
+    }
+
+    function link(mbps) {
+        return mbps >= 1000 ? num(mbps / 1000, 1) + " Gb/s" : mbps + " Mb/s"
+    }
+
     function temperature(c) {
         return c === null || c === undefined ? "—" : num(c, 0) + " °C"
     }
