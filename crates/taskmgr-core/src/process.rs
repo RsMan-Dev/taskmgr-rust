@@ -390,7 +390,11 @@ mod tests {
             .unwrap();
         assert!(terminate(&[child.id() as i32], false));
         assert!(!child.wait().unwrap().success());
-        assert!(!terminate(&[1], false));
+        // In a build sandbox pid 1 may be ours: only check denial when it is not.
+        let uid = |pid: &str| std::fs::read_to_string(format!("/proc/{pid}/status")).ok().and_then(|s| status_kb(&s, "Uid"));
+        if uid("1").is_some() && uid("1") != uid("self") {
+            assert!(!terminate(&[1], false));
+        }
         assert!(terminate(&[child.id() as i32], true));
     }
 

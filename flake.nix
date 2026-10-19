@@ -24,6 +24,37 @@
         kiconthemes
       ];
     in {
+      packages = forAll (pkgs: {
+        default = pkgs.rustPlatform.buildRustPackage {
+          pname = "taskmgr";
+          version = "0.1.0";
+          src = self;
+          cargoLock.lockFile = ./Cargo.lock;
+          cargoBuildFlags = [ "-p" "taskmgr" ];
+          cargoTestFlags = [ "--workspace" ];
+
+          nativeBuildInputs = [ pkgs.pkg-config pkgs.kdePackages.wrapQtAppsHook ];
+          buildInputs = runtimeQt pkgs;
+          # The session's QML paths point at the desktop's own Kirigami, which
+          # may be built against another Qt and would shadow ours.
+          qtWrapperArgs = [ "--unset" "QML2_IMPORT_PATH" "--unset" "QML_IMPORT_PATH" ];
+
+          preBuild = ''
+            export QMAKE="${pkgs.qt6.env "taskmgr-qt" (with pkgs.qt6; [ qtdeclarative qtwayland qtsvg ])}/bin/qmake"
+          '';
+
+          postInstall = ''
+            install -Dm644 packaging/org.taskmgr.desktop $out/share/applications/org.taskmgr.desktop
+          '';
+
+          meta = {
+            description = "Linux task manager that resolves processes through Flatpak, Wine, Steam and AppImage";
+            mainProgram = "taskmgr";
+            platforms = pkgs.lib.platforms.linux;
+          };
+        };
+      });
+
       devShells = forAll (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [

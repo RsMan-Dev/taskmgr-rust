@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Task Manager
+Name[fr]=Gestionnaire des tâches
+GenericName=System Monitor
+GenericName[fr]=Moniteur système
+Comment=Processes grouped by application, performance and system information
+Comment[fr]=Processus regroupés par application, performances et informations système
+Exec=taskmgr
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;Qt;KDE;
+Keywords=process;task;cpu;memory;disk;gpu;sensor;processus;tâche;
+StartupWMClass=taskmgr
