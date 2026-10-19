@@ -16,7 +16,21 @@ ColumnLayout {
     property var toggled: ({})
 
     readonly property real unit: Kirigami.Units.gridUnit
-    readonly property var inventory: monitor.inventory !== "" ? JSON.parse(monitor.inventory) : []
+    readonly property var parsed: monitor.inventory !== "" ? JSON.parse(monitor.inventory) : []
+    // Readings no component claims (board chips, batteries, fans) get a
+    // node of their own.
+    readonly property var inventory: {
+        const claimed = new Set()
+        const walk = nodes => nodes.forEach(n => {
+            if (n.live) {
+                claimed.add(n.live)
+            }
+            walk(n.children ?? [])
+        })
+        walk(parsed)
+        const rest = readings.filter(g => !claimed.has(g.key)).map(g => ({ label: g.name, live: g.key }))
+        return parsed.length > 0 && rest.length > 0 ? parsed.concat([{ label: "Sensors", children: rest }]) : parsed
+    }
     readonly property var power: monitor.power !== "" ? JSON.parse(monitor.power) : null
     readonly property string query: search.text.trim().toLowerCase()
     readonly property var profileNames: ({
@@ -62,8 +76,8 @@ ColumnLayout {
     function childrenOf(n) {
         const kids = n.children ?? []
         const live = n.live ? liveByKey[n.live] ?? [] : []
-        if (live.length === 0) {
-            return kids
+        if (live.length === 0 || kids.length === 0) {
+            return live.length > 0 ? live : kids
         }
         // After the fields of the component, before its sub-components.
         const at = kids.findIndex(k => (k.children ?? []).length > 0)
@@ -181,7 +195,7 @@ ColumnLayout {
         keyOf: r => r.key
         ordered: true
         indentUnit: chevron
-        placeholder: tree.inventory.length === 0 ? qsTr("Reading the hardware…") : qsTr("Nothing matches")
+        placeholder: tree.parsed.length === 0 ? qsTr("Reading the hardware…") : qsTr("Nothing matches")
         Layout.fillWidth: true
         Layout.fillHeight: true
         columns: [

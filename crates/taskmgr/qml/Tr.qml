@@ -165,6 +165,8 @@ QtObject {
         QT_TRANSLATE_NOOP("core", "Chassis"),
         QT_TRANSLATE_NOOP("core", "Other"),
         QT_TRANSLATE_NOOP("core", "Unknown hypervisor"),
+        QT_TRANSLATE_NOOP("core", "Graphics card"),
+        QT_TRANSLATE_NOOP("core", "Sensors"),
     ]
 
     readonly property var patterns: [
@@ -183,6 +185,9 @@ QtObject {
         [/^(\d+)-way$/, QT_TRANSLATE_NOOP("core", "%1-way")],
         [/^Slot (\d+)$/, QT_TRANSLATE_NOOP("core", "Slot %1")],
         [/^(.+) \(maximum (.+)\)$/, QT_TRANSLATE_NOOP("core", "%1 (maximum %2)")],
+        [/^Fan (\d+)$/, QT_TRANSLATE_NOOP("core", "Fan %1")],
+        [/^(.+) fans$/, QT_TRANSLATE_NOOP("core", "%1 fans")],
+        [/^(.+) duty$/, QT_TRANSLATE_NOOP("core", "%1 duty cycle")],
         [/^(.+) \(removable\)$/, QT_TRANSLATE_NOOP("core", "%1 (removable)")],
     ]
 

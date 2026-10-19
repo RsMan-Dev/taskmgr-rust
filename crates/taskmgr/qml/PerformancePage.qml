@@ -21,6 +21,7 @@ Item {
         voltage: "#fdbc4b",
         power: "#27ae60",
         efficiency: "#1abc9c",
+        fan: "#3daee9",
     })
 
     property string selectedKey: "cpu"
@@ -52,6 +53,7 @@ Item {
             .concat(s.networks.map(n => "net:" + n.name))
             .concat(s.gpus.map(g => "gpu:" + g.pci_slot))
             .concat(s.batteries.map(b => "battery:" + b.name))
+            .concat(s.fans.map(f => "fan:" + f.key))
             .concat(["consumption"])
             .concat(s.sensors.length > 0 ? ["sensors"] : [])
             .join(",")
@@ -70,6 +72,7 @@ Item {
         case "disk": return devices.disk(s, id)
         case "net": return devices.net(s, id)
         case "gpu": return devices.gpu(s, id)
+        case "fan": return devices.fan(s, id)
         case "sensors": return devices.sensors(s)
         }
         return null

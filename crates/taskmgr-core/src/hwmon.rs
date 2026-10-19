@@ -36,6 +36,17 @@ impl Chip {
             .collect()
     }
 
+    /// N of every `<prefix>N<suffix>` file, in order.
+    pub fn indices(&self, root: &Root, prefix: &str, suffix: &str) -> Vec<u32> {
+        let mut out: Vec<u32> = root
+            .list(&self.dir)
+            .iter()
+            .filter_map(|f| f.strip_prefix(prefix)?.strip_suffix(suffix)?.parse().ok())
+            .collect();
+        out.sort_unstable();
+        out
+    }
+
     /// `tempN_max` or `tempN_crit` in degrees, ignoring placeholder values.
     pub fn limit(&self, root: &Root, n: u32, kind: &str) -> Option<f64> {
         let v = root.read_i64(format!("{}/temp{n}_{kind}", self.dir))? as f64 / 1000.0;

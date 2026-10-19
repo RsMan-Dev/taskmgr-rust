@@ -11,6 +11,7 @@ pub mod cpu;
 pub mod crashes;
 pub mod disk;
 pub mod energy;
+pub mod fans;
 pub mod gpu;
 pub mod hwmon;
 pub mod identity;
@@ -49,6 +50,7 @@ pub struct Snapshot {
     pub sensors: Vec<sensors::SensorGroup>,
     pub energy: energy::EnergySnapshot,
     pub batteries: Vec<battery::BatterySnapshot>,
+    pub fans: Vec<fans::FanSnapshot>,
     pub consumption: consumption::ConsumptionSnapshot,
     pub readings: Vec<readings::ReadingGroup>,
 }
@@ -64,6 +66,7 @@ pub struct Sampler {
     sensors: sensors::SensorSampler,
     energy: energy::EnergySampler,
     batteries: battery::BatterySampler,
+    fans: fans::FanSampler,
     consumption: consumption::ConsumptionSampler,
     readings: readings::ReadingTracker,
     /// Core voltage from the root helper, used when no driver exposes one.
@@ -83,6 +86,7 @@ impl Sampler {
             sensors: Default::default(),
             energy: Default::default(),
             batteries: Default::default(),
+            fans: Default::default(),
             consumption: Default::default(),
             readings: Default::default(),
             fallback_voltage: None,
@@ -113,6 +117,7 @@ impl Sampler {
             sensors: self.sensors.sample(root, &chips, &disks, &gpus),
             energy: self.energy.sample(root, secs),
             batteries,
+            fans: self.fans.sample(root, &chips),
             consumption,
             disks,
             gpus,

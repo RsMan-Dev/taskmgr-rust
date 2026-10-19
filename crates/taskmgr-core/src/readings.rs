@@ -24,7 +24,7 @@ pub struct Reading {
 pub struct ReadingGroup {
     pub key: String,
     pub name: String,
-    /// cpu, memory, gpu, disk, network, board, battery, other.
+    /// cpu, memory, gpu, disk, network, board, battery, fans, other.
     pub kind: &'static str,
     pub readings: Vec<Reading>,
 }
@@ -158,6 +158,21 @@ impl ReadingTracker {
             let mut g = self.group(format!("battery:{}", b.name), b.model.clone(), "battery");
             g.add("Charge", "percent", b.percent);
             g.add("Power", "watts", b.watts);
+            out.push(g.group);
+        }
+
+        let mut sources: Vec<&str> = Vec::new();
+        for f in &s.fans {
+            if !sources.contains(&f.source.as_str()) {
+                sources.push(&f.source);
+            }
+        }
+        for src in sources {
+            let mut g = self.group(format!("fans:{src}"), format!("{src} fans"), "fans");
+            for f in s.fans.iter().filter(|f| f.source == src) {
+                g.add(f.name.clone(), "rpm", f.rpm);
+                g.add(format!("{} duty", f.name), "percent", f.percent);
+            }
             out.push(g.group);
         }
 

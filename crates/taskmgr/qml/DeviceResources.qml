@@ -171,6 +171,39 @@ QtObject {
     }
     }
 
+    function fan(s, id) {
+    const f = s.fans.find(x => x.key === id)
+    if (!f) {
+        return null
+    }
+    const top = f.max_rpm ?? Format.niceMax(Math.max(...f.history, 0), 1000)
+    return {
+        title: qsTr("Fan"),
+        subtitle: Tr.core(f.name),
+        summary: ResourceKit.summary(f.percent !== null ? Format.percent(f.percent) : "",
+                                     f.rpm !== null ? qsTr("%1 RPM").arg(Format.num(f.rpm, 0)) : ""),
+        header: Tr.core(f.source),
+        color: colors.fan,
+        chartLabel: qsTr("Speed"),
+        maximum: top,
+        maximumLabel: qsTr("%1 RPM").arg(Format.num(top, 0)),
+        series: [ResourceKit.series(f.history, colors.fan)],
+        secondChart: f.percent !== null ? {
+            label: qsTr("Duty cycle (PWM)"),
+            maximum: 100,
+            maximumLabel: "100 %",
+            series: [ResourceKit.series(f.percent_history, Qt.darker(colors.fan, 1.4))],
+        } : null,
+        stats: [
+            [qsTr("Speed"), f.rpm !== null ? qsTr("%1 RPM").arg(Format.num(f.rpm, 0)) : "—"],
+        ].concat(f.percent !== null ? [[qsTr("Duty cycle"), Format.percent(f.percent)]] : []),
+        details: ResourceKit.details([
+            [qsTr("Maximum speed"), f.max_rpm ? qsTr("%1 RPM").arg(Format.num(f.max_rpm, 0)) : null],
+            [qsTr("Sensor"), f.key],
+        ]),
+    }
+    }
+
     function sensors(s) {
     const all = [].concat(...s.sensors.map(g => g.sensors))
     const hottest = all.reduce((a, b) => b.value > a.value ? b : a)
