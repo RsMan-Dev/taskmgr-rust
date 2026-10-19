@@ -14,12 +14,17 @@ Pages:
   application with their window titles (KDE Plasma), heat-mapped columns,
   end task (SIGTERM) and kill (SIGKILL).
 - **Performance**: one entry per CPU, memory, disk (with SMART health),
-  network adapter, GPU and battery, power and clocks, sensors.
+  network adapter, GPU and battery, power use of everything that reports
+  it, sensors.
 - **Details**, **Startup apps**, **Users**, **Services** (with their journal).
-- **Connections**: TCP and UDP sockets grouped by application.
+- **Connections**: TCP, UDP and named Unix sockets grouped by application,
+  with who can reach each one (this computer, local network, everyone).
 - **Crashes**: crashed processes from the systemd journal, with the stack
   trace when systemd-coredump recorded one.
-- **System**: a summary of the machine.
+- **Benchmark**: CPU, memory and disk scores compared with the previous
+  run, and a stability test for overclocking that counts miscalculations.
+- **System**: a summary of the machine, and every reading (clocks per
+  processor, temperatures, power, voltages, fans) with its min and max.
 
 Never run it as root. Optional data needs the administrator password once
 (per-process network, CPU voltage) or a udev rule (CPU power, see

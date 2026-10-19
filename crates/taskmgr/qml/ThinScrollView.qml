@@ -5,8 +5,10 @@ import QtQuick.Controls as QQC2
 QQC2.ScrollView {
     id: view
 
-    rightPadding: QQC2.ScrollBar.vertical.visible ? QQC2.ScrollBar.vertical.width : 0
-    bottomPadding: QQC2.ScrollBar.horizontal.visible ? QQC2.ScrollBar.horizontal.height : 0
+    // The bar's room is kept even when it hides: following its visibility
+    // would loop (less room, different content size, different visibility).
+    rightPadding: QQC2.ScrollBar.vertical.policy === QQC2.ScrollBar.AlwaysOff ? 0 : QQC2.ScrollBar.vertical.thickness
+    bottomPadding: QQC2.ScrollBar.horizontal.policy === QQC2.ScrollBar.AlwaysOff ? 0 : QQC2.ScrollBar.horizontal.thickness
 
     QQC2.ScrollBar.vertical: ThinScrollBar {
         parent: view
