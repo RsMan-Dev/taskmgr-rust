@@ -28,6 +28,7 @@ pub mod qobject {
         #[qproperty(QString, snapshot)]
         #[qproperty(QString, info)]
         #[qproperty(QString, processes)]
+        #[qproperty(bool, restricted)]
         #[qproperty(QString, services)]
         #[qproperty(QString, autostart)]
         #[qproperty(QString, energy_request, cxx_name = "energyRequest")]
@@ -182,6 +183,7 @@ pub struct SystemMonitorRust {
     snapshot: QString,
     info: QString,
     processes: QString,
+    restricted: bool,
     services: QString,
     autostart: QString,
     energy_request: QString,

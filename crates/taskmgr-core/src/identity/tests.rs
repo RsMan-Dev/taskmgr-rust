@@ -26,7 +26,7 @@ fn catalog() -> Catalog {
 }
 
 fn resolve_one(f: &ProcFacts) -> Identity {
-    resolve(f, &mut catalog(), &Root::new("/nonexistent"))
+    resolve(f, None, &mut catalog(), &Root::new("/nonexistent"))
 }
 
 #[test]
@@ -267,7 +267,7 @@ fn programs_outside_units_are_matched_to_their_desktop_entry() {
     let session = "/user.slice/user-1000.slice/session-2.scope";
     let mut f = facts("evince", &["evince", "a.pdf"], session, &[]);
     f.exe = Some("/nix/store/x-evince/bin/.evince-wrapped".into());
-    let id = resolve(&f, &mut catalog, &root);
+    let id = resolve(&f, None, &mut catalog, &root);
     assert_eq!(
         (id.group.key.as_str(), id.launched),
         ("app:org.gnome.Evince", true)
@@ -279,7 +279,10 @@ fn programs_outside_units_are_matched_to_their_desktop_entry() {
         &[],
     );
     assert_eq!(
-        resolve(&pwa, &mut catalog, &root).group.name.as_deref(),
+        resolve(&pwa, None, &mut catalog, &root)
+            .group
+            .name
+            .as_deref(),
         Some("Notes")
     );
     let in_unit = facts(
@@ -288,5 +291,5 @@ fn programs_outside_units_are_matched_to_their_desktop_entry() {
         &format!("{APP}app-org.kde.konsole-1.scope"),
         &[],
     );
-    assert!(!resolve(&in_unit, &mut catalog, &root).launched);
+    assert!(!resolve(&in_unit, None, &mut catalog, &root).launched);
 }

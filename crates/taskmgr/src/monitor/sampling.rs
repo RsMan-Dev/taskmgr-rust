@@ -51,13 +51,14 @@ impl Monitor {
                     let rates = helper.map(|h| h.net);
                     let secs = started.duration_since(last).as_secs_f64();
                     last = started;
-                    json(&processes.sample(
+                    let groups = processes.sample(
                         &root,
                         secs,
                         windows.as_ref(),
                         &snapshot.gpus,
                         rates.as_ref(),
-                    ))
+                    );
+                    (json(&groups), processes.restricted())
                 });
                 // Command lines are long and change rarely: every few samples.
                 let details = (wanted && (!was_wanted || count.is_multiple_of(3)))
@@ -69,7 +70,8 @@ impl Monitor {
                     if let Some(d) = details {
                         o.as_mut().set_process_details(d);
                     }
-                    if let Some(p) = procs {
+                    if let Some((p, restricted)) = procs {
+                        o.as_mut().set_restricted(restricted);
                         o.set_processes(p);
                     }
                 });

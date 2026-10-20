@@ -13,7 +13,7 @@ shows up as the game, not as `wine64-preloader` and `pressure-vessel`.
   fan and sensor.
 - **Details, services, startup apps, users, connections, crashes,
   benchmarks** and a hardware tree with live readings.
-- Native look on KDE Plasma, works on GNOME and other desktops, English
+- The same Breeze look on KDE Plasma, GNOME and other desktops, English
   and French.
 
 ![Performance](assets/screenshots/performance.png)

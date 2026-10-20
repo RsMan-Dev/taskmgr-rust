@@ -189,7 +189,7 @@ ThinScrollView {
             }
             QQC2.Label {
                 Kirigami.FormData.label: qsTr("Application:")
-                text: "taskmgr-rust 0.1.0  (fr.rsman.taskmgr-rust)"
+                text: "taskmgr-rust 0.1.1  (fr.rsman.taskmgr-rust)"
             }
             QQC2.Label {
                 Kirigami.FormData.label: qsTr("License:")

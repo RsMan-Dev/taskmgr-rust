@@ -166,31 +166,6 @@ fn move_subtrees(entries: &mut [Entry], moves: Vec<(u32, Group)>) {
     }
 }
 
-/// When the environment of other processes cannot be read (another user
-/// namespace, as under appimage-run, or hidepid), a Steam game is still
-/// found from the `SteamLaunch AppId=<id>` of the reaper that starts it.
-pub(super) fn apply_steam_launches(entries: &mut [Entry], mut game: impl FnMut(&str) -> Group) {
-    let mut moves = Vec::new();
-    for e in entries.iter() {
-        let Some(rest) = e
-            .row
-            .command
-            .split_once("SteamLaunch AppId=")
-            .map(|(_, r)| r)
-        else {
-            continue;
-        };
-        let id: String = rest.chars().take_while(char::is_ascii_digit).collect();
-        if id.is_empty() || id == "0" || e.group.key == format!("steam:{id}") {
-            continue;
-        }
-        let mut group = game(&id);
-        group.via = vec!["Steam", "Proton"];
-        moves.push((e.row.pid, group));
-    }
-    move_subtrees(entries, moves);
-}
-
 /// Sums the rows of each group. With the window list, "application" means
 /// "has a window", as on Windows.
 pub(super) fn collect(entries: Vec<Entry>, with_windows: bool) -> Vec<ProcessGroup> {
@@ -392,32 +367,6 @@ mod tests {
                 "session:session-2.scope"
             ]
         );
-    }
-
-    #[test]
-    fn steam_games_found_from_the_reaper_command_line() {
-        let mut entries = vec![
-            entry(10, 1, "app:steam", &[]),
-            entry(20, 10, "app:steam", &[]),
-            entry(21, 20, "app:steam", &[]),
-            entry(22, 21, "app:steam", &[]),
-        ];
-        entries[1].row.command = "reaper SteamLaunch AppId=361420 -- proton".into();
-        entries[3].row.name = "Game.exe".into();
-        apply_steam_launches(&mut entries, |id| Group {
-            key: format!("steam:{id}"),
-            name: Some("Game".into()),
-            icon: None,
-            kind: Kind::App,
-            via: vec![],
-        });
-        let keys: Vec<&str> = entries.iter().map(|e| e.group.key.as_str()).collect();
-        assert_eq!(
-            keys,
-            ["app:steam", "steam:361420", "steam:361420", "steam:361420"]
-        );
-        assert_eq!(entries[1].group.via, vec!["Steam"]);
-        assert_eq!(entries[3].group.via, vec!["Steam", "Proton"]);
     }
 
     #[test]

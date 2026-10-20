@@ -8,11 +8,13 @@ use serde::Serialize;
 use crate::catalog::Catalog;
 use crate::util::Root;
 
+mod context;
 mod naming;
 #[cfg(test)]
 mod tests;
 mod units;
 
+pub use context::Context;
 pub use naming::process_name;
 use naming::role;
 use units::{Location, app_unit_id, appimage_name, humanize, locate, mount_point, unit_name};
@@ -76,6 +78,8 @@ pub struct Identity {
     /// Group found from the program and a desktop entry, not from systemd:
     /// its descendants join it.
     pub launched: bool,
+    /// Inherited by the children, which are resolved after their parent.
+    pub context: Context,
 }
 
 fn app_group(id: &str, catalog: &Catalog, via: &mut Vec<&'static str>) -> Group {
@@ -114,7 +118,7 @@ fn app_group(id: &str, catalog: &Catalog, via: &mut Vec<&'static str>) -> Group 
 }
 
 /// A Steam game, named from its app manifest.
-pub fn steam_group(id: &str, catalog: &mut Catalog, root: &Root) -> Group {
+fn steam_group(id: &str, catalog: &mut Catalog, root: &Root) -> Group {
     Group {
         key: format!("steam:{id}"),
         name: catalog.steam_game(root, id),
@@ -124,15 +128,17 @@ pub fn steam_group(id: &str, catalog: &mut Catalog, root: &Root) -> Group {
     }
 }
 
-pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
+pub fn resolve(
+    f: &ProcFacts,
+    parent: Option<&Context>,
+    catalog: &mut Catalog,
+    root: &Root,
+) -> Identity {
+    let context = Context::of(f, parent);
     let name = process_name(f);
     let role = role(f, &name);
     let mut via: Vec<&'static str> = Vec::new();
-    let steam_id = ["SteamAppId", "SteamGameId"]
-        .iter()
-        .filter_map(|k| f.env.get(*k))
-        .find(|v| v.parse::<u64>().is_ok_and(|n| n > 0))
-        .cloned();
+    let steam_id = context.steam_app.clone();
     let location = locate(&f.cgroup);
     let launch = match location {
         Location::Session(_) | Location::Other(_) => {
@@ -225,15 +231,15 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
             },
         }
     };
-    if f.env.contains_key("FLATPAK_ID") && !via.contains(&"Flatpak") {
+    if context.flatpak && !via.contains(&"Flatpak") {
         via.push("Flatpak");
     }
-    if f.env.contains_key("APPIMAGE") && !via.contains(&"AppImage") {
+    if context.appimage && !via.contains(&"AppImage") {
         via.push("AppImage");
     }
-    if f.env.contains_key("STEAM_COMPAT_DATA_PATH") {
+    if context.proton {
         via.push("Proton");
-    } else if f.env.contains_key("WINEPREFIX") || name.to_lowercase().ends_with(".exe") {
+    } else if context.wine || name.to_lowercase().ends_with(".exe") {
         via.push("Wine");
     }
     group.via = via;
@@ -242,5 +248,6 @@ pub fn resolve(f: &ProcFacts, catalog: &mut Catalog, root: &Root) -> Identity {
         name,
         role,
         launched,
+        context,
     }
 }

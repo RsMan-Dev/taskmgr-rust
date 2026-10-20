@@ -182,9 +182,18 @@ ColumnLayout {
     }
 
     Kirigami.InlineMessage {
+        visible: page.monitor.restricted
+        type: Kirigami.MessageType.Information
+        text: qsTr("The app runs in a sandbox (such as appimage-run) that hides part of what other processes do: their disk activity cannot be read.")
+        Layout.fillWidth: true
+        Layout.leftMargin: Kirigami.Units.gridUnit
+        Layout.rightMargin: Kirigami.Units.gridUnit
+    }
+
+    Kirigami.InlineMessage {
         readonly property string access: page.monitor.networkAccess
         readonly property bool failed: access !== "" && access !== "pending" && access !== "active"
-        visible: !Prefs.isHidden("net") && access !== "active"
+        visible: !Prefs.isHidden("net") && access !== "active" && !page.monitor.restricted
         type: failed ? Kirigami.MessageType.Error : Kirigami.MessageType.Information
         text: access === "pending" ? qsTr("Waiting for the administrator password…")
             : failed ? Tr.core(access)

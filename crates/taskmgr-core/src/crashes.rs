@@ -85,7 +85,7 @@ struct Namer {
 
 impl Namer {
     fn name(&mut self, root: &Root, facts: &ProcFacts) -> (String, String, Option<String>) {
-        let id = identity::resolve(facts, &mut self.catalog, root);
+        let id = identity::resolve(facts, None, &mut self.catalog, root);
         let name = id.group.name.clone().unwrap_or_else(|| id.name.clone());
         (name, id.group.key, id.group.icon)
     }

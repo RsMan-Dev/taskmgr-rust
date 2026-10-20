@@ -3,6 +3,8 @@
 mod control;
 mod grouping;
 mod procfs;
+#[cfg(test)]
+mod tests;
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
@@ -12,7 +14,7 @@ use serde::Serialize;
 pub use control::{PriorityError, Signal, Target, send, set_priority, set_priority_as_admin};
 use grouping::Entry;
 pub(crate) use procfs::Users;
-use procfs::{cgroup_path, io_bytes, parse_stat, split_nul, status_kb};
+use procfs::{cgroup_path, io_bytes, parents_first, parse_stat, split_nul, status_kb};
 
 use crate::catalog::Catalog;
 use crate::gpu::GpuSnapshot;
@@ -113,6 +115,7 @@ impl Details {
 }
 
 pub struct ProcessSampler {
+    restricted: bool,
     users: Users,
     catalog: Catalog,
     prev: HashMap<u32, Prev>,
@@ -125,6 +128,12 @@ pub struct ProcessSampler {
     cpus: f64,
 }
 
+/// The initial user namespace has a fixed inode number (PROC_USER_INIT_INO).
+fn in_child_user_namespace(root: &Root) -> bool {
+    std::fs::read_link(root.path("/proc/self/ns/user"))
+        .is_ok_and(|l| l.to_string_lossy() != "user:[4026531837]")
+}
+
 impl ProcessSampler {
     pub fn new(root: &Root) -> Self {
         let hz = rustix::param::clock_ticks_per_second();
@@ -135,6 +144,7 @@ impl ProcessSampler {
             identities: HashMap::new(),
             details: HashMap::new(),
             samples: 0,
+            restricted: in_child_user_namespace(root),
             tick_hz: if hz > 0 { hz as f64 } else { 100.0 },
             cpus: std::thread::available_parallelism().map_or(1, |n| n.get()) as f64,
         }
@@ -171,6 +181,13 @@ impl ProcessSampler {
 
     /// Command line and executable of every process seen in the last
     /// sample, by pid.
+    /// Running in a user namespace of its own (appimage-run, bwrap): the
+    /// kernel hides the environment, executable and I/O of the processes
+    /// outside it.
+    pub fn restricted(&self) -> bool {
+        self.restricted
+    }
+
     pub fn details(&self) -> HashMap<u32, &Details> {
         self.details.iter().map(|((pid, _), d)| (*pid, d)).collect()
     }
@@ -209,19 +226,22 @@ impl ProcessSampler {
             let _ = write!(path, "/proc/{pid}/{file}");
             root.read_into(&path, buf)
         };
+        let mut procs = Vec::new();
         for entry in root.list("/proc") {
             let Ok(pid) = entry.parse::<u32>() else {
                 continue;
             };
-            let Some(stat) = read(pid, "stat", &mut text)
+            if let Some(stat) = read(pid, "stat", &mut text)
                 .then(|| parse_stat(&text))
                 .flatten()
-            else {
-                continue;
-            };
-            if pid == 2 || stat.ppid == 2 {
-                continue;
+                .filter(|s| pid != 2 && s.ppid != 2)
+            {
+                procs.push((pid, stat));
             }
+        }
+        // Parents first: a process inherits its launch context.
+        let mut contexts: HashMap<u32, identity::Context> = HashMap::new();
+        for (pid, stat) in parents_first(procs) {
             read(pid, "status", &mut status);
             let io = read(pid, "io", &mut text)
                 .then(|| io_bytes(&text))
@@ -255,11 +275,13 @@ impl ProcessSampler {
                     if facts.cmdline.is_empty() && facts.cgroup.is_empty() {
                         continue;
                     }
-                    let id = identity::resolve(&facts, &mut self.catalog, root);
+                    let parent = contexts.get(&stat.ppid);
+                    let id = identity::resolve(&facts, parent, &mut self.catalog, root);
                     self.identities.insert(key, id.clone());
                     id
                 }
             };
+            contexts.insert(pid, id.context.clone());
             let refresh = self.samples.is_multiple_of(DETAILS_REFRESH);
             let details = self
                 .details
@@ -317,8 +339,6 @@ impl ProcessSampler {
         self.prev = seen;
         grouping::join_launchers(&mut entries);
         grouping::group_by_tree(&mut entries);
-        let catalog = &mut self.catalog;
-        grouping::apply_steam_launches(&mut entries, |id| identity::steam_group(id, catalog, root));
         if let Some(windows) = windows {
             grouping::apply_windows(&mut entries, windows, &self.catalog);
         }

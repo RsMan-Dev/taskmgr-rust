@@ -1,6 +1,6 @@
 //! Parsing of /proc/<pid> files.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::util::Root;
 
@@ -12,6 +12,30 @@ pub(super) struct Stat {
     pub ticks: u64,
     pub threads: u64,
     pub start: u64,
+}
+
+/// Processes ordered so that each comes after its parent.
+pub(super) fn parents_first(procs: Vec<(u32, Stat)>) -> Vec<(u32, Stat)> {
+    let pids: HashSet<u32> = procs.iter().map(|(p, _)| *p).collect();
+    let mut children: HashMap<u32, Vec<(u32, Stat)>> = HashMap::new();
+    let mut out = Vec::with_capacity(procs.len());
+    for (pid, stat) in procs {
+        if pids.contains(&stat.ppid) && stat.ppid != pid {
+            children.entry(stat.ppid).or_default().push((pid, stat));
+        } else {
+            out.push((pid, stat));
+        }
+    }
+    let mut i = 0;
+    while i < out.len() {
+        if let Some(kids) = children.remove(&out[i].0) {
+            out.extend(kids);
+        }
+        i += 1;
+    }
+    // A parent loop (pid reuse between two reads) leaves stragglers.
+    out.extend(children.into_values().flatten());
+    out
 }
 
 pub(super) fn parse_stat(text: &str) -> Option<Stat> {
