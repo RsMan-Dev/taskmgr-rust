@@ -50,7 +50,7 @@
         } "bash ${./packaging/appimage.sh}";
         default = pkgs.rustPlatform.buildRustPackage {
           pname = "taskmgr";
-          version = "0.1.2";
+          version = "0.1.3";
           src = self;
           cargoLock.lockFile = ./Cargo.lock;
           cargoBuildFlags = [ "-p" "taskmgr" "-p" "taskmgr-core" "--bins" ];
@@ -85,7 +85,7 @@
         let
           probe = p: p.pkgsStatic.rustPlatform.buildRustPackage {
             pname = "taskmgr-probe";
-            version = "0.1.2";
+            version = "0.1.3";
             src = self;
             cargoLock.lockFile = ./Cargo.lock;
             cargoBuildFlags = [ "-p" "taskmgr-core" "--examples" "--bins" ];

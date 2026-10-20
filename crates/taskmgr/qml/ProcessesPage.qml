@@ -328,9 +328,12 @@ ColumnLayout {
             text: qsTr("No matching process")
         }
 
-        Kirigami.LoadingPlaceholder {
+        // Created only while waiting: its Breeze progress bar animates, and
+        // makes the window repaint, even when hidden.
+        Loader {
             anchors.centerIn: parent
-            visible: page.groups === null
+            active: page.groups === null && page.visible
+            sourceComponent: Kirigami.LoadingPlaceholder {}
         }
     }
 

@@ -6,4 +6,4 @@ members = ["crates/taskmgr-core", "crates/taskmgr"]
 license = "MIT"
 edition = "2024"
 rust-version = "1.88"
-version = "0.1.2"
+version = "0.1.3"
