@@ -38,9 +38,17 @@ pub fn local_port(packet: &[u8], outgoing: bool) -> Option<(Proto, u16)> {
     Some((proto, if outgoing { port(0)? } else { port(2)? }))
 }
 
-/// Socket inode per local port, from /proc/net/{tcp,udp}{,6}.
+/// Socket inode per local port, from netlink sock_diag, else from
+/// /proc/net/{tcp,udp}{,6}.
 pub fn port_inodes(root: &Root) -> HashMap<(Proto, u16), u64> {
     let mut map = HashMap::new();
+    if let Some(sockets) = crate::sockdiag::for_root(root) {
+        for s in sockets.into_iter().filter(|s| s.inode != 0) {
+            let proto = if s.tcp { Proto::Tcp } else { Proto::Udp };
+            map.entry((proto, s.local_port)).or_insert(s.inode);
+        }
+        return map;
+    }
     for (file, proto) in [
         ("tcp", Proto::Tcp),
         ("tcp6", Proto::Tcp),
@@ -130,6 +138,8 @@ pub type Rates = HashMap<u32, (f64, f64)>;
 #[derive(Clone, Debug, Default)]
 pub struct HelperData {
     pub net: Rates,
+    /// Bytes read and written so far, per pid: readable by root only.
+    pub io: HashMap<u32, u64>,
     /// Per logical processor, from MSRs (see `msr`).
     pub vcore: Option<Vec<f64>>,
 }
@@ -137,6 +147,8 @@ pub struct HelperData {
 #[derive(serde::Deserialize)]
 struct HelperLine {
     net: HashMap<String, (f64, f64)>,
+    #[serde(default)]
+    io: HashMap<String, u64>,
     vcore: Option<Vec<f64>>,
 }
 
@@ -153,7 +165,7 @@ pub fn helper_path() -> Option<String> {
     if beside.is_file() {
         return Some(beside.to_string_lossy().into_owned());
     }
-    crate::energy::find_program("taskmgr-helper", &[])
+    crate::util::find_program("taskmgr-helper", &[])
 }
 
 /// Starts the helper through pkexec and stores each line it prints in
@@ -164,47 +176,60 @@ pub fn run_helper(
     latest: &std::sync::Mutex<Option<HelperData>>,
     mut on_start: impl FnMut(),
 ) -> Result<(), String> {
-    use std::io::BufRead;
+    use std::io::{BufRead, Read};
     let helper = helper_path().ok_or("taskmgr-helper not found.")?;
-    let mut child = crate::admin::pkexec()?
-        .arg(helper)
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    let _stdin = child.stdin.take();
-    let stdout = child.stdout.take().ok_or("no output")?;
-    let mut started = false;
-    for line in std::io::BufReader::new(stdout).lines() {
-        let Ok(line) = line else { break };
-        let Ok(parsed) = serde_json::from_str::<HelperLine>(&line) else {
-            continue;
-        };
-        let net: Rates = parsed
-            .net
-            .into_iter()
-            .filter_map(|(k, v)| Some((k.parse().ok()?, v)))
-            .collect();
+    crate::admin::run_as_root(&[helper], |mut command| {
+        let mut child = command
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        let _stdin = child.stdin.take();
+        let stdout = child.stdout.take().ok_or("no output")?;
+        let mut stderr = child.stderr.take().ok_or("no error output")?;
+        let errors = std::thread::spawn(move || {
+            let mut text = String::new();
+            let _ = stderr.read_to_string(&mut text);
+            text
+        });
+        let mut started = false;
+        for line in std::io::BufReader::new(stdout).lines() {
+            let Ok(line) = line else { break };
+            let Ok(parsed) = serde_json::from_str::<HelperLine>(&line) else {
+                continue;
+            };
+            let net: Rates = parsed
+                .net
+                .into_iter()
+                .filter_map(|(k, v)| Some((k.parse().ok()?, v)))
+                .collect();
+            if let Ok(mut l) = latest.lock() {
+                *l = Some(HelperData {
+                    net,
+                    io: parsed
+                        .io
+                        .into_iter()
+                        .filter_map(|(k, v)| Some((k.parse().ok()?, v)))
+                        .collect(),
+                    vcore: parsed.vcore,
+                });
+            }
+            if !started {
+                started = true;
+                on_start();
+            }
+        }
         if let Ok(mut l) = latest.lock() {
-            *l = Some(HelperData {
-                net,
-                vcore: parsed.vcore,
-            });
+            *l = None;
         }
-        if !started {
-            started = true;
-            on_start();
-        }
-    }
-    if let Ok(mut l) = latest.lock() {
-        *l = None;
-    }
-    let status = child.wait().map_err(|e| e.to_string())?;
-    if started {
-        return Ok(());
-    }
-    crate::admin::outcome(status)
+        let status = child.wait().map_err(|e| e.to_string())?;
+        let stderr = errors.join().unwrap_or_default();
+        Ok(match started {
+            true => crate::admin::Attempt::Started,
+            false => crate::admin::Attempt::Ended(status, stderr),
+        })
+    })
 }
 
 #[cfg(test)]

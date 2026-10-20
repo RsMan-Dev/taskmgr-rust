@@ -2,23 +2,26 @@
 
 mod control;
 mod grouping;
+mod io;
 mod procfs;
 #[cfg(test)]
 mod tests;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write;
 
 use serde::Serialize;
 
 pub use control::{PriorityError, Signal, Target, send, set_priority, set_priority_as_admin};
 use grouping::Entry;
+pub use io::io_totals;
 pub(crate) use procfs::Users;
-use procfs::{cgroup_path, io_bytes, parents_first, parse_stat, split_nul, status_kb};
+use procfs::{ProcDir, cgroup_path, io_bytes, parents_first, parse_stat, split_nul, status_kb};
 
 use crate::catalog::Catalog;
 use crate::gpu::GpuSnapshot;
 use crate::identity::{self, ENV_KEYS, Identity, Kind, ProcFacts, Role};
+use crate::netflow::HelperData;
 use crate::util::Root;
 use crate::windows::Window;
 
@@ -101,15 +104,14 @@ pub struct Details {
 }
 
 impl Details {
-    fn read(root: &Root, pid: u32) -> Self {
-        let command = std::fs::read(root.path(format!("/proc/{pid}/cmdline")))
+    fn read(dir: &ProcDir) -> Self {
+        let command = dir
+            .read("cmdline")
             .map(|b| split_nul(&b).join(" "))
             .unwrap_or_default();
         Self {
             command: command.chars().take(400).collect(),
-            exe: std::fs::read_link(root.path(format!("/proc/{pid}/exe")))
-                .ok()
-                .map(|p| p.to_string_lossy().into_owned()),
+            exe: dir.link("exe"),
         }
     }
 }
@@ -119,7 +121,9 @@ pub struct ProcessSampler {
     users: Users,
     catalog: Catalog,
     prev: HashMap<u32, Prev>,
-    identities: HashMap<(u32, u64, String), Identity>,
+    /// With the cgroup, for the disk activity of unreadable processes.
+    identities: HashMap<(u32, u64, String), (Identity, String)>,
+    cgroup_io: io::CgroupIo,
     /// Command line and executable per (pid, start): re-read now and then
     /// (programs may retitle themselves), not every second.
     details: HashMap<(u32, u64), Details>,
@@ -142,6 +146,7 @@ impl ProcessSampler {
             catalog: Catalog::load(root),
             prev: HashMap::new(),
             identities: HashMap::new(),
+            cgroup_io: io::CgroupIo::default(),
             details: HashMap::new(),
             samples: 0,
             restricted: in_child_user_namespace(root),
@@ -150,9 +155,9 @@ impl ProcessSampler {
         }
     }
 
-    fn facts(root: &Root, pid: u32, comm: &str) -> ProcFacts {
-        let dir = format!("/proc/{pid}");
-        let env = std::fs::read(root.path(format!("{dir}/environ")))
+    fn facts(dir: &ProcDir, comm: &str) -> ProcFacts {
+        let env = dir
+            .read("environ")
             .map(|b| {
                 split_nul(&b)
                     .into_iter()
@@ -165,15 +170,14 @@ impl ProcessSampler {
             .unwrap_or_default();
         ProcFacts {
             comm: comm.to_owned(),
-            cmdline: std::fs::read(root.path(format!("{dir}/cmdline")))
+            cmdline: dir
+                .read("cmdline")
                 .map(|b| split_nul(&b))
                 .unwrap_or_default(),
-            exe: std::fs::read_link(root.path(format!("{dir}/exe")))
-                .ok()
-                .map(|p| p.to_string_lossy().into_owned()),
-            cgroup: root
-                .read(format!("{dir}/cgroup"))
-                .and_then(|c| cgroup_path(&c))
+            exe: dir.link("exe"),
+            cgroup: dir
+                .read("cgroup")
+                .and_then(|c| cgroup_path(&String::from_utf8_lossy(&c)))
                 .unwrap_or_default(),
             env,
         }
@@ -198,8 +202,9 @@ impl ProcessSampler {
         secs: f64,
         windows: Option<&HashMap<u32, Vec<Window>>>,
         gpus: &[GpuSnapshot],
-        net: Option<&HashMap<u32, (f64, f64)>>,
+        helper: Option<&HelperData>,
     ) -> Vec<ProcessGroup> {
+        let net = helper.map(|h| &h.net);
         let mut gpu_use: HashMap<u32, Vec<(usize, f64, Option<u64>)>> = HashMap::new();
         let mut video: HashMap<u32, (f64, f64)> = HashMap::new();
         // Without a dedicated card, the integrated one is what the
@@ -221,17 +226,18 @@ impl ProcessSampler {
         let mut entries: Vec<Entry> = Vec::new();
         let mut seen = HashMap::new();
         let (mut path, mut text, mut status) = (String::new(), String::new(), String::new());
-        let mut read = |pid: u32, file: &str, buf: &mut String| {
-            path.clear();
-            let _ = write!(path, "/proc/{pid}/{file}");
-            root.read_into(&path, buf)
-        };
         let mut procs = Vec::new();
+        // Whether no process of a cgroup has readable I/O counters.
+        let mut cgroups: HashMap<String, bool> = HashMap::new();
+        let mut entry_cgroups: Vec<String> = Vec::new();
         for entry in root.list("/proc") {
             let Ok(pid) = entry.parse::<u32>() else {
                 continue;
             };
-            if let Some(stat) = read(pid, "stat", &mut text)
+            path.clear();
+            let _ = write!(path, "/proc/{pid}/stat");
+            if let Some(stat) = root
+                .read_into(&path, &mut text)
                 .then(|| parse_stat(&text))
                 .flatten()
                 .filter(|s| pid != 2 && s.ppid != 2)
@@ -241,11 +247,26 @@ impl ProcessSampler {
         }
         // Parents first: a process inherits its launch context.
         let mut contexts: HashMap<u32, identity::Context> = HashMap::new();
-        for (pid, stat) in parents_first(procs) {
-            read(pid, "status", &mut status);
-            let io = read(pid, "io", &mut text)
+        for (pid, listed) in parents_first(procs) {
+            // Everything below comes from this one process: its stat is read
+            // again through the open directory, the pid may have been reused.
+            let Some(dir) = ProcDir::open(root, pid) else {
+                continue;
+            };
+            let Some(stat) = dir
+                .read_into("stat", &mut text)
+                .then(|| parse_stat(&text))
+                .flatten()
+                .filter(|s| s.start == listed.start)
+            else {
+                continue;
+            };
+            dir.read_into("status", &mut status);
+            let io = dir
+                .read_into("io", &mut text)
                 .then(|| io_bytes(&text))
-                .flatten();
+                .flatten()
+                .or_else(|| helper.and_then(|h| h.io.get(&pid).copied()));
             let (cpu, disk_bps) = match self
                 .prev
                 .get(&pid)
@@ -268,19 +289,21 @@ impl ProcessSampler {
             );
 
             let key = (pid, stat.start, stat.comm.clone());
-            let id = match self.identities.get(&key) {
-                Some(id) => id.clone(),
+            let (id, cgroup) = match self.identities.get(&key) {
+                Some(known) => known.clone(),
                 None => {
-                    let facts = Self::facts(root, pid, &stat.comm);
+                    let facts = Self::facts(&dir, &stat.comm);
                     if facts.cmdline.is_empty() && facts.cgroup.is_empty() {
                         continue;
                     }
                     let parent = contexts.get(&stat.ppid);
                     let id = identity::resolve(&facts, parent, &mut self.catalog, root);
-                    self.identities.insert(key, id.clone());
-                    id
+                    self.identities
+                        .insert(key, (id.clone(), facts.cgroup.clone()));
+                    (id, facts.cgroup)
                 }
             };
+            *cgroups.entry(cgroup.clone()).or_insert(true) &= io.is_none();
             contexts.insert(pid, id.context.clone());
             let refresh = self.samples.is_multiple_of(DETAILS_REFRESH);
             let details = self
@@ -288,10 +311,10 @@ impl ProcessSampler {
                 .entry((pid, stat.start))
                 .and_modify(|d| {
                     if refresh {
-                        *d = Details::read(root, pid);
+                        *d = Details::read(&dir);
                     }
                 })
-                .or_insert_with(|| Details::read(root, pid))
+                .or_insert_with(|| Details::read(&dir))
                 .clone();
             let row = ProcessRow {
                 pid,
@@ -329,7 +352,20 @@ impl ProcessSampler {
                 row,
                 ppid: stat.ppid,
                 launched: id.launched,
+                cgroup_disk: None,
             });
+            entry_cgroups.push(cgroup);
+        }
+        // Cgroups where no process could be read: their own counters, given
+        // to the group of one of their processes.
+        let blind: HashSet<&str> = cgroups
+            .iter()
+            .filter(|(_, b)| **b)
+            .map(|(c, _)| c.as_str())
+            .collect();
+        let mut rates = self.cgroup_io.rates(root, &blind, secs);
+        for (entry, cgroup) in entries.iter_mut().zip(&entry_cgroups) {
+            entry.cgroup_disk = rates.remove(cgroup);
         }
         self.identities
             .retain(|(pid, start, _), _| seen.get(pid).is_some_and(|p| p.start == *start));

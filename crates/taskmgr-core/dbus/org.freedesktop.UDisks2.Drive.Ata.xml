@@ -1,0 +1,11 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- udisks 2.11.1, data/org.freedesktop.UDisks2.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.UDisks2.Drive.Ata">
+    <method name="SmartGetAttributes">
+      <arg name="options" direction="in" type="a{sv}"/>
+      <arg name="attributes" direction="out" type="a(ysqiiixia{sv})"/>
+    </method>
+  </interface>
+</node>

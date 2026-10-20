@@ -114,6 +114,11 @@ impl Catalog {
         };
         c.user_unit_dirs = unit_dirs("user");
         c.system_unit_dirs = unit_dirs("system");
+        // Units made on the fly by run0, systemd-run, container managers.
+        c.system_unit_dirs.push("/run/systemd/transient".to_owned());
+        let uid = rustix::process::getuid().as_raw();
+        c.user_unit_dirs
+            .push(format!("/run/user/{uid}/systemd/transient"));
         c.steam_libraries = steam_libraries(root, &home);
         c.icon_dirs = data_dirs
             .iter()
@@ -188,6 +193,8 @@ impl Catalog {
         })
     }
 
+    /// Units started by run0 or systemd-run (`[run0] /usr/bin/foo -x`) are
+    /// described by their command line: the program name reads better.
     pub fn unit_description(&mut self, root: &Root, unit: &str, user: bool) -> Option<String> {
         let key = (user, unit.to_owned());
         if let Some(d) = self.units.get(&key) {
@@ -213,6 +220,7 @@ impl Catalog {
                     .map(|s| s.trim().replace("%i", instance).replace("%I", instance))
             })
         });
+        let desc = desc.map(|d| program_of(&d).unwrap_or(d));
         self.units.insert(key, desc.clone());
         desc
     }
@@ -290,6 +298,18 @@ fn steam_libraries(root: &Root, home: &str) -> Vec<String> {
     libs
 }
 
+/// The program of a description that is only a command line.
+fn program_of(desc: &str) -> Option<String> {
+    let command = match desc.strip_prefix('[') {
+        Some(rest) => rest.split_once("] ")?.1,
+        None => desc,
+    };
+    let program = command.split_whitespace().next()?;
+    program
+        .starts_with('/')
+        .then(|| program.rsplit('/').next().unwrap_or(program).to_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -313,5 +333,16 @@ mod tests {
     fn vdf_paths() {
         let vdf = "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"/mnt/Steam\"\n\t}\n}\n";
         assert_eq!(vdf_values(vdf, "path"), vec!["/mnt/Steam"]);
+    }
+
+    #[test]
+    fn names_transient_units_by_program() {
+        assert_eq!(
+            program_of("[run0] /run/user/1000/taskmgr-helper").as_deref(),
+            Some("taskmgr-helper")
+        );
+        assert_eq!(program_of("/usr/bin/foo -x").as_deref(), Some("foo"));
+        assert_eq!(program_of("Network Manager"), None);
+        assert_eq!(program_of("[Docker] container"), None);
     }
 }

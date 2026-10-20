@@ -9,7 +9,11 @@ mod details;
 
 pub use details::{SmartAttribute, SmartDetails, details};
 use zbus::Connection;
+use zbus::fdo::ObjectManagerProxy;
 use zbus::{ObjectPath, OwnedObjectPath, OwnedVariant, Variant};
+
+use crate::dbus::udisks_ata::AtaProxy;
+use crate::dbus::udisks_nvme::ControllerProxy;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Health {
@@ -32,8 +36,9 @@ pub struct Health {
 }
 
 type Properties = HashMap<String, OwnedVariant>;
-type Objects = HashMap<OwnedObjectPath, HashMap<String, Properties>>;
+type Objects = zbus::fdo::ManagedObjects;
 
+const BUS: &str = "org.freedesktop.UDisks2";
 const ATA: &str = "org.freedesktop.UDisks2.Drive.Ata";
 const NVME: &str = "org.freedesktop.UDisks2.NVMe.Controller";
 
@@ -42,6 +47,15 @@ where
     T: TryFrom<&'a Variant<'a>>,
 {
     props.get(key).and_then(|v| T::try_from(v).ok())
+}
+
+async fn managed_objects(conn: &Connection) -> zbus::Result<Objects> {
+    let manager = ObjectManagerProxy::builder(conn)
+        .destination(BUS)
+        .path("/org/freedesktop/UDisks2")
+        .build()
+        .await?;
+    Ok(manager.get_managed_objects().await?)
 }
 
 impl Health {
@@ -74,15 +88,11 @@ type Attribute = (
 /// Temperature attributes (190, 194) that went over their limit once say
 /// the drive overheated, not that it wears out.
 async fn only_overheated(conn: &Connection, path: &OwnedObjectPath) -> bool {
-    let Ok(proxy) = zbus::Proxy::new(conn, "org.freedesktop.UDisks2", path.as_str(), ATA).await
-    else {
+    let proxy = AtaProxy::builder(conn).destination(BUS).path(path.as_str());
+    let Ok(proxy) = proxy.build().await else {
         return false;
     };
-    let none: HashMap<&str, Variant> = HashMap::new();
-    let Ok(attributes) = proxy
-        .call::<_, _, Vec<Attribute>>("SmartGetAttributes", &(none,))
-        .await
-    else {
+    let Ok(attributes) = proxy.smart_get_attributes(HashMap::new()).await else {
         return false;
     };
     let past: Vec<u8> = attributes
@@ -131,11 +141,13 @@ async fn nvme(conn: &Connection, path: &OwnedObjectPath, p: &Properties) -> Opti
     if get::<u64>(p, "SmartUpdated").unwrap_or(0) == 0 {
         return None;
     }
-    let proxy = zbus::Proxy::new(conn, "org.freedesktop.UDisks2", path.as_str(), NVME)
+    let proxy = ControllerProxy::builder(conn)
+        .destination(BUS)
+        .path(path.as_str())
+        .build()
         .await
         .ok()?;
-    let none: HashMap<&str, Variant> = HashMap::new();
-    let a: Properties = proxy.call("SmartGetAttributes", &(none,)).await.ok()?;
+    let a: Properties = proxy.smart_get_attributes(HashMap::new()).await.ok()?;
     let byte = |k: &str| get::<u8>(&a, k).map(u64::from);
     let mut h = Health {
         power_on_hours: get::<u64>(p, "SmartPowerOnHours"),
@@ -174,14 +186,7 @@ async fn nvme(conn: &Connection, path: &OwnedObjectPath, p: &Properties) -> Opti
 
 async fn read_bus() -> zbus::Result<BTreeMap<String, Health>> {
     let conn = Connection::system().await?;
-    let manager = zbus::Proxy::new(
-        &conn,
-        "org.freedesktop.UDisks2",
-        "/org/freedesktop/UDisks2",
-        "org.freedesktop.DBus.ObjectManager",
-    )
-    .await?;
-    let objects: Objects = manager.call("GetManagedObjects", &()).await?;
+    let objects = managed_objects(&conn).await?;
     let mut drives: HashMap<&str, Health> = HashMap::new();
     for (path, interfaces) in &objects {
         let health = if let Some(p) = interfaces.get(ATA) {

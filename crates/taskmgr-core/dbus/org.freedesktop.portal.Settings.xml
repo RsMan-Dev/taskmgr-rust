@@ -1,0 +1,12 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- xdg-desktop-portal 1.22.1, share/dbus-1/interfaces/org.freedesktop.portal.Settings.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.portal.Settings">
+    <method name="ReadOne">
+      <arg type="s" name="namespace" direction="in"/>
+      <arg type="s" name="key" direction="in"/>
+      <arg type="v" name="value" direction="out"/>
+    </method>
+  </interface>
+</node>

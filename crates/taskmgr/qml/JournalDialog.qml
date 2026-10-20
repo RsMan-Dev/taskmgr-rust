@@ -23,6 +23,7 @@ QQC2.Dialog {
         dialog.title = title
         query = q
         filter.text = ""
+        children.checked = !!q.children
         reload()
         open()
     }
@@ -69,6 +70,18 @@ QQC2.Dialog {
                 id: filter
                 placeholderText: qsTr("Filter messages")
                 Layout.fillWidth: true
+            }
+            QQC2.CheckBox {
+                id: children
+                visible: (dialog.query.pids ?? []).length > 0
+                text: qsTr("Include child processes")
+                onToggled: {
+                    dialog.query = Object.assign({}, dialog.query, { children: checked })
+                    dialog.reload()
+                }
+                QQC2.ToolTip.text: qsTr("Adds what the running processes started by this one logged.")
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
             }
             QQC2.CheckBox {
                 id: errorsOnly

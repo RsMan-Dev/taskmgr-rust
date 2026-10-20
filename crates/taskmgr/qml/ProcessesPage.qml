@@ -40,7 +40,20 @@ ColumnLayout {
         ["system", qsTr("System processes")],
     ]
 
-    readonly property var table: build(groups, search.text.trim().toLowerCase(), sortColumn, sortDescending, expanded)
+    // Development aid (TASKMGR_SELECT=expand:<name>): groups opened at start.
+    property string expandFirst: ""
+    onGroupsChanged: {
+        if (expandFirst && groups) {
+            for (const g of groups.filter(g => g.name.toLowerCase().includes(expandFirst))) {
+                setExpanded(g.key, true)
+            }
+            expandFirst = ""
+        }
+    }
+    // Process rows whose children are hidden, by row key.
+    property var collapsed: ({})
+    readonly property var table: ProcessTable.build(groups, sectionTitles, search.text.trim().toLowerCase(),
+                                                    compare(sortColumn, sortDescending), expanded, collapsed)
     readonly property var selected: table.data[selectedKey] ?? null
 
     spacing: 0
@@ -61,45 +74,6 @@ ColumnLayout {
         }
     }
 
-    function build(groups, query, column, descending, expanded) {
-        const keys = []
-        const data = {}
-        if (!groups) {
-            return { keys: keys, data: data }
-        }
-        const cmp = compare(column, descending)
-        const roleRank = { normal: 0, infra: 1, wrapper: 2 }
-        const matches = p => p.name.toLowerCase().includes(query) || String(p.pid) === query
-        for (const [kind, title] of sectionTitles) {
-            let list = groups.filter(g => g.kind === kind)
-            if (query !== "") {
-                list = list.filter(g => g.name.toLowerCase().includes(query) || g.processes.some(matches))
-            }
-            if (list.length === 0) {
-                continue
-            }
-            keys.push("s:" + kind)
-            data["s:" + kind] = { type: "section", title: title, count: list.length }
-            list.sort(cmp)
-            for (const g of list) {
-                const gk = "g:" + g.key
-                keys.push(gk)
-                data[gk] = { type: "group", group: g }
-                const open = expanded[g.key] || (query !== "" && g.processes.some(matches))
-                if (!open || g.processes.length < 2) {
-                    continue
-                }
-                const procs = g.processes.slice().sort((a, b) => roleRank[a.role ?? "normal"] - roleRank[b.role ?? "normal"] || cmp(a, b))
-                for (const p of procs) {
-                    const pk = "p:" + g.key + ":" + p.pid
-                    keys.push(pk)
-                    data[pk] = { type: "process", proc: p, group: g }
-                }
-            }
-        }
-        return { keys: keys, data: data }
-    }
-
     onTableChanged: rows.sync(table.keys)
 
     function setExpanded(groupKey, open) {
@@ -110,6 +84,38 @@ ColumnLayout {
             delete e[groupKey]
         }
         expanded = e
+    }
+
+    function noticeOf(column) {
+        const access = monitor.networkAccess
+        if (column === "net" && access !== "active") {
+            return access === "pending" ? qsTr("Waiting for the administrator password…")
+                : qsTr("Measuring each process's traffic needs administrator rights: click to enable.")
+        }
+        if (column === "disk" && monitor.restricted && access !== "active") {
+            return qsTr("The app runs in a sandbox (such as appimage-run): disk activity is counted per app, from the system's cgroups, not per process. Enabling the Network column (administrator rights) gives it per process.")
+        }
+        return ""
+    }
+
+    Connections {
+        target: page.monitor
+        function onNetworkAccessChanged() {
+            const access = page.monitor.networkAccess
+            if (access !== "" && access !== "pending" && access !== "active") {
+                page.error = Tr.core(access)
+            }
+        }
+    }
+
+    function toggleBranch(rowKey) {
+        const c = Object.assign({}, collapsed)
+        if (c[rowKey]) {
+            delete c[rowKey]
+        } else {
+            c[rowKey] = true
+        }
+        collapsed = c
     }
 
     // "pid:start" pairs: actions skip a process whose pid was reused.
@@ -182,42 +188,6 @@ ColumnLayout {
     }
 
     Kirigami.InlineMessage {
-        visible: page.monitor.restricted
-        type: Kirigami.MessageType.Information
-        text: qsTr("The app runs in a sandbox (such as appimage-run) that hides part of what other processes do: their disk activity cannot be read.")
-        Layout.fillWidth: true
-        Layout.leftMargin: Kirigami.Units.gridUnit
-        Layout.rightMargin: Kirigami.Units.gridUnit
-    }
-
-    Kirigami.InlineMessage {
-        readonly property string access: page.monitor.networkAccess
-        readonly property bool failed: access !== "" && access !== "pending" && access !== "active"
-        visible: !Prefs.isHidden("net") && access !== "active" && !page.monitor.restricted
-        type: failed ? Kirigami.MessageType.Error : Kirigami.MessageType.Information
-        text: access === "pending" ? qsTr("Waiting for the administrator password…")
-            : failed ? Tr.core(access)
-            : qsTr("The Network column measures each process's traffic and needs administrator rights.")
-        actions: [
-            Kirigami.Action {
-                text: qsTr("Enable…")
-                icon.source: Icons.of("admin", Kirigami.Theme.textColor)
-                enabled: page.monitor.networkAccess !== "pending"
-                onTriggered: page.monitor.enableNetworkMonitor()
-            },
-            Kirigami.Action {
-                text: qsTr("Hide the column")
-                icon.source: Icons.of("hide", Kirigami.Theme.textColor)
-                onTriggered: Prefs.toggleColumn("net")
-            }
-        ]
-        Layout.fillWidth: true
-        Layout.leftMargin: Kirigami.Units.gridUnit
-        Layout.rightMargin: Kirigami.Units.gridUnit
-        Layout.bottomMargin: Kirigami.Units.smallSpacing
-    }
-
-    Kirigami.InlineMessage {
         visible: page.error !== ""
         text: page.error
         type: Kirigami.MessageType.Error
@@ -258,6 +228,9 @@ ColumnLayout {
                     title: modelData.title
                     total: columnSet.totals[modelData.key] ?? ""
                     tip: modelData.tip ?? ""
+                    notice: page.noticeOf(column)
+                    noticeIcon: column === "net" ? "admin" : "warning"
+                    onNoticeClicked: if (column === "net" && page.monitor.networkAccess !== "pending") page.monitor.enableNetworkMonitor()
                     sorted: page.sortColumn === column
                     descending: page.sortDescending
                     onSortRequested: page.sortBy(column)
@@ -332,12 +305,12 @@ ColumnLayout {
                     columns: page.columns
                     height: Kirigami.Units.gridUnit * 1.9
                     selected: page.selectedKey === slot.key
-                    expanded: entry?.type === "group" && !!page.expanded[entry.group.key]
+                    expanded: entry?.type === "group" ? !!page.expanded[entry.group.key] : !page.collapsed[slot.key]
                     onClicked: {
                         page.selectedKey = slot.key
                         list.forceActiveFocus()
                     }
-                    onToggleRequested: page.setExpanded(entry.group.key, !expanded)
+                    onToggleRequested: entry.type === "group" ? page.setExpanded(entry.group.key, !expanded) : page.toggleBranch(slot.key)
                     onMenuRequested: (position) => {
                         page.selectedKey = slot.key
                         menu.entry = entry

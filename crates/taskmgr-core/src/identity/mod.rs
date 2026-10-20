@@ -164,12 +164,14 @@ pub fn resolve(
                 g
             }
 
+            // Without a desktop entry, a bus name reads worse than the
+            // program it starts.
             Location::DBus(id) => Group {
                 key: format!("dbus:{id}"),
                 name: Some(
                     catalog
                         .desktop(&id)
-                        .map_or_else(|| id.clone(), |e| e.name.clone()),
+                        .map_or_else(|| name.clone(), |e| e.name.clone()),
                 ),
                 icon: catalog.desktop(&id).and_then(|e| e.icon.clone()),
                 kind: Kind::Background,

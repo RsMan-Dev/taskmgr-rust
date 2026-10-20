@@ -1,0 +1,10 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- power-profiles-daemon 0.30, src/org.freedesktop.UPower.PowerProfiles.xml.in (@dbus_iface@ substituted); trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.UPower.PowerProfiles">
+    <property name="ActiveProfile" type="s" access="readwrite"/>
+    <property name="PerformanceDegraded" type="s" access="read"/>
+    <property name="Profiles" type="aa{sv}" access="read"/>
+  </interface>
+</node>

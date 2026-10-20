@@ -6,8 +6,9 @@ mod ffi {
     unsafe extern "C++" {
         include!("taskmgr/src/cpp/app.h");
 
-        /// Runs the event loop; returns the exit code.
-        fn taskmgr_run(args: &Vec<String>) -> i32;
+        /// Runs the event loop; returns the exit code. `accent`: the
+        /// desktop's accent colour as "r,g,b", or empty.
+        fn taskmgr_run(args: &Vec<String>, accent: &str) -> i32;
     }
 }
 

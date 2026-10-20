@@ -1,0 +1,15 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- NetworkManager 1.56.0, share/dbus-1/interfaces/org.freedesktop.NetworkManager.AccessPoint.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.NetworkManager.AccessPoint">
+    <property name="Ssid" type="ay" access="read">
+      <!-- gdbus-codegen assumes that "ay" means "non-UTF-8 string" and
+           won't deal with '\0' bytes correctly.
+      -->
+      <annotation name="org.gtk.GDBus.C.ForceGVariant" value="1"/>
+    </property>
+    <property name="Frequency" type="u" access="read"/>
+    <property name="Strength" type="y" access="read"/>
+  </interface>
+</node>

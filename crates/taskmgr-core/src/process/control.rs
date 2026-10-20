@@ -131,11 +131,10 @@ pub fn set_priority(target: Target, nice: i32) -> Result<(), PriorityError> {
     })
 }
 
-/// Same through pkexec and renice, for priorities only root may set.
+/// Same as root through renice, for priorities only root may set.
 /// Blocks until the password dialog is answered.
 pub fn set_priority_as_admin(pid: i32, nice: i32) -> Result<(), String> {
-    let mut pkexec = crate::admin::pkexec()?;
-    let renice = crate::energy::find_program(
+    let renice = crate::util::find_program(
         "renice",
         &[
             "/run/current-system/sw/bin/renice",
@@ -144,18 +143,14 @@ pub fn set_priority_as_admin(pid: i32, nice: i32) -> Result<(), String> {
         ],
     )
     .ok_or("renice not found.")?;
-    let status = pkexec
-        .args([
-            renice.as_str(),
-            "-n",
-            &nice.to_string(),
-            "-p",
-            &pid.to_string(),
-        ])
-        .stdout(std::process::Stdio::null())
-        .status()
-        .map_err(|e| e.to_string())?;
-    crate::admin::outcome(status)
+    let argv = [
+        renice,
+        "-n".into(),
+        nice.to_string(),
+        "-p".into(),
+        pid.to_string(),
+    ];
+    crate::admin::run_as_root(&argv, crate::admin::wait)
 }
 
 #[cfg(test)]

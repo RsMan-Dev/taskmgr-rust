@@ -180,6 +180,7 @@ fn services_and_system() {
         &[],
     ));
     assert_eq!(wallet.group.key, "dbus:org.kde.kwalletd6");
+    assert_eq!(wallet.group.name.as_deref(), Some("kwalletd6"));
     assert_eq!(wallet.group.kind, Kind::Background);
     let init = resolve_one(&facts(
         "systemd",
@@ -188,6 +189,15 @@ fn services_and_system() {
         &[],
     ));
     assert_eq!(init.group.name.as_deref(), Some("systemd"));
+    // run0 and systemd-run put their units in user.slice.
+    let run0 = resolve_one(&facts(
+        "taskmgr-helper",
+        &["/run/user/1000/taskmgr-helper"],
+        "/user.slice/run-p12-i34.service",
+        &[],
+    ));
+    assert_eq!(run0.group.key, "system:run-p12-i34");
+    assert_eq!(run0.group.kind, Kind::System);
 }
 
 #[test]

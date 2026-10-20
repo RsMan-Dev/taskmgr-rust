@@ -10,12 +10,16 @@ QQC2.ItemDelegate {
     property string title
     property string total: ""
     property string tip: ""
+    // A limit of the column (rights, sandbox), shown as an icon.
+    property string notice: ""
+    property string noticeIcon: "warning"
     property int alignment: Qt.AlignRight
     property bool sorted: false
     property bool descending: false
 
     signal sortRequested()
     signal columnsMenuRequested()
+    signal noticeClicked()
 
     padding: 0
     implicitHeight: Kirigami.Units.gridUnit * 3
@@ -56,6 +60,22 @@ QQC2.ItemDelegate {
             Layout.leftMargin: cell.alignment === Qt.AlignLeft ? Kirigami.Units.gridUnit : Kirigami.Units.largeSpacing
             Layout.rightMargin: Kirigami.Units.largeSpacing
             Layout.bottomMargin: Kirigami.Units.smallSpacing
+            QQC2.ToolButton {
+                visible: cell.notice !== ""
+                icon.source: Icons.of(cell.noticeIcon, Kirigami.Theme.textColor)
+                icon.width: Kirigami.Units.iconSizes.small
+                icon.height: Kirigami.Units.iconSizes.small
+                display: QQC2.AbstractButton.IconOnly
+                flat: true
+                padding: 0
+                text: cell.notice
+                onClicked: cell.noticeClicked()
+                QQC2.ToolTip.text: cell.notice
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.delay: 0
+                Layout.preferredWidth: Kirigami.Units.iconSizes.small + 4
+                Layout.preferredHeight: Kirigami.Units.iconSizes.small + 4
+            }
             Kirigami.Icon {
                 visible: cell.sorted
                 source: Icons.of(cell.descending ? "sort-down" : "sort-up", Kirigami.Theme.textColor)

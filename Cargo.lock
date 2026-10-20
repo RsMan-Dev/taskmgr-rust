@@ -748,7 +748,7 @@ dependencies = [
 
 [[package]]
 name = "taskmgr"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "cxx",
  "cxx-qt",
@@ -761,7 +761,7 @@ dependencies = [
 
 [[package]]
 name = "taskmgr-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "libc",
  "nix",

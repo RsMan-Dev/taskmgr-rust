@@ -18,7 +18,7 @@ QQC2.ItemDelegate {
     readonly property bool isGroup: entry?.type === "group"
     readonly property var group: entry?.group ?? null
     readonly property var proc: entry?.proc ?? null
-    readonly property bool expandable: isGroup && group.processes.length > 1
+    readonly property bool expandable: isGroup ? group.processes.length > 1 : !!entry?.branch
     readonly property var metrics: (isGroup ? group : proc) ?? {}
     readonly property bool secondary: !isGroup && !!proc && (proc.role ?? "normal") !== "normal"
 
@@ -51,11 +51,11 @@ QQC2.ItemDelegate {
             Layout.fillHeight: true
             // Without this the cell would never be narrower than its chips.
             Layout.minimumWidth: 0
-            Layout.leftMargin: row.isGroup ? Kirigami.Units.smallSpacing : Kirigami.Units.gridUnit * 2.6
+            Layout.leftMargin: row.isGroup ? Kirigami.Units.smallSpacing
+                : Kirigami.Units.gridUnit * (1.2 + 1.2 * (row.entry?.depth ?? 0))
             Layout.rightMargin: Kirigami.Units.smallSpacing
 
             QQC2.ToolButton {
-                visible: row.isGroup
                 enabled: row.expandable
                 opacity: row.expandable ? 1 : 0
                 icon.source: Icons.of(row.expanded ? "collapse" : "expand", Kirigami.Theme.textColor)

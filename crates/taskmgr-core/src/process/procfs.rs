@@ -1,8 +1,53 @@
 //! Parsing of /proc/<pid> files.
 
 use std::collections::{HashMap, HashSet};
+use std::io::Read;
+use std::os::fd::OwnedFd;
+
+use rustix::fs::{Mode, OFlags};
 
 use crate::util::Root;
+
+/// A process directory opened once: its files then all come from that
+/// process, even if it exits and its pid is reused in between.
+pub(super) struct ProcDir(OwnedFd);
+
+impl ProcDir {
+    pub fn open(root: &Root, pid: u32) -> Option<Self> {
+        let flags = OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC;
+        rustix::fs::open(root.path(format!("/proc/{pid}")), flags, Mode::empty())
+            .ok()
+            .map(Self)
+    }
+
+    fn file(&self, name: &str) -> Option<std::fs::File> {
+        rustix::fs::openat(
+            &self.0,
+            name,
+            OFlags::RDONLY | OFlags::CLOEXEC,
+            Mode::empty(),
+        )
+        .ok()
+        .map(std::fs::File::from)
+    }
+
+    pub fn read_into(&self, name: &str, buf: &mut String) -> bool {
+        buf.clear();
+        self.file(name)
+            .is_some_and(|mut f| f.read_to_string(buf).is_ok())
+    }
+
+    pub fn read(&self, name: &str) -> Option<Vec<u8>> {
+        let mut bytes = Vec::new();
+        self.file(name)?.read_to_end(&mut bytes).ok()?;
+        Some(bytes)
+    }
+
+    pub fn link(&self, name: &str) -> Option<String> {
+        let target = rustix::fs::readlinkat(&self.0, name, Vec::new()).ok()?;
+        Some(target.to_string_lossy().into_owned())
+    }
+}
 
 pub(super) struct Stat {
     pub comm: String,

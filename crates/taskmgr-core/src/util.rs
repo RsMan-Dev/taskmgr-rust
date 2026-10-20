@@ -48,6 +48,11 @@ impl Root {
         Self::new("/")
     }
 
+    /// The real system, where live sources (netlink, D-Bus) apply.
+    pub fn is_system(&self) -> bool {
+        self.base == Path::new("/")
+    }
+
     pub fn path(&self, abs: impl AsRef<Path>) -> PathBuf {
         let abs = abs.as_ref();
         self.base.join(abs.strip_prefix("/").unwrap_or(abs))
@@ -210,6 +215,17 @@ pub fn rate(prev: u64, cur: u64, secs: f64) -> f64 {
     } else {
         (cur - prev) as f64 / secs
     }
+}
+
+/// A program from PATH, else from the usual places given (NixOS keeps
+/// setuid wrappers and system tools outside the default PATH of services).
+pub(crate) fn find_program(name: &str, extra: &[&str]) -> Option<String> {
+    std::env::var("PATH")
+        .unwrap_or_default()
+        .split(':')
+        .map(|d| format!("{d}/{name}"))
+        .chain(extra.iter().map(|s| (*s).to_owned()))
+        .find(|p| std::path::Path::new(p).is_file())
 }
 
 #[cfg(test)]

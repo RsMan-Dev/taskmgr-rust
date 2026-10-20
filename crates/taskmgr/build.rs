@@ -11,12 +11,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     files.sort();
     println!("cargo::rerun-if-changed=qml");
     let qml = files.into_iter().map(|p| {
-        let singleton = p.file_stem().is_some_and(|s| {
-            matches!(
-                s.to_str(),
-                Some("Format" | "Tr" | "Prefs" | "Icons" | "ResourceKit")
-            )
-        });
+        let singleton = std::fs::read_to_string(&p)
+            .is_ok_and(|text| text.lines().any(|l| l.trim() == "pragma Singleton"));
         QmlFile::from(p).singleton(singleton)
     });
 

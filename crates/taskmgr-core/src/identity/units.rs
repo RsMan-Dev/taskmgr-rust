@@ -70,12 +70,12 @@ pub(super) fn locate(cgroup: &str) -> Location {
     {
         return Location::UserUnit((*u).to_owned());
     }
-    if let Some(unit) = after("system.slice") {
-        return Location::SystemUnit((*unit).to_owned());
-    }
-    match parts.as_slice() {
-        [unit] => Location::SystemUnit((*unit).to_owned()),
-        _ => Location::Other(cgroup.to_owned()),
+    // Any other unit belongs to the system manager, whatever its slice:
+    // system.slice, machine.slice, user.slice for run0 and systemd-run.
+    const UNITS: [&str; 4] = [".service", ".scope", ".mount", ".socket"];
+    match parts.iter().find(|p| UNITS.iter().any(|s| p.ends_with(s))) {
+        Some(unit) => Location::SystemUnit((*unit).to_owned()),
+        None => Location::Other(cgroup.to_owned()),
     }
 }
 

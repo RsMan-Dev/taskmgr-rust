@@ -7,6 +7,9 @@ use std::sync::{Arc, Mutex};
 use serde::Deserialize;
 use zbus::Connection;
 
+use crate::dbus::kwin_script::ScriptProxy;
+use crate::dbus::kwin_scripting::ScriptingProxy;
+
 /// One script per instance, so two windows of the app do not steal it from
 /// each other.
 fn plugin(pid: u32) -> String {
@@ -14,6 +17,25 @@ fn plugin(pid: u32) -> String {
 }
 // D-Bus interface names cannot contain a dash.
 const INTERFACE: &str = "fr.rsman.taskmgr_rust.Windows";
+const KWIN: &str = "org.kde.KWin";
+
+async fn scripting(conn: &Connection) -> zbus::Result<ScriptingProxy<'static>> {
+    ScriptingProxy::builder(conn)
+        .destination(KWIN)
+        .path("/Scripting")
+        .build()
+        .await
+}
+
+async fn run_script(conn: &Connection, id: i32) -> Option<()> {
+    let script = ScriptProxy::builder(conn)
+        .destination(KWIN)
+        .path(format!("/Scripting/Script{id}"))
+        .build()
+        .await
+        .ok()?;
+    script.run().await.ok()
+}
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Window {
@@ -84,36 +106,15 @@ impl WindowWatcher {
         remove_stale_scripts(&conn, &path).await;
         std::fs::write(&path, script(&service)).ok()?;
 
-        let scripting = |method: &'static str| {
-            (
-                Some("org.kde.KWin"),
-                "/Scripting",
-                Some("org.kde.kwin.Scripting"),
-                method,
-            )
-        };
-        let (d, p, i, m) = scripting("unloadScript");
-        let _ = conn
-            .call_method(d, p, i, m, &(plugin(std::process::id()),))
-            .await;
-        let (d, p, i, m) = scripting("loadScript");
-        let reply = conn
-            .call_method(d, p, i, m, &(path.as_str(), plugin(std::process::id())))
-            .await;
-        let id: i32 = reply.ok()?.body().deserialize().ok()?;
+        let kwin = scripting(&conn).await.ok()?;
+        let name = plugin(std::process::id());
+        let _ = kwin.unload_script(&name).await;
+        let id = kwin.load_script(&path, &name).await.ok()?;
         if id < 0 {
             let _ = std::fs::remove_file(&path);
             return None;
         }
-        conn.call_method(
-            Some("org.kde.KWin"),
-            format!("/Scripting/Script{id}").as_str(),
-            Some("org.kde.kwin.Script"),
-            "run",
-            &(),
-        )
-        .await
-        .ok()?;
+        run_script(&conn, id).await?;
         Some(Self { conn, shared, path })
     }
 
@@ -133,14 +134,10 @@ impl WindowWatcher {
 pub fn unload() {
     let _ = zbus::block_on(async {
         let conn = Connection::session().await?;
-        conn.call_method(
-            Some("org.kde.KWin"),
-            "/Scripting",
-            Some("org.kde.kwin.Scripting"),
-            "unloadScript",
-            &(plugin(std::process::id()),),
-        )
-        .await
+        scripting(&conn)
+            .await?
+            .unload_script(&plugin(std::process::id()))
+            .await
     });
     let _ = std::fs::remove_file(script_path());
 }
@@ -153,6 +150,7 @@ async fn remove_stale_scripts(conn: &Connection, current: &str) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
+    let kwin = scripting(conn).await.ok();
     for e in entries.flatten() {
         let name = e.file_name().to_string_lossy().into_owned();
         let pid = name
@@ -162,15 +160,9 @@ async fn remove_stale_scripts(conn: &Connection, current: &str) {
             && !std::path::Path::new(&format!("/proc/{p}")).exists()
         {
             let _ = std::fs::remove_file(e.path());
-            let _ = conn
-                .call_method(
-                    Some("org.kde.KWin"),
-                    "/Scripting",
-                    Some("org.kde.kwin.Scripting"),
-                    "unloadScript",
-                    &(plugin(p),),
-                )
-                .await;
+            if let Some(kwin) = &kwin {
+                let _ = kwin.unload_script(&plugin(p)).await;
+            }
         }
     }
 }
@@ -183,13 +175,12 @@ fn script_path() -> String {
 
 impl Drop for WindowWatcher {
     fn drop(&mut self) {
-        let _ = zbus::block_on(self.conn.call_method(
-            Some("org.kde.KWin"),
-            "/Scripting",
-            Some("org.kde.kwin.Scripting"),
-            "unloadScript",
-            &(plugin(std::process::id()),),
-        ));
+        let _ = zbus::block_on(async {
+            scripting(&self.conn)
+                .await?
+                .unload_script(&plugin(std::process::id()))
+                .await
+        });
         let _ = std::fs::remove_file(&self.path);
     }
 }
@@ -207,29 +198,13 @@ pub fn keep_above(above: bool) -> bool {
     if std::fs::write(&path, code).is_err() {
         return false;
     }
-    let scripting = (
-        Some("org.kde.KWin"),
-        "/Scripting",
-        Some("org.kde.kwin.Scripting"),
-    );
     let ok = zbus::block_on(async {
         let conn = Connection::session().await.ok()?;
-        let (d, p, i) = scripting;
-        let _ = conn
-            .call_method(d, p, i, "unloadScript", &(name.as_str(),))
-            .await;
-        let reply = conn
-            .call_method(d, p, i, "loadScript", &(path.as_str(), name.as_str()))
-            .await
-            .ok()?;
-        let id: i32 = reply.body().deserialize().ok()?;
-        let script = format!("/Scripting/Script{id}");
-        conn.call_method(d, script.as_str(), Some("org.kde.kwin.Script"), "run", &())
-            .await
-            .ok()?;
-        let _ = conn
-            .call_method(d, p, i, "unloadScript", &(name.as_str(),))
-            .await;
+        let kwin = scripting(&conn).await.ok()?;
+        let _ = kwin.unload_script(&name).await;
+        let id = kwin.load_script(&path, &name).await.ok()?;
+        run_script(&conn, id).await?;
+        let _ = kwin.unload_script(&name).await;
         Some(())
     })
     .is_some();

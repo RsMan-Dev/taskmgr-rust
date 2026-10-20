@@ -5,7 +5,8 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 use zbus::Connection;
-use zbus::proxy::MethodFlags;
+
+use crate::dbus::systemd_manager::ManagerProxy;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Service {
@@ -19,37 +20,19 @@ pub struct Service {
     pub user: bool,
 }
 
-type Unit = (
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    zbus::OwnedObjectPath,
-    u32,
-    String,
-    zbus::OwnedObjectPath,
-);
-
-async fn manager(conn: &Connection) -> zbus::Result<zbus::Proxy<'static>> {
-    zbus::Proxy::new(
-        conn,
-        "org.freedesktop.systemd1",
-        "/org/freedesktop/systemd1",
-        "org.freedesktop.systemd1.Manager",
-    )
-    .await
+async fn manager(conn: &Connection) -> zbus::Result<ManagerProxy<'static>> {
+    ManagerProxy::builder(conn)
+        .destination("org.freedesktop.systemd1")
+        .path("/org/freedesktop/systemd1")
+        .build()
+        .await
 }
 
 async fn list_bus(conn: &Connection, user: bool) -> zbus::Result<Vec<Service>> {
     let m = manager(conn).await?;
-    let patterns = vec!["*.service"];
-    let none: Vec<&str> = Vec::new();
-    let units: Vec<Unit> = m.call("ListUnitsByPatterns", &(&none, &patterns)).await?;
-    let files: Vec<(String, String)> = m
-        .call("ListUnitFilesByPatterns", &(&none, &patterns))
-        .await?;
+    let patterns = ["*.service"];
+    let units = m.list_units_by_patterns(&[], &patterns).await?;
+    let files = m.list_unit_files_by_patterns(&[], &patterns).await?;
     let mut by_name: BTreeMap<String, Service> = BTreeMap::new();
     for (path, state) in files {
         let name = path.rsplit('/').next().unwrap_or(&path).to_owned();
@@ -126,47 +109,37 @@ pub fn control(name: &str, user: bool, action: &str) -> Result<(), String> {
         }
         .map_err(|e| e.to_string())?;
         let m = manager(&conn).await.map_err(|e| e.to_string())?;
-        let flags = MethodFlags::ALLOW_INTERACTIVE_AUTH;
         let result = match action {
-            "start" | "stop" | "restart" => {
-                let method = match action {
-                    "start" => "StartUnit",
-                    "stop" => "StopUnit",
-                    _ => "RestartUnit",
-                };
-                m.call_with_flags::<_, _, zbus::OwnedObjectPath>(method, flags, &(name, "replace"))
-                    .await
-                    .map(|_| ())
-            }
-            "enable" => m
-                .call_with_flags::<_, _, (bool, Vec<(String, String, String)>)>(
-                    "EnableUnitFiles",
-                    flags,
-                    &(vec![name], false, false),
-                )
-                .await
-                .map(|_| ()),
-            "disable" => m
-                .call_with_flags::<_, _, Vec<(String, String, String)>>(
-                    "DisableUnitFiles",
-                    flags,
-                    &(vec![name], false),
-                )
-                .await
-                .map(|_| ()),
+            "start" => m.start_unit(name, "replace").await.map(|_| ()),
+            "stop" => m.stop_unit(name, "replace").await.map(|_| ()),
+            "restart" => m.restart_unit(name, "replace").await.map(|_| ()),
+            "enable" => m.enable_unit_files(&[name], false, false).await.map(|_| ()),
+            "disable" => m.disable_unit_files(&[name], false).await.map(|_| ()),
             _ => return Err("Unknown action.".into()),
         };
+        // zbus turns the standard D-Bus errors into `fdo::Error`, others
+        // (systemd's own) stay method errors.
+        let denied = "Authorization denied or cancelled.";
         result.map_err(|e| match e {
-            zbus::Error::MethodError(n, msg, _)
+            zbus::Error::FDO(e)
+                if matches!(
+                    *e,
+                    zbus::fdo::Error::AccessDenied(_)
+                        | zbus::fdo::Error::InteractiveAuthorizationRequired(_)
+                ) =>
+            {
+                denied.to_owned()
+            }
+            zbus::Error::MethodError(n, _, _)
                 if n.as_str().ends_with("AccessDenied")
                     || n.as_str().contains("InteractiveAuthorization") =>
             {
-                msg.unwrap_or_else(|| "Authorization denied or cancelled.".into())
+                denied.to_owned()
             }
             other => other.to_string(),
         })?;
         if matches!(action, "enable" | "disable") {
-            let _ = m.call_with_flags::<_, _, ()>("Reload", flags, &()).await;
+            let _ = m.reload().await;
         }
         Ok(())
     })

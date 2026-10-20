@@ -12,6 +12,8 @@ pub(super) struct Entry {
     pub row: ProcessRow,
     pub ppid: u32,
     pub launched: bool,
+    /// Disk rate of the cgroup when none of its processes could be read.
+    pub cgroup_disk: Option<f64>,
 }
 
 /// Outside systemd units, a process joins the nearest ancestor recognized
@@ -170,7 +172,13 @@ fn move_subtrees(entries: &mut [Entry], moves: Vec<(u32, Group)>) {
 /// "has a window", as on Windows.
 pub(super) fn collect(entries: Vec<Entry>, with_windows: bool) -> Vec<ProcessGroup> {
     let mut groups: HashMap<String, ProcessGroup> = HashMap::new();
-    for Entry { group, row, .. } in entries {
+    for Entry {
+        group,
+        row,
+        cgroup_disk,
+        ..
+    } in entries
+    {
         let g = groups
             .entry(group.key.clone())
             .or_insert_with(|| ProcessGroup {
@@ -196,7 +204,7 @@ pub(super) fn collect(entries: Vec<Entry>, with_windows: bool) -> Vec<ProcessGro
         }
         g.cpu += row.cpu;
         g.memory += row.memory;
-        if let Some(d) = row.disk_bps {
+        if let Some(d) = row.disk_bps.or(cgroup_disk) {
             g.disk_bps = Some(g.disk_bps.unwrap_or(0.0) + d);
         }
         g.windows.extend(row.windows.iter().cloned());
@@ -298,6 +306,7 @@ mod tests {
             },
             ppid,
             launched: false,
+            cgroup_disk: None,
         }
     }
 

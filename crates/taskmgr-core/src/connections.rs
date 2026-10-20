@@ -1,4 +1,5 @@
-//! TCP and UDP sockets of the machine, from /proc/net. The owning process
+//! TCP and UDP sockets of the machine, from netlink sock_diag (/proc/net
+//! as a fallback), Unix sockets from /proc/net/unix. The owning process
 //! is found through /proc/<pid>/fd, readable for the user's own processes
 //! only: other sockets are listed without one.
 
@@ -8,6 +9,7 @@ use serde::Serialize;
 
 use crate::Root;
 use crate::process::Users;
+use crate::sockdiag::{self, Socket};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Connection {
@@ -85,9 +87,8 @@ fn endpoint(s: &str) -> Option<(IpAddr, u16)> {
     Some((ip, port))
 }
 
-pub fn list(root: &Root) -> Vec<Connection> {
-    let owners = crate::netflow::inode_pids(root);
-    let mut users = Users::default();
+/// The same sockets from /proc/net, when netlink sock_diag is unavailable.
+fn proc_sockets(root: &Root) -> Vec<Socket> {
     let mut out = Vec::new();
     for (file, tcp, ipv6) in [
         ("tcp", true, false),
@@ -106,29 +107,51 @@ pub fn list(root: &Root) -> Vec<Connection> {
             else {
                 continue;
             };
-            let code = u8::from_str_radix(f[3], 16).unwrap_or(0);
-            let inode = f[9].parse::<u64>().unwrap_or(0);
-            let uid = f[7].parse::<u32>().unwrap_or(u32::MAX);
-            let state = state(tcp, code);
-            let listening = state == "listen" || (!tcp && remote.is_unspecified());
-            out.push(Connection {
-                scope: reach(if listening { &local } else { &remote }),
-                protocol: if tcp { "TCP" } else { "UDP" },
+            out.push(Socket {
+                tcp,
                 ipv6,
-                local: local.to_string(),
+                local,
                 local_port,
-                remote: if remote.is_unspecified() {
-                    String::new()
-                } else {
-                    remote.to_string()
-                },
+                remote,
                 remote_port,
-                state,
-                user: users.name(root, uid),
-                pid: (inode != 0).then(|| owners.get(&inode).copied()).flatten(),
+                state: u8::from_str_radix(f[3], 16).unwrap_or(0),
+                uid: f[7].parse::<u32>().unwrap_or(u32::MAX),
+                inode: f[9].parse::<u64>().unwrap_or(0),
             });
         }
     }
+    out
+}
+
+pub fn list(root: &Root) -> Vec<Connection> {
+    let owners = crate::netflow::inode_pids(root);
+    let mut users = Users::default();
+    let sockets = sockdiag::for_root(root).unwrap_or_else(|| proc_sockets(root));
+    let mut out: Vec<Connection> = sockets
+        .into_iter()
+        .map(|s| {
+            let state = state(s.tcp, s.state);
+            let listening = state == "listen" || (!s.tcp && s.remote.is_unspecified());
+            Connection {
+                scope: reach(if listening { &s.local } else { &s.remote }),
+                protocol: if s.tcp { "TCP" } else { "UDP" },
+                ipv6: s.ipv6,
+                local: s.local.to_string(),
+                local_port: s.local_port,
+                remote: if s.remote.is_unspecified() {
+                    String::new()
+                } else {
+                    s.remote.to_string()
+                },
+                remote_port: s.remote_port,
+                state,
+                user: users.name(root, s.uid),
+                pid: (s.inode != 0)
+                    .then(|| owners.get(&s.inode).copied())
+                    .flatten(),
+            }
+        })
+        .collect();
     out.extend(unix_sockets(root, &owners));
     out
 }

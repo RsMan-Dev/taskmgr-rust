@@ -1,0 +1,46 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- systemd 261.1, share/dbus-1/interfaces/org.freedesktop.systemd1.Manager.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.systemd1.Manager">
+  <method name="ListUnitsByPatterns">
+   <arg type="as" name="states" direction="in"/>
+   <arg type="as" name="patterns" direction="in"/>
+   <arg type="a(ssssssouso)" name="units" direction="out"/>
+  </method>
+  <method name="ListUnitFilesByPatterns">
+   <arg type="as" name="states" direction="in"/>
+   <arg type="as" name="patterns" direction="in"/>
+   <arg type="a(ss)" name="unit_files" direction="out"/>
+  </method>
+  <method name="StartUnit">
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="mode" direction="in"/>
+   <arg type="o" name="job" direction="out"/>
+  </method>
+  <method name="StopUnit">
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="mode" direction="in"/>
+   <arg type="o" name="job" direction="out"/>
+  </method>
+  <method name="RestartUnit">
+   <arg type="s" name="name" direction="in"/>
+   <arg type="s" name="mode" direction="in"/>
+   <arg type="o" name="job" direction="out"/>
+  </method>
+  <method name="Reload">
+  </method>
+  <method name="EnableUnitFiles">
+   <arg type="as" name="files" direction="in"/>
+   <arg type="b" name="runtime" direction="in"/>
+   <arg type="b" name="force" direction="in"/>
+   <arg type="b" name="carries_install_info" direction="out"/>
+   <arg type="a(sss)" name="changes" direction="out"/>
+  </method>
+  <method name="DisableUnitFiles">
+   <arg type="as" name="files" direction="in"/>
+   <arg type="b" name="runtime" direction="in"/>
+   <arg type="a(sss)" name="changes" direction="out"/>
+  </method>
+  </interface>
+</node>

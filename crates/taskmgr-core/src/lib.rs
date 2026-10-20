@@ -2,6 +2,7 @@
 //! from `/proc` and `/sys` without root.
 
 mod admin;
+pub mod appearance;
 pub mod autostart;
 pub mod battery;
 pub mod bench;
@@ -10,6 +11,7 @@ pub mod connections;
 pub mod consumption;
 pub mod cpu;
 pub mod crashes;
+mod dbus;
 pub mod disk;
 pub mod eject;
 pub mod energy;
@@ -29,6 +31,7 @@ pub mod readings;
 pub mod sensors;
 pub mod services;
 pub mod smart;
+pub mod sockdiag;
 pub mod sysinfo;
 pub mod util;
 pub mod windows;

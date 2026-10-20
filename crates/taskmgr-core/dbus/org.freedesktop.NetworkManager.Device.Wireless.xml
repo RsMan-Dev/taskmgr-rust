@@ -1,0 +1,9 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- NetworkManager 1.56.0, share/dbus-1/interfaces/org.freedesktop.NetworkManager.Device.Wireless.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.NetworkManager.Device.Wireless">
+    <property name="Bitrate" type="u" access="read"/>
+    <property name="ActiveAccessPoint" type="o" access="read"/>
+  </interface>
+</node>

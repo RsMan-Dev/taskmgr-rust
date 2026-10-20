@@ -1,5 +1,6 @@
-//! Root helper started by the interface through pkexec. Prints one JSON line
-//! per second, `{"net": {"<pid>": [received B/s, sent B/s]}, "vcore": [V]}`,
+//! Root helper started by the interface through pkexec or run0. Prints one
+//! JSON line per second, `{"net": {"<pid>": [received B/s, sent B/s]},
+//! "io": {"<pid>": bytes read and written}, "vcore": [V]}`,
 //! and exits when its standard input closes (the interface quit).
 
 use std::io::{Read, Write};
@@ -74,8 +75,16 @@ fn main() {
                     )
                 })
                 .collect();
-            let line =
-                serde_json::json!({ "net": net, "vcore": taskmgr_core::msr::core_voltages(&root) });
+            let io: serde_json::Map<String, serde_json::Value> =
+                taskmgr_core::process::io_totals(&root)
+                    .into_iter()
+                    .map(|(pid, bytes)| (pid.to_string(), bytes.into()))
+                    .collect();
+            let line = serde_json::json!({
+                "net": net,
+                "io": io,
+                "vcore": taskmgr_core::msr::core_voltages(&root),
+            });
             let mut out = std::io::stdout().lock();
             if writeln!(out, "{line}").and_then(|_| out.flush()).is_err() {
                 std::process::exit(0);

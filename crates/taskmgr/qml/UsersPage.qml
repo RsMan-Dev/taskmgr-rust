@@ -43,7 +43,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         columns: [
-            { key: "user", title: qsTr("User"), text: r => r.user, maxWidth: Kirigami.Units.gridUnit * 14 },
+            { key: "user", title: qsTr("User"), text: r => r.user, width: 0 },
             { key: "count", title: qsTr("Processes"), value: r => r.count, text: r => r.count, align: Qt.AlignRight, widest: ["99999"] },
             { key: "cpu", title: qsTr("CPU"), value: r => r.cpu, align: Qt.AlignRight,
               text: r => Format.percent(r.cpu * (Prefs.cpuPerCore ? page.logical : 1), 1),
@@ -52,8 +52,8 @@ ColumnLayout {
               widest: [Format.bytes(999 * 1048576), Format.bytes(99.9 * 1073741824)] },
             { key: "disk", title: qsTr("Disk"), value: r => r.disk, text: r => Format.rate(r.disk), align: Qt.AlignRight,
               widest: [Format.rate(999 * 1048576)] },
-            { key: "net", title: qsTr("Network"), width: 0, value: r => r.net, align: Qt.AlignRight,
-              text: r => r.net < 0 ? "" : Format.bits(r.net) },
+            { key: "net", title: qsTr("Network"), value: r => r.net, align: Qt.AlignRight,
+              text: r => r.net < 0 ? "" : Format.bits(r.net), widest: [Format.bits(999e6)] },
         ]
         onActivated: (row) => page.showUser(row.user)
     }

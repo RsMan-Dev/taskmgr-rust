@@ -3,8 +3,10 @@
 
 use serde::Serialize;
 use zbus::Connection;
-use zbus::OwnedObjectPath;
 
+use crate::dbus::network_manager::NetworkManagerProxy;
+use crate::dbus::nm_access_point::AccessPointProxy;
+use crate::dbus::nm_wireless::WirelessProxy;
 use crate::util::Root;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
@@ -17,34 +19,31 @@ pub struct Wireless {
 
 const NM: &str = "org.freedesktop.NetworkManager";
 
-async fn property<T>(conn: &Connection, path: &str, iface: &str, name: &str) -> zbus::Result<T>
-where
-    T: TryFrom<zbus::OwnedVariant> + zbus::zvariant::Type + for<'de> serde::Deserialize<'de>,
-    T::Error: Into<zbus::Error>,
-{
-    zbus::Proxy::new(conn, NM, path, iface)
-        .await?
-        .get_property(name)
-        .await
-}
-
 async fn from_network_manager(iface: &str) -> zbus::Result<Wireless> {
     let conn = Connection::system().await?;
-    let nm = zbus::Proxy::new(&conn, NM, "/org/freedesktop/NetworkManager", NM).await?;
-    let device: OwnedObjectPath = nm.call("GetDeviceByIpIface", &(iface,)).await?;
-    let wifi = "org.freedesktop.NetworkManager.Device.Wireless";
-    let bitrate: u32 = property(&conn, device.as_str(), wifi, "Bitrate").await?;
-    let ap: OwnedObjectPath = property(&conn, device.as_str(), wifi, "ActiveAccessPoint").await?;
+    let nm = NetworkManagerProxy::new(&conn).await?;
+    let device = nm.get_device_by_ip_iface(iface).await?;
+    let wifi = WirelessProxy::builder(&conn)
+        .destination(NM)
+        .path(device)
+        .build()
+        .await?;
+    let bitrate = wifi.bitrate().await?;
+    let ap = wifi.active_access_point().await?;
     let mut w = Wireless {
         bitrate_kbps: (bitrate > 0).then_some(bitrate),
         ..Wireless::default()
     };
     if ap.as_str() != "/" {
-        let point = "org.freedesktop.NetworkManager.AccessPoint";
-        let ssid: Vec<u8> = property(&conn, ap.as_str(), point, "Ssid").await?;
+        let point = AccessPointProxy::builder(&conn)
+            .destination(NM)
+            .path(ap)
+            .build()
+            .await?;
+        let ssid = point.ssid().await?;
         w.ssid = Some(String::from_utf8_lossy(&ssid).into_owned()).filter(|s| !s.is_empty());
-        w.frequency_mhz = property(&conn, ap.as_str(), point, "Frequency").await.ok();
-        w.signal_percent = property(&conn, ap.as_str(), point, "Strength").await.ok();
+        w.frequency_mhz = point.frequency().await.ok();
+        w.signal_percent = point.strength().await.ok();
     }
     Ok(w)
 }

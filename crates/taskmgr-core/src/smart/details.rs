@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use serde::Serialize;
 use zbus::{Connection, OwnedObjectPath, Variant};
 
-use super::{ATA, Attribute, NVME, Objects, Properties, get};
+use super::{ATA, Attribute, BUS, NVME, Properties, get, managed_objects};
+use crate::dbus::udisks_ata::AtaProxy;
+use crate::dbus::udisks_nvme::ControllerProxy;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct SmartAttribute {
@@ -92,14 +94,7 @@ fn nvme_attribute(name: &str, v: &Variant) -> Option<SmartAttribute> {
 
 async fn read(block: &str) -> zbus::Result<Option<SmartDetails>> {
     let conn = Connection::system().await?;
-    let manager = zbus::Proxy::new(
-        &conn,
-        "org.freedesktop.UDisks2",
-        "/org/freedesktop/UDisks2",
-        "org.freedesktop.DBus.ObjectManager",
-    )
-    .await?;
-    let objects: Objects = manager.call("GetManagedObjects", &()).await?;
+    let objects = managed_objects(&conn).await?;
     let path = format!("/org/freedesktop/UDisks2/block_devices/{block}");
     let drive = objects
         .iter()
@@ -114,19 +109,30 @@ async fn read(block: &str) -> zbus::Result<Option<SmartDetails>> {
     let Some(interfaces) = objects.get(&drive) else {
         return Ok(None);
     };
-    let none: HashMap<&str, Variant> = HashMap::new();
-    let (kind, iface, props): (&str, &str, &Properties) =
-        match (interfaces.get(ATA), interfaces.get(NVME)) {
-            (Some(p), _) => ("ata", ATA, p),
-            (_, Some(p)) => ("nvme", NVME, p),
-            _ => return Ok(None),
-        };
-    let proxy = zbus::Proxy::new(&conn, "org.freedesktop.UDisks2", drive.as_str(), iface).await?;
+    let (kind, props): (&str, &Properties) = match (interfaces.get(ATA), interfaces.get(NVME)) {
+        (Some(p), _) => ("ata", p),
+        (_, Some(p)) => ("nvme", p),
+        _ => return Ok(None),
+    };
     let attributes = if kind == "ata" {
-        let list: Vec<Attribute> = proxy.call("SmartGetAttributes", &(none,)).await?;
+        let proxy = AtaProxy::builder(&conn)
+            .destination(BUS)
+            .path(drive.as_str());
+        let list: Vec<Attribute> = proxy
+            .build()
+            .await?
+            .smart_get_attributes(HashMap::new())
+            .await?;
         list.iter().map(ata_attribute).collect()
     } else {
-        let map: Properties = proxy.call("SmartGetAttributes", &(none,)).await?;
+        let proxy = ControllerProxy::builder(&conn)
+            .destination(BUS)
+            .path(drive.as_str());
+        let map: Properties = proxy
+            .build()
+            .await?
+            .smart_get_attributes(HashMap::new())
+            .await?;
         let mut list: Vec<SmartAttribute> = map
             .iter()
             .filter_map(|(k, v)| nvme_attribute(k, v))

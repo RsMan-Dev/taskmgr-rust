@@ -1,0 +1,16 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- kwin 6.7.3 ships no XML for this interface (Qt exports it from Q_SCRIPTABLE): introspected with busctl --user introspect --xml-interface org.kde.KWin /Scripting; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.kde.kwin.Scripting">
+    <method name="loadScript">
+      <arg type="i" direction="out"/>
+      <arg name="filePath" type="s" direction="in"/>
+      <arg name="pluginName" type="s" direction="in"/>
+    </method>
+    <method name="unloadScript">
+      <arg type="b" direction="out"/>
+      <arg name="pluginName" type="s" direction="in"/>
+    </method>
+  </interface>
+</node>

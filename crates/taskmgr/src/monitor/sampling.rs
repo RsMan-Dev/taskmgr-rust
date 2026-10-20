@@ -48,7 +48,6 @@ impl Monitor {
                 // page shows it.
                 let procs = wanted.then(|| {
                     let windows = watcher.as_ref().and_then(|w| w.windows());
-                    let rates = helper.map(|h| h.net);
                     let secs = started.duration_since(last).as_secs_f64();
                     last = started;
                     let groups = processes.sample(
@@ -56,7 +55,7 @@ impl Monitor {
                         secs,
                         windows.as_ref(),
                         &snapshot.gpus,
-                        rates.as_ref(),
+                        helper.as_ref(),
                     );
                     (json(&groups), processes.restricted())
                 });

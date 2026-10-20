@@ -56,7 +56,7 @@ fn decode(kind: Kind, raw: u64) -> Option<f64> {
 /// Loads the msr module when its device files are missing (root).
 pub fn ensure_module(root: &Root) {
     if !root.exists("/dev/cpu/0/msr")
-        && let Some(modprobe) = crate::energy::find_program(
+        && let Some(modprobe) = crate::util::find_program(
             "modprobe",
             &[
                 "/run/current-system/sw/bin/modprobe",

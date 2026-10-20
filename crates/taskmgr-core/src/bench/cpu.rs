@@ -1,14 +1,16 @@
-//! CPU score and stability test, on a deterministic integer and floating
-//! point workload whose exact result is known in advance.
+//! CPU throughput, and a stability test whose results are known in advance.
 
 use std::hint::black_box;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+use rustix::thread::{CpuSet, sched_setaffinity};
+
+use crate::util::Root;
+
 /// Iterations per block: about a millisecond on a current core.
 pub const BLOCK: u64 = 200_000;
 
-/// One block of work; the same seed always gives the same result.
 pub fn kernel(seed: u64, iterations: u64) -> u64 {
     let mut x = seed | 1;
     let mut acc = 0u64;
@@ -23,25 +25,62 @@ pub fn kernel(seed: u64, iterations: u64) -> u64 {
     acc ^ f.to_bits()
 }
 
-/// Millions of kernel iterations per second on `threads` threads.
-pub fn score(threads: usize, duration: Duration, stop: &AtomicBool) -> f64 {
+/// The core the firmware rates fastest. On processors whose cores differ
+/// (hybrid, or one die with more cache), a one-thread score would else
+/// depend on where the scheduler puts it.
+pub fn best_core(root: &Root) -> Option<usize> {
+    let rating = |cpu: usize, file: &str| -> Option<u64> {
+        root.read_trimmed(format!("/sys/devices/system/cpu/cpu{cpu}/{file}"))?
+            .parse()
+            .ok()
+    };
+    let cpus = super::threads();
+    [
+        "acpi_cppc/highest_perf",
+        "cpufreq/amd_pstate_prefcore_ranking",
+        "cpufreq/cpuinfo_max_freq",
+    ]
+    .iter()
+    .find_map(|file| {
+        let rated: Vec<(usize, u64)> = (0..cpus)
+            .filter_map(|c| Some((c, rating(c, file)?)))
+            .collect();
+        let top = rated.iter().map(|(_, r)| *r).max()?;
+        rated.iter().find(|(_, r)| *r == top).map(|(c, _)| *c)
+    })
+}
+
+/// Calls of `work` per second, on `threads` threads at once; one thread
+/// runs on `pin` when given.
+pub fn rate(
+    work: fn(u64) -> u64,
+    threads: usize,
+    pin: Option<usize>,
+    duration: Duration,
+    stop: &AtomicBool,
+) -> f64 {
     let done = AtomicU64::new(0);
     let started = Instant::now();
     std::thread::scope(|s| {
         for t in 0..threads.max(1) {
             let done = &done;
             s.spawn(move || {
-                let mut seed = t as u64 + 1;
-                while started.elapsed() < duration && !stop.load(Ordering::Relaxed) {
-                    black_box(kernel(black_box(seed), BLOCK));
-                    seed += 1;
-                    done.fetch_add(1, Ordering::Relaxed);
+                if let Some(core) = pin.filter(|_| threads == 1) {
+                    let mut set = CpuSet::new();
+                    set.set(core);
+                    let _ = sched_setaffinity(None, &set);
                 }
+                let (mut seed, mut calls) = (t as u64 * 1_000_003 + 1, 0);
+                while started.elapsed() < duration && !stop.load(Ordering::Relaxed) {
+                    black_box(work(black_box(seed)));
+                    seed += 1;
+                    calls += 1;
+                }
+                done.fetch_add(calls, Ordering::Relaxed);
             });
         }
     });
-    let secs = started.elapsed().as_secs_f64();
-    (done.load(Ordering::Relaxed) * BLOCK) as f64 / secs / 1e6
+    done.load(Ordering::Relaxed) as f64 / started.elapsed().as_secs_f64()
 }
 
 /// Live state of a stability test, read by the interface.
@@ -53,8 +92,7 @@ pub struct Stability {
 
 const SEEDS: u64 = 64;
 
-/// Runs every thread flat out until `stop`, checking each block against a
-/// result computed once beforehand: an unstable overclock miscalculates
+/// Every thread flat out until `stop`: an unstable overclock miscalculates
 /// before it crashes.
 pub fn stability(threads: usize, state: &Stability, stop: &AtomicBool) {
     let expected: Vec<u64> = (0..SEEDS).map(|s| kernel(s + 1, BLOCK)).collect();

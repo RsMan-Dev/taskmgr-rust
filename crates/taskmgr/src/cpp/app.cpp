@@ -27,8 +27,36 @@
 
 static int s_signalFds[2];
 
+// The desktop's accent ("r,g,b") in place of Breeze's blue and its shades;
+// only colours change, never shapes.
+static QByteArray withAccent(QByteArray data, const QString &accent, bool dark)
+{
+    const QStringList c = accent.split(QLatin1Char(','));
+    if (c.size() != 3) {
+        return data;
+    }
+    const int r = c[0].toInt(), g = c[1].toInt(), b = c[2].toInt();
+    const auto rgb = [](int r, int g, int b) {
+        return QByteArray("=") + QByteArray::number(r) + ',' + QByteArray::number(g) + ',' + QByteArray::number(b);
+    };
+    data.replace("=61,174,233", rgb(r, g, b));
+    data.replace(dark ? "=30,87,116" : "=163,212,250",
+                 dark ? rgb(r / 2, g / 2, b / 2) : rgb((r + 255) / 2, (g + 255) / 2, (b + 255) / 2));
+    // Dark text on a light accent.
+    if (0.2126 * r + 0.7152 * g + 0.0722 * b > 160) {
+        const int start = data.indexOf("[Colors:Selection]");
+        const int end = data.indexOf("\n[", start + 1);
+        if (start >= 0 && end > start) {
+            QByteArray section = data.mid(start, end - start);
+            section.replace("Normal=255,255,255", "Normal=35,38,41").replace("Active=255,255,255", "Active=35,38,41");
+            data.replace(start, end - start, section);
+        }
+    }
+    return data;
+}
+
 // The shipped colour scheme as a file: KColorScheme reads a path.
-static QString schemeFile(bool dark)
+static QString schemeFile(bool dark, const QString &accent)
 {
     const QString name = dark ? QStringLiteral("dark.colors") : QStringLiteral("light.colors");
     QFile in(QStringLiteral(":/colors/") + name);
@@ -37,7 +65,7 @@ static QString schemeFile(bool dark)
     const QString path = dir + QLatin1Char('/') + name;
     QFile out(path);
     if (in.open(QIODevice::ReadOnly)) {
-        const QByteArray data = in.readAll();
+        const QByteArray data = withAccent(in.readAll(), accent, dark);
         if (!(out.open(QIODevice::ReadOnly) && out.readAll() == data)) {
             out.close();
             if (out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -98,7 +126,7 @@ static void quitOnSignals(QCoreApplication &app)
     }
 }
 
-int taskmgr_run(const rust::Vec<rust::String> &args)
+int taskmgr_run(const rust::Vec<rust::String> &args, rust::Str accent)
 {
     // QApplication keeps argc and argv for its whole life.
     static std::vector<std::string> s_args(args.begin(), args.end());
@@ -113,11 +141,12 @@ int taskmgr_run(const rust::Vec<rust::String> &args)
     // light or dark preference.
     qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
     qunsetenv("QT_STYLE_OVERRIDE");
+    // Fonts, palette and style stay Qt's own, whatever the desktop sets.
+    QGuiApplication::setDesktopSettingsAware(false);
     QApplication app(s_argc, s_argv.data());
     app.setApplicationName(QStringLiteral("taskmgr"));
     app.setOrganizationName(QStringLiteral("rsman"));
     app.setOrganizationDomain(QStringLiteral("rsman.fr"));
-    app.setApplicationDisplayName(QStringLiteral("Gestionnaire des tâches"));
     app.setDesktopFileName(QStringLiteral("fr.rsman.taskmgr-rust"));
     app.setWindowIcon(QIcon(QStringLiteral(":/icons/logo.svg")));
     QIcon::setFallbackThemeName(QStringLiteral("breeze"));
@@ -128,7 +157,7 @@ int taskmgr_run(const rust::Vec<rust::String> &args)
     const QString theme = QSettings().value(QStringLiteral("prefs/theme")).toString();
     const bool dark = theme == QLatin1String("dark")
         || (theme.isEmpty() && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
-    const QString scheme = schemeFile(dark);
+    const QString scheme = schemeFile(dark, QString::fromUtf8(accent.data(), accent.size()));
     app.setProperty("KDE_COLOR_SCHEME_PATH", scheme);
     app.setPalette(schemePalette(scheme));
     QStringList iconPaths = QIcon::themeSearchPaths();
@@ -147,6 +176,8 @@ int taskmgr_run(const rust::Vec<rust::String> &args)
     if (loaded) {
         QCoreApplication::installTranslator(&translator);
     }
+    // Same text and translation as the window title (Main.qml).
+    app.setApplicationDisplayName(QCoreApplication::translate("Main", "Task Manager"));
     quitOnSignals(app);
 
     QQuickStyle::setStyle(QStringLiteral("org.kde.breeze"));

@@ -1,0 +1,11 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- NetworkManager 1.56.0, share/dbus-1/interfaces/org.freedesktop.NetworkManager.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.NetworkManager">
+    <method name="GetDeviceByIpIface">
+      <arg name="iface" type="s" direction="in"/>
+      <arg name="device" type="o" direction="out"/>
+    </method>
+  </interface>
+</node>

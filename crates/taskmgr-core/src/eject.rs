@@ -5,8 +5,11 @@
 use std::collections::HashMap;
 
 use serde::Serialize;
+use zbus::fdo::{ManagedObjects, ObjectManagerProxy};
 use zbus::{Connection, OwnedObjectPath, OwnedVariant, Variant};
 
+use crate::dbus::udisks_drive::DriveProxy;
+use crate::dbus::udisks_filesystem::FilesystemProxy;
 use crate::util::Root;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -24,7 +27,6 @@ pub struct EjectResult {
 }
 
 type Properties = HashMap<String, OwnedVariant>;
-type Objects = HashMap<OwnedObjectPath, HashMap<String, Properties>>;
 
 const BUS: &str = "org.freedesktop.UDisks2";
 
@@ -83,14 +85,13 @@ fn mount_points(fs: &Properties) -> Vec<String> {
 
 async fn run(root: &Root, block: &str) -> zbus::Result<EjectResult> {
     let conn = Connection::system().await?;
-    let manager = zbus::Proxy::new(
-        &conn,
-        BUS,
-        "/org/freedesktop/UDisks2",
-        "org.freedesktop.DBus.ObjectManager",
-    )
-    .await?;
-    let objects: Objects = manager.call("GetManagedObjects", &()).await?;
+    let objects: ManagedObjects = ObjectManagerProxy::builder(&conn)
+        .destination(BUS)
+        .path("/org/freedesktop/UDisks2")
+        .build()
+        .await?
+        .get_managed_objects()
+        .await?;
     let block_iface = "org.freedesktop.UDisks2.Block";
     let own = format!("/org/freedesktop/UDisks2/block_devices/{block}");
     let drive: Option<OwnedObjectPath> = objects
@@ -105,7 +106,6 @@ async fn run(root: &Root, block: &str) -> zbus::Result<EjectResult> {
             ..EjectResult::default()
         });
     }
-    let none: HashMap<&str, Variant> = HashMap::new();
     for (path, ifaces) in &objects {
         // The device itself, its partitions, or anything on the same drive.
         let on_drive = drive.as_ref().is_some_and(|d| {
@@ -125,14 +125,12 @@ async fn run(root: &Root, block: &str) -> zbus::Result<EjectResult> {
         if mounts.is_empty() {
             continue;
         }
-        let proxy = zbus::Proxy::new(
-            &conn,
-            BUS,
-            path.as_str(),
-            "org.freedesktop.UDisks2.Filesystem",
-        )
-        .await?;
-        if let Err(e) = proxy.call::<_, _, ()>("Unmount", &(&none,)).await {
+        let proxy = FilesystemProxy::builder(&conn)
+            .destination(BUS)
+            .path(path.as_str())
+            .build()
+            .await?;
+        if let Err(e) = proxy.unmount(HashMap::new()).await {
             return Ok(EjectResult {
                 message: e.to_string(),
                 blockers: blockers(root, &mounts),
@@ -150,20 +148,22 @@ async fn run(root: &Root, block: &str) -> zbus::Result<EjectResult> {
     let d = objects
         .get(&drive)
         .and_then(|i| i.get("org.freedesktop.UDisks2.Drive"));
-    let proxy =
-        zbus::Proxy::new(&conn, BUS, drive.as_str(), "org.freedesktop.UDisks2.Drive").await?;
-    let method = if prop::<bool>(d, "CanPowerOff") == Some(true) {
-        "PowerOff"
+    let proxy = DriveProxy::builder(&conn)
+        .destination(BUS)
+        .path(drive.as_str())
+        .build()
+        .await?;
+    if prop::<bool>(d, "CanPowerOff") == Some(true) {
+        proxy.power_off(HashMap::new()).await?;
     } else if prop::<bool>(d, "Ejectable") == Some(true) {
-        "Eject"
+        proxy.eject(HashMap::new()).await?;
     } else {
         return Ok(EjectResult {
             ok: true,
             message: "Unmounted; this drive cannot be powered off.".to_owned(),
             blockers: Vec::new(),
         });
-    };
-    proxy.call::<_, _, ()>(method, &(&none,)).await?;
+    }
     Ok(EjectResult {
         ok: true,
         ..EjectResult::default()

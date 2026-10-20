@@ -6,6 +6,7 @@ use serde::Serialize;
 use zbus::Connection;
 
 use crate::Root;
+use crate::dbus::power_profiles::PowerProfilesProxy;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct PowerSettings {
@@ -28,10 +29,17 @@ const BUSES: [(&str, &str); 2] = [
     ("net.hadess.PowerProfiles", "/net/hadess/PowerProfiles"),
 ];
 
-async fn daemon(conn: &Connection) -> Option<zbus::Proxy<'static>> {
+/// The legacy name serves the same interface under its own name.
+async fn daemon(conn: &Connection) -> Option<PowerProfilesProxy<'static>> {
     for (name, path) in BUSES {
-        if let Ok(p) = zbus::Proxy::new(conn, name, path, name).await
-            && p.get_property::<String>("ActiveProfile").await.is_ok()
+        let proxy = PowerProfilesProxy::builder(conn)
+            .destination(name)
+            .path(path)
+            .interface(name)
+            .build()
+            .await;
+        if let Ok(p) = proxy
+            && p.active_profile().await.is_ok()
         {
             return Some(p);
         }
@@ -50,13 +58,9 @@ pub fn read(root: &Root) -> PowerSettings {
     let _ = zbus::block_on(async {
         let conn = Connection::system().await.ok()?;
         let p = daemon(&conn).await?;
-        s.profile = p.get_property::<String>("ActiveProfile").await.ok();
-        s.degraded = p
-            .get_property::<String>("PerformanceDegraded")
-            .await
-            .unwrap_or_default();
-        let list: Vec<std::collections::HashMap<String, zbus::OwnedVariant>> =
-            p.get_property("Profiles").await.unwrap_or_default();
+        s.profile = p.active_profile().await.ok();
+        s.degraded = p.performance_degraded().await.unwrap_or_default();
+        let list = p.profiles().await.unwrap_or_default();
         s.profiles = list
             .iter()
             .filter_map(|m| String::try_from(m.get("Profile")?.try_clone().ok()?).ok())
@@ -72,11 +76,11 @@ pub fn set_profile(profile: &str) -> Result<(), String> {
         let p = daemon(&conn)
             .await
             .ok_or("power-profiles-daemon is not running.")?;
-        p.set_property("ActiveProfile", profile)
-            .await
-            .map_err(|e| match e {
-                zbus::fdo::Error::AccessDenied(_) => "Authorization denied.".to_owned(),
-                e => e.to_string(),
-            })
+        p.set_active_profile(profile).await.map_err(|e| match e {
+            zbus::Error::FDO(e) if matches!(*e, zbus::fdo::Error::AccessDenied(_)) => {
+                "Authorization denied.".to_owned()
+            }
+            e => e.to_string(),
+        })
     })
 }

@@ -164,20 +164,6 @@ QQC2.ApplicationWindow {
         details.tree = initialSelection === "tree"
     }
 
-    component NavButton: QQC2.ItemDelegate {
-        required property var modelData
-        required property int index
-        Layout.fillWidth: true
-        text: modelData.text
-        icon.source: Icons.of(modelData.icon, highlighted ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor)
-        display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
-        highlighted: window.currentPage === index
-        onClicked: window.currentPage = index
-        QQC2.ToolTip.text: text
-        QQC2.ToolTip.visible: window.sidebarCollapsed && hovered
-        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-    }
-
     Shortcut {
         sequences: [StandardKey.Find]
         onActivated: stack.children[window.currentPage]?.focusSearch?.()
@@ -252,70 +238,36 @@ QQC2.ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
-        // Navigation, like the Windows rail: icons with labels, collapsible.
-        ColumnLayout {
-            Layout.fillHeight: true
-            // Children fill the width, which would make the column grow too.
-            Layout.fillWidth: false
-            Layout.preferredWidth: window.sidebarCollapsed ? Kirigami.Units.gridUnit * 2.75 : Kirigami.Units.gridUnit * 11
-            Layout.margins: Kirigami.Units.smallSpacing
-            spacing: Kirigami.Units.smallSpacing
-
-            Behavior on Layout.preferredWidth {
-                NumberAnimation { duration: Kirigami.Units.shortDuration; easing.type: Easing.InOutQuad }
-            }
-
-            QQC2.ToolButton {
-                icon.source: Icons.of("menu", Kirigami.Theme.textColor)
-                display: QQC2.AbstractButton.IconOnly
-                text: window.sidebarCollapsed ? qsTr("Expand menu") : qsTr("Collapse menu")
-                onClicked: {
-                    if (window.narrow) {
-                        window.sidebarOpenedNarrow = !window.sidebarOpenedNarrow
-                    } else {
-                        window.sidebarFolded = !window.sidebarFolded
-                    }
+        NavRail {
+            pages: window.pages
+            currentPage: window.currentPage
+            collapsed: window.sidebarCollapsed
+            onPageRequested: (index) => window.currentPage = index
+            onMiniRequested: window.enterMini()
+            onToggleRequested: {
+                if (window.narrow) {
+                    window.sidebarOpenedNarrow = !window.sidebarOpenedNarrow
+                } else {
+                    window.sidebarFolded = !window.sidebarFolded
                 }
-                QQC2.ToolTip.text: text
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-            }
-
-            Repeater {
-                model: window.pages.slice(0, window.pages.length - 1)
-                NavButton {}
-            }
-
-            Item { Layout.fillHeight: true }
-
-            QQC2.ItemDelegate {
-                Layout.fillWidth: true
-                text: qsTr("Mini mode")
-                icon.source: Icons.of("minimize", Kirigami.Theme.textColor)
-                display: window.sidebarCollapsed ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
-                onClicked: window.enterMini()
-                QQC2.ToolTip.text: qsTr("Mini mode (F12: full screen)")
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-            }
-
-            NavButton {
-                modelData: window.pages[window.pages.length - 1]
-                index: window.pages.length - 1
             }
         }
 
-        Kirigami.Separator {
-            Layout.fillHeight: true
-        }
-
-        // Content on the "view" background, lighter than the window chrome.
+        // Content on the "view" background, lighter than the window chrome,
+        // in a panel with a rounded corner as in Windows 11.
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            // The border shows on the top and left sides only.
+            Layout.rightMargin: -1
+            Layout.bottomMargin: -1
             Kirigami.Theme.colorSet: Kirigami.Theme.View
             Kirigami.Theme.inherit: false
             color: Kirigami.Theme.backgroundColor
+            topLeftRadius: Kirigami.Units.cornerRadius * 2
+            border.width: 1
+            border.color: Qt.alpha(Kirigami.Theme.textColor, 0.08)
 
             StackLayout {
                 id: stack
@@ -328,6 +280,7 @@ QQC2.ApplicationWindow {
                     processDetails: window.shown(0, window.processDetails) ?? ({})
                     snapshot: window.shown(0, window.snapshot)
                     monitor: monitor
+                    expandFirst: window.initialSelection.startsWith("expand:") ? window.initialSelection.slice(7) : ""
                 }
                 PerformancePage {
                     snapshot: window.shown(1, window.snapshot)
@@ -386,6 +339,8 @@ QQC2.ApplicationWindow {
                     monitor: monitor
                     active: window.currentPage === 8
                     snapshot: window.shown(8, window.snapshot)
+                    // Development aid: TASKMGR_SELECT=run:all.
+                    Component.onCompleted: if (window.initialSelection === "run:all") monitor.startBenchmark("all", folder)
                 }
                 SystemPage {
                     info: window.systemInfo

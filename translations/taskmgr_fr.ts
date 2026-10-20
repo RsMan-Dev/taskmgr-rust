@@ -2,231 +2,260 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="fr" sourcelanguage="en">
 <context>
-    <name>BenchmarkPage</name>
+    <name>BenchCard</name>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="46"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="162"/>
-        <source>CPU</source>
-        <translation>Processeur</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="47"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="187"/>
-        <source>Memory</source>
-        <translation>Mémoire</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="48"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="217"/>
-        <source>Disk</source>
-        <translation>Disque</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="49"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="257"/>
-        <source>Stability</source>
-        <translation>Stabilité</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="55"/>
-        <source>%1 single, %2 multi (Mops/s)</source>
-        <translation>%1 sur un thread, %2 sur tous (Mops/s)</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="58"/>
-        <source>read %1, write %2, copy %3 GB/s, %4 ns</source>
-        <translation>lecture %1, écriture %2, copie %3 Go/s, %4 ns</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="62"/>
-        <source>write %1, read %2 MB/s, %3 IOPS (%4)</source>
-        <translation>écriture %1, lecture %2 Mo/s, %3 IOPS (%4)</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="66"/>
-        <source>%1, %2 errors</source>
-        <translation>%1, %2 erreurs</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="110"/>
+        <location filename="../crates/taskmgr/qml/BenchCard.qml" line="41"/>
         <source>Stop</source>
         <translation>Arrêter</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="110"/>
+        <location filename="../crates/taskmgr/qml/BenchCard.qml" line="41"/>
         <source>Run</source>
         <translation>Lancer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="147"/>
+        <location filename="../crates/taskmgr/qml/BenchCard.qml" line="65"/>
+        <source>Other programs used %1 % of the processor during the last run: its figures may be low.</source>
+        <translation>D&apos;autres programmes ont utilisé %1 % du processeur pendant le dernier test : ses résultats peuvent être sous-estimés.</translation>
+    </message>
+</context>
+<context>
+    <name>BenchmarkPage</name>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="42"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="100"/>
+        <source>CPU</source>
+        <translation>Processeur</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="43"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="121"/>
+        <source>Memory</source>
+        <translation>Mémoire</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="44"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="157"/>
+        <source>Disk</source>
+        <translation>Disque</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="45"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="215"/>
+        <source>Stability</source>
+        <translation>Stabilité</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="52"/>
+        <source>%1 points on one thread, %2 on all</source>
+        <translation>%1 points sur un thread, %2 sur tous</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="53"/>
+        <source>%1 single, %2 multi (Mops/s)</source>
+        <translation>%1 sur un thread, %2 sur tous (Mops/s)</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="55"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="108"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="113"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="128"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="180"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="57"/>
+        <source>read %1, write %2, copy %3 GB/s, %4 ns</source>
+        <translation>lecture %1, écriture %2, copie %3 Go/s, %4 ns</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="61"/>
+        <source>write %1, read %2 MB/s, %3 IOPS (%4)</source>
+        <translation>écriture %1, lecture %2 Mo/s, %3 IOPS (%4)</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="65"/>
+        <source>%1, %2 errors</source>
+        <translation>%1, %2 erreurs</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="75"/>
         <source>Benchmark</source>
         <translation>Benchmark</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="151"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="88"/>
         <source>Close other programs for comparable scores. Results are compared with your previous run.</source>
         <translation>Fermez les autres programmes pour des scores comparables. Chaque résultat est comparé à votre essai précédent.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="163"/>
-        <source>Integer and floating point work on one thread, then on all %1 threads (10 seconds).</source>
-        <translation>Calcul entier et flottant sur un thread, puis sur les %1 threads (10 secondes).</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="168"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="106"/>
         <source>One thread</source>
         <translation>Un thread</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="173"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="111"/>
         <source>All threads</source>
         <translation>Tous les threads</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="178"/>
-        <source>Scaling</source>
-        <translation>Mise à l&apos;échelle</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="180"/>
-        <source>%1 x</source>
-        <translation>× %1</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="188"/>
-        <source>Read, write and copy bandwidth on all threads, then latency (about 10 seconds).</source>
-        <translation>Débit en lecture, écriture et copie sur tous les threads, puis latence (environ 10 secondes).</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="192"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="131"/>
         <source>Read</source>
         <translation>Lecture</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="194"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="199"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="204"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="133"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="138"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="143"/>
         <source>%1 GB/s</source>
         <translation>%1 Go/s</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="197"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="136"/>
         <source>Write</source>
         <translation>Écriture</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="202"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="141"/>
         <source>Copy</source>
         <translation>Copie</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="207"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="146"/>
         <source>Latency</source>
         <translation>Latence</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="210"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="149"/>
         <source>%1 ns</source>
         <translation>%1 ns</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="218"/>
-        <source>Writes then reads a 1 GB file in the folder below, then random 4 KB reads (deleted afterwards).</source>
-        <translation>Écrit puis lit un fichier de 1 Go dans le dossier ci-dessous, puis des lectures aléatoires de 4 Ko (fichier supprimé ensuite).</translation>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="101"/>
+        <source>Four workloads (integers, floating point, sorting, compression) on one thread, then on all %1 threads, three times each (about 40 seconds).</source>
+        <translation>Quatre calculs (entiers, virgule flottante, tri, compression) sur un thread, puis sur les %1 threads, trois fois chacun (environ 40 secondes).</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="223"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="122"/>
+        <source>Read, write and copy bandwidth on all threads, then latency, on a block eight times larger than the processor cache, three times each (about 20 seconds).</source>
+        <translation>Débit en lecture, écriture et copie sur tous les threads, puis latence, sur un bloc huit fois plus grand que le cache du processeur, trois fois chacun (environ 20 secondes).</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="126"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="178"/>
+        <source>Score</source>
+        <translation>Score</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="158"/>
+        <source>Writes then reads a 1 GB file of random data in the folder below without the system cache, then random 4 KB reads on one and on eight threads (deleted afterwards).</source>
+        <translation>Écrit puis lit un fichier de 1 Go de données aléatoires dans le dossier ci-dessous sans passer par le cache du système, puis des lectures aléatoires de 4 Ko sur un et sur huit threads (fichier supprimé ensuite).</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="163"/>
         <source>Folder</source>
         <translation>Dossier</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="232"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="172"/>
         <source>Choose…</source>
         <translation>Choisir…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="238"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="183"/>
         <source>Sequential write</source>
         <translation>Écriture séquentielle</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="240"/>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="245"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="185"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="190"/>
         <source>%1 MB/s</source>
         <translation>%1 Mo/s</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="243"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="188"/>
         <source>Sequential read</source>
         <translation>Lecture séquentielle</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="248"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="193"/>
         <source>Random 4 KB reads</source>
         <translation>Lectures aléatoires 4 Ko</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="250"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="195"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="200"/>
         <source>%1 IOPS</source>
         <translation>%1 IOPS</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="258"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="198"/>
+        <source>Random 4 KB reads, 8 threads</source>
+        <translation>Lectures aléatoires de 4 Ko, 8 threads</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="204"/>
+        <source>This filesystem does not allow reading past the system cache: the read figures may be too high.</source>
+        <translation>Ce système de fichiers ne permet pas de lire sans le cache du système : les débits en lecture peuvent être surestimés.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="216"/>
         <source>Loads every thread with calculations whose result is known in advance. An unstable overclock miscalculates before it crashes: any error means it is not stable.</source>
         <translation>Charge tous les threads avec des calculs dont le résultat est connu d&apos;avance. Un overclocking instable se trompe avant de planter : la moindre erreur signifie qu&apos;il n&apos;est pas stable.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="265"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="224"/>
         <source>Duration</source>
         <translation>Durée</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="271"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="230"/>
         <source>Until stopped</source>
         <translation>Jusqu&apos;à l&apos;arrêt</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="271"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="230"/>
         <source>%1 min</source>
         <translation>%1 min</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="279"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="238"/>
         <source>Running for</source>
         <translation>En cours depuis</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="285"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="244"/>
         <source>Errors</source>
         <translation>Erreurs</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="291"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="250"/>
         <source>CPU now</source>
         <translation>Processeur en ce moment</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="299"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="258"/>
         <source>Last run</source>
         <translation>Dernier essai</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="301"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="260"/>
         <source>Stable for %1</source>
         <translation>Stable pendant %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="302"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="261"/>
         <source>%1 errors in %2: not stable</source>
         <translation>%1 erreurs en %2 : pas stable</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="320"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="279"/>
         <source>History</source>
         <translation>Historique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="325"/>
+        <location filename="../crates/taskmgr/qml/BenchmarkPage.qml" line="284"/>
         <source>Clear</source>
         <translation>Effacer</translation>
     </message>
@@ -1788,22 +1817,22 @@
 <context>
     <name>EnergyNotice</name>
     <message>
-        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="16"/>
+        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="26"/>
         <source>Waiting for the administrator password…</source>
         <translation>En attente du mot de passe administrateur…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="18"/>
+        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="28"/>
         <source>CPU power unavailable: the counter is restricted to root.</source>
         <translation>Consommation du processeur indisponible : le compteur est réservé à root.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="22"/>
+        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="36"/>
         <source>Allow access…</source>
         <translation>Autoriser l&apos;accès…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="25"/>
+        <location filename="../crates/taskmgr/qml/EnergyNotice.qml" line="40"/>
         <source>Lets your user read the RAPL counter until the next reboot (see docs/energy.md).</source>
         <translation>Donne la lecture du compteur RAPL à votre utilisateur jusqu&apos;au prochain redémarrage (voir docs/energy.md).</translation>
     </message>
@@ -1946,39 +1975,107 @@
 <context>
     <name>JournalDialog</name>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="70"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="71"/>
         <source>Filter messages</source>
         <translation>Filtrer les messages</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="75"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="77"/>
+        <source>Include child processes</source>
+        <translation>Inclure les processus enfants</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="82"/>
+        <source>Adds what the running processes started by this one logged.</source>
+        <translation>Ajoute ce qu&apos;ont journalisé les processus en cours lancés par celui-ci.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="88"/>
         <source>Warnings and errors only</source>
         <translation>Avertissements et erreurs seulement</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="78"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="91"/>
         <source>Refresh</source>
         <translation>Actualiser</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="83"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="96"/>
         <source>Copy</source>
         <translation>Copier</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="138"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="151"/>
         <source>Reading the journal…</source>
         <translation>Lecture du journal…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="140"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="153"/>
         <source>No message</source>
         <translation>Aucun message</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="142"/>
+        <location filename="../crates/taskmgr/qml/JournalDialog.qml" line="155"/>
         <source>Nothing was logged, or the journal of other users is not readable by your account.</source>
         <translation>Rien n&apos;a été journalisé, ou le journal des autres utilisateurs n&apos;est pas lisible par votre compte.</translation>
+    </message>
+</context>
+<context>
+    <name>MachineScore</name>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="18"/>
+        <source>Processor, one thread</source>
+        <translation>Processeur, un thread</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="19"/>
+        <source>Processor, all threads</source>
+        <translation>Processeur, tous les threads</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="20"/>
+        <source>Memory</source>
+        <translation>Mémoire</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="21"/>
+        <source>Disk</source>
+        <translation>Disque</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="46"/>
+        <source>Machine score</source>
+        <translation>Score de la machine</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="56"/>
+        <source>Stop</source>
+        <translation>Arrêter</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="56"/>
+        <source>Run all</source>
+        <translation>Tout lancer</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="60"/>
+        <source>Runs the CPU, memory and disk tests one after the other (about two minutes).</source>
+        <translation>Lance les tests processeur, mémoire et disque l&apos;un après l&apos;autre (environ deux minutes).</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="71"/>
+        <source>1000 is as fast as the reference machine (Ryzen 9 9950X3D, DDR5-6400, Samsung 980 PRO). Each part below counts as much as the others.</source>
+        <translation>1000 correspond à la machine de référence (Ryzen 9 9950X3D, DDR5-6400, Samsung 980 PRO). Chaque partie ci-dessous compte autant que les autres.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="72"/>
+        <source>Run the CPU, memory and disk tests below to get the score of this machine.</source>
+        <translation>Lancez les tests processeur, mémoire et disque ci-dessous pour obtenir le score de cette machine.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/MachineScore.qml" line="82"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
     </message>
 </context>
 <context>
@@ -2027,26 +2124,6 @@
         <location filename="../crates/taskmgr/qml/Main.qml" line="57"/>
         <source>Settings</source>
         <translation>Paramètres</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/Main.qml" line="271"/>
-        <source>Expand menu</source>
-        <translation>Déplier le menu</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/Main.qml" line="271"/>
-        <source>Collapse menu</source>
-        <translation>Replier le menu</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/Main.qml" line="293"/>
-        <source>Mini mode</source>
-        <translation>Mode mini</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/Main.qml" line="297"/>
-        <source>Mini mode (F12: full screen)</source>
-        <translation>Mode mini (F12 : plein écran)</translation>
     </message>
     <message>
         <location filename="../crates/taskmgr/qml/Main.qml" line="47"/>
@@ -2151,6 +2228,29 @@
         <location filename="../crates/taskmgr/qml/MiniView.qml" line="78"/>
         <source>Full view</source>
         <translation>Vue complète</translation>
+    </message>
+</context>
+<context>
+    <name>NavRail</name>
+    <message>
+        <location filename="../crates/taskmgr/qml/NavRail.qml" line="33"/>
+        <source>Expand menu</source>
+        <translation>Déplier le menu</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/NavRail.qml" line="33"/>
+        <source>Collapse menu</source>
+        <translation>Replier le menu</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/NavRail.qml" line="56"/>
+        <source>Mini mode</source>
+        <translation>Mode mini</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/NavRail.qml" line="59"/>
+        <source>Mini mode (F12: full screen)</source>
+        <translation>Mode mini (F12 : plein écran)</translation>
     </message>
 </context>
 <context>
@@ -2322,7 +2422,7 @@
 <context>
     <name>ProcessHeaderCell</name>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessHeaderCell.qml" line="23"/>
+        <location filename="../crates/taskmgr/qml/ProcessHeaderCell.qml" line="27"/>
         <source>Right click: choose columns</source>
         <translation>Clic droit : choisir les colonnes</translation>
     </message>
@@ -2401,77 +2501,67 @@
         <translation>Processus système</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="126"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="93"/>
+        <source>Measuring each process&apos;s traffic needs administrator rights: click to enable.</source>
+        <translation>Mesurer le trafic de chaque processus demande les droits administrateur : cliquer pour activer.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="96"/>
+        <source>The app runs in a sandbox (such as appimage-run): disk activity is counted per app, from the system&apos;s cgroups, not per process. Enabling the Network column (administrator rights) gives it per process.</source>
+        <translation>L&apos;appli tourne dans un bac à sable (comme appimage-run) : l&apos;activité disque est comptée par appli, à partir des cgroups du système, et non par processus. Activer la colonne Réseau (droits administrateur) la donne par processus.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="132"/>
         <source>Access denied: this process belongs to another user or to the system.</source>
         <translation>Accès refusé : ce processus appartient à un autre utilisateur ou au système.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="152"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="158"/>
         <source>Processes</source>
         <translation>Processus</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="156"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="162"/>
         <source>Search a name or PID</source>
         <translation>Rechercher un nom ou un PID</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="164"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="170"/>
         <source>End task</source>
         <translation>Fin de tâche</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="168"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="174"/>
         <source>Asks the process to quit (SIGTERM)</source>
         <translation>Demande au processus de se terminer (SIGTERM)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="174"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="180"/>
         <source>Kill</source>
         <translation>Tuer</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="178"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="184"/>
         <source>Stops the process at once, without giving it time to save (SIGKILL)</source>
         <translation>Arrête le processus immédiatement, sans lui laisser le temps de sauvegarder (SIGKILL)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="187"/>
-        <source>The app runs in a sandbox (such as appimage-run) that hides part of what other processes do: their disk activity cannot be read.</source>
-        <translation>L&apos;appli tourne dans un bac à sable (comme appimage-run) qui masque une partie de l&apos;activité des autres processus : leur activité disque n&apos;est pas lisible.</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="198"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="92"/>
         <source>Waiting for the administrator password…</source>
         <translation>En attente du mot de passe administrateur…</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="200"/>
-        <source>The Network column measures each process&apos;s traffic and needs administrator rights.</source>
-        <translation>La colonne Réseau mesure le trafic de chaque processus et demande les droits administrateur.</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="203"/>
-        <source>Enable…</source>
-        <translation>Activer…</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="209"/>
-        <source>Hide the column</source>
-        <translation>Masquer la colonne</translation>
-    </message>
-    <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="245"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="215"/>
         <source>Name</source>
         <translation>Nom</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="355"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="328"/>
         <source>No matching process</source>
         <translation>Aucun processus ne correspond</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="388"/>
+        <location filename="../crates/taskmgr/qml/ProcessesPage.qml" line="361"/>
         <source>CPU as % of one core (like top)</source>
         <translation>Processeur en % d&apos;un cœur (comme top)</translation>
     </message>
@@ -3447,11 +3537,6 @@
         <translation>Optique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="23"/>
-        <source>pkexec not found (polkit package).</source>
-        <translation>pkexec est introuvable (paquet polkit).</translation>
-    </message>
-    <message>
         <location filename="../crates/taskmgr/qml/Tr.qml" line="24"/>
         <source>chown not found.</source>
         <translation>chown est introuvable.</translation>
@@ -3467,14 +3552,19 @@
         <translation>Autorisation refusée ou annulée.</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="27"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="28"/>
         <source>Administrator rights are blocked by the sandbox this app runs in (no_new_privs, as under appimage-run).</source>
         <translation>Les droits administrateur sont bloqués par le bac à sable dans lequel tourne l&apos;appli (no_new_privs, comme sous appimage-run).</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="28"/>
-        <source>Administrator rights could not be requested: no polkit agent, or pkexec refused to start.</source>
-        <translation>Impossible de demander les droits administrateur : aucun agent polkit, ou pkexec a refusé de démarrer.</translation>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="23"/>
+        <source>Neither pkexec (polkit) nor run0 (systemd) was found.</source>
+        <translation>Ni pkexec (polkit) ni run0 (systemd) n&apos;ont été trouvés.</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="27"/>
+        <source>Not enough free memory to test past the processor cache.</source>
+        <translation>Pas assez de mémoire libre pour tester au-delà du cache du processeur.</translation>
     </message>
     <message>
         <location filename="../crates/taskmgr/qml/Tr.qml" line="29"/>
@@ -4257,62 +4347,67 @@
         <translation>La commande a échoué (%1).</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="188"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="189"/>
+        <source>Administrator rights could not be requested (%1).</source>
+        <translation>Impossible de demander les droits administrateur (%1).</translation>
+    </message>
+    <message>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="190"/>
         <source>GPU %1: %2</source>
         <translation>GPU %1 : %2</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="189"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="191"/>
         <source>Disk %1: %2</source>
         <translation>Disque %1 : %2</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="190"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="192"/>
         <source>L%1 data</source>
         <translation>L%1 données</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="191"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="193"/>
         <source>L%1 instruction</source>
         <translation>L%1 instructions</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="192"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="194"/>
         <source>%1 logical processors</source>
         <translation>%1 processeurs logiques</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="193"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="195"/>
         <source>%1-way</source>
         <translation>%1 voies</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="194"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="196"/>
         <source>Slot %1</source>
         <translation>Emplacement %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="195"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="197"/>
         <source>%1 (maximum %2)</source>
         <translation>%1 (maximum %2)</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="196"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="198"/>
         <source>Fan %1</source>
         <translation>Ventilateur %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="197"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="199"/>
         <source>%1 fans</source>
         <translation>Ventilateurs : %1</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="198"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="200"/>
         <source>%1 duty cycle</source>
         <translation>%1, rapport cyclique</translation>
     </message>
     <message>
-        <location filename="../crates/taskmgr/qml/Tr.qml" line="199"/>
+        <location filename="../crates/taskmgr/qml/Tr.qml" line="201"/>
         <source>%1 (removable)</source>
         <translation>%1 (amovible)</translation>
     </message>

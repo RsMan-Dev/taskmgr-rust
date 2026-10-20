@@ -54,21 +54,11 @@ impl EnergySampler {
     }
 }
 
-pub(crate) fn find_program(name: &str, extra: &[&str]) -> Option<String> {
-    std::env::var("PATH")
-        .unwrap_or_default()
-        .split(':')
-        .map(|d| format!("{d}/{name}"))
-        .chain(extra.iter().map(|s| (*s).to_owned()))
-        .find(|p| std::path::Path::new(p).is_file())
-}
-
 /// Hands the RAPL counters to the current user until the next reboot
-/// (sysfs permissions are not persistent). pkexec asks for the password
-/// through the desktop's polkit agent. Blocks until the dialog is answered.
+/// (sysfs permissions are not persistent). Blocks until the password
+/// dialog is answered.
 pub fn grant_access(root: &Root) -> Result<(), String> {
-    let mut pkexec = crate::admin::pkexec()?;
-    let chown = find_program(
+    let chown = crate::util::find_program(
         "chown",
         &[
             "/run/current-system/sw/bin/chown",
@@ -88,11 +78,6 @@ pub fn grant_access(root: &Root) -> Result<(), String> {
         return Err("No RAPL counter on this machine.".to_owned());
     }
     let uid = rustix::process::getuid().as_raw();
-    let status = pkexec
-        .arg(chown)
-        .arg(uid.to_string())
-        .args(&files)
-        .status()
-        .map_err(|e| e.to_string())?;
-    crate::admin::outcome(status)
+    let argv: Vec<String> = [chown, uid.to_string()].into_iter().chain(files).collect();
+    crate::admin::run_as_root(&argv, crate::admin::wait)
 }

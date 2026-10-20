@@ -1,0 +1,13 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- udisks 2.11.1, data/org.freedesktop.UDisks2.xml; trimmed to the members taskmgr uses. -->
+<node>
+  <interface name="org.freedesktop.UDisks2.Drive">
+    <method name="Eject">
+      <arg name="options" direction="in" type="a{sv}"/>
+    </method>
+    <method name="PowerOff">
+      <arg name="options" direction="in" type="a{sv}"/>
+    </method>
+  </interface>
+</node>

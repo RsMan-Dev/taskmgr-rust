@@ -11,7 +11,9 @@ RowLayout {
     Layout.leftMargin: Kirigami.Units.gridUnit
     Layout.rightMargin: Kirigami.Units.gridUnit
     Layout.topMargin: Kirigami.Units.gridUnit
-    Layout.bottomMargin: Kirigami.Units.smallSpacing
+    // Same height on every page, whatever the controls on the right.
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 2
+    Layout.bottomMargin: Kirigami.Units.largeSpacing
 
     Kirigami.Heading {
         id: heading
