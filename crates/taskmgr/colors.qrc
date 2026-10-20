@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/colors">
+        <file alias="light.colors">colors/light.colors</file>
+        <file alias="dark.colors">colors/dark.colors</file>
+    </qresource>
+</RCC>

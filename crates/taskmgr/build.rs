@@ -24,7 +24,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(qrc) = translations() {
         builder = builder.qrc(qrc);
     }
-    builder = builder.qrc(icons()?);
+    builder = builder.qrc(icons()?).qrc("colors.qrc");
+    println!("cargo::rerun-if-changed=colors");
     builder
         .qt_module("Gui")
         .qt_module("Widgets")

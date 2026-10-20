@@ -49,7 +49,7 @@ chmod -R u+w "$dir/usr/plugins"
 
 qml=$QTDECL/lib/qt-6/qml
 for m in QtQml QtCore QtQuick/Window QtQuick/Layouts QtQuick/Templates QtQuick/Shapes \
-         QtQuick/Controls/impl QtQuick/Controls/Basic QtQuick/Controls/Fusion \
+         QtQuick/Controls/impl QtQuick/Controls/Basic \
          QtQuick/Dialogs; do
     copy_tree "$qml/$m" "$dir/usr/qml/$m"
 done
@@ -58,12 +58,12 @@ for m in QtQuick QtQuick/Controls; do
 done
 chmod -R u+w "$dir/usr/qml"
 copy_tree "$KIRIGAMI/lib/qt-6/qml/org/kde/kirigami" "$dir/usr/qml/org/kde/kirigami"
-# Kirigami takes its colours from styles/<Qt Quick style>/Theme.qml.
-rm -rf "$dir/usr/qml/org/kde/kirigami/styles/Material"
-cp -r "$dir/usr/qml/org/kde/kirigami/styles/org.kde.desktop" "$dir/usr/qml/org/kde/kirigami/styles/Fusion"
-# Information messages are framed with this colour, white there.
-sed -i 's/activeTextColor: palette.highlightedText/activeTextColor: palette.highlight/' \
-    "$dir/usr/qml/org/kde/kirigami/styles/Fusion/Theme.qml"
+rm -rf "$dir/usr/qml/org/kde/kirigami/styles"
+# The Breeze Qt Quick style and its Kirigami platform plugin.
+copy_tree "$BREEZESTYLE/lib/qt-6/qml/org/kde/breeze" "$dir/usr/qml/org/kde/breeze"
+copy_tree "$GUIADDONS/lib/qt-6/qml/org/kde/guiaddons" "$dir/usr/qml/org/kde/guiaddons"
+install -Dm755 "$BREEZESTYLE/lib/qt-6/plugins/kf6/kirigami/platform/org.kde.breeze.so" \
+    "$dir/usr/plugins/kf6/kirigami/platform/org.kde.breeze.so"
 find "$dir/usr/qml" \( -name '*.qmltypes' -o -name '*.debug' \) -delete
 
 # Icons Kirigami asks for by name; app icons come from the host.
@@ -72,7 +72,10 @@ for theme in breeze breeze-dark; do
     mkdir -p "$dir/usr/share/icons/$theme"
     cp "$t/index.theme" "$dir/usr/share/icons/$theme/"
     for n in dialog-close edit-clear edit-clear-locationbar-ltr edit-clear-locationbar-rtl edit-find \
-             search emblem-error emblem-information emblem-success emblem-warning network-disconnect; do
+             search emblem-error emblem-information emblem-success emblem-warning network-disconnect \
+             arrow-up arrow-down arrow-left arrow-right process-working-symbolic process-working \
+             edit-copy edit-cut edit-paste edit-delete edit-undo dialog-cancel dialog-ok dialog-ok-apply \
+             document-open document-save document-save-all document-revert help-contents view-refresh; do
         (cd "$t" && find -L . -name "$n.svg") | while read -r f; do
             install -Dm644 "$t/$f" "$dir/usr/share/icons/$theme/$f"
         done
@@ -89,18 +92,20 @@ done | sort -u | while read -r l; do
     cp -Ln "$l" "$lib/"
 done
 chmod -R u+w "$lib"
+install -m644 "$ICONTHEMES/lib/libKF6IconThemes.so.6" "$lib/libKF6IconThemes.so.6"
+rm -f "$lib/libKF6BreezeIcons.so.6"
 find "$dir" -type f \( -name '*.so*' -o -path '*/bin/*' \) -exec strip --strip-unneeded {} \; 2>/dev/null || true
 
 loader=$(basename "$interp")
 cat > "$dir/AppRun" <<EOF
 #!/bin/sh
 here=\$(dirname "\$(readlink -f "\$0")")
-export TASKMGR_PORTABLE=1
 export QT_QUICK_BACKEND=\${QT_QUICK_BACKEND:-software}
 export QT_PLUGIN_PATH="\$here/usr/plugins"
 export QML_IMPORT_PATH="\$here/usr/qml" QML2_IMPORT_PATH="\$here/usr/qml"
 export XDG_DATA_DIRS="\$here/usr/share:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-unset QT_QPA_PLATFORMTHEME QT_STYLE_OVERRIDE QT_QUICK_CONTROLS_STYLE
+# Nothing from the host's Qt: Nix-built Qt also reads NIXPKGS_QT6_*.
+unset QT_QPA_PLATFORMTHEME QT_STYLE_OVERRIDE QT_QUICK_CONTROLS_STYLE NIXPKGS_QT6_QML_IMPORT_PATH NIXPKGS_QT6_QT_PLUGIN_PATH
 [ -e /etc/fonts/fonts.conf ] && export FONTCONFIG_FILE=/etc/fonts/fonts.conf
 [ -z "\$LOCALE_ARCHIVE" ] && [ -e /usr/lib/locale/locale-archive ] && export LOCALE_ARCHIVE=/usr/lib/locale/locale-archive
 [ -d /usr/share/X11/xkb ] && export XKB_CONFIG_ROOT=/usr/share/X11/xkb

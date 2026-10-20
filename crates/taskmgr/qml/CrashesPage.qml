@@ -237,8 +237,12 @@ ColumnLayout {
         ThinScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            QQC2.TextArea {
+            TextEdit {
                 readOnly: true
+                selectByMouse: true
+                color: Kirigami.Theme.textColor
+                selectionColor: Kirigami.Theme.highlightColor
+                selectedTextColor: Kirigami.Theme.highlightedTextColor
                 font: Kirigami.Theme.fixedWidthFont
                 wrapMode: TextEdit.NoWrap
                 text: page.selected?.trace || (page.selected?.kind === "crash"

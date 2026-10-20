@@ -10,17 +10,17 @@
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAll = f: nixpkgs.lib.genAttrs systems (s: f nixpkgs.legacyPackages.${s});
 
-      # Runtime QML modules and Qt plugins for the native KDE look.
+      # Runtime QML modules and Qt plugins. The Breeze Qt Quick style draws
+      # the same on every desktop; no platform theme from the desktop.
       runtimeQt = pkgs: with pkgs.kdePackages; [
         qtbase
         qtdeclarative
         qtwayland
         qtsvg
         kirigami
-        qqc2-desktop-style
-        breeze
+        qqc2-breeze-style
+        kguiaddons
         breeze-icons
-        plasma-integration
         kiconthemes
       ];
 
@@ -36,6 +36,13 @@
           QTWAYLAND = pkgs.kdePackages.qtwayland;
           QTSVG = pkgs.kdePackages.qtsvg;
           KIRIGAMI = pkgs.kdePackages.kirigami.unwrapped or pkgs.kdePackages.kirigami;
+          BREEZESTYLE = pkgs.kdePackages.qqc2-breeze-style;
+          GUIADDONS = pkgs.kdePackages.kguiaddons;
+          # Without the 25 MB library of every Breeze icon: the few the
+          # style asks for are copied as files.
+          ICONTHEMES = pkgs.kdePackages.kiconthemes.overrideAttrs (o: {
+            cmakeFlags = (o.cmakeFlags or [ ]) ++ [ "-DUSE_BreezeIcons=OFF" ];
+          });
           BREEZE = pkgs.kdePackages.breeze-icons;
           EXTRA = "${pkgs.xcb-util-cursor}/lib/libxcb-cursor.so.0";
           RUNTIME = nix-appimage.packages.${pkgs.stdenv.hostPlatform.system}.appimage-runtimes.appimage-type2-runtime;

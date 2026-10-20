@@ -80,7 +80,8 @@ ColumnLayout {
         widths = out
     }
     readonly property real fixedWidth: columns.reduce((a, c) => a + (widths[c.key] || 0), 0)
-    readonly property real viewportWidth: list.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
+    // The bar's room is kept even when it hides, as in ThinScrollView.
+    readonly property real viewportWidth: list.width - list.QQC2.ScrollBar.vertical.width
     readonly property real tableWidth: Math.max(viewportWidth, fixedWidth + fillMinimum)
     readonly property real fillWidth: tableWidth - fixedWidth
 

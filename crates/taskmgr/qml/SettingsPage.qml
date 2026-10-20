@@ -16,6 +16,17 @@ ThinScrollView {
     property string startTheme: ""
     readonly property var themes: [["", qsTr("System")], ["light", qsTr("Light")], ["dark", qsTr("Dark")]]
 
+    // Sized from its entries: the style's WidestText policy loops inside a FormLayout.
+    component FitComboBox: QQC2.ComboBox {
+        id: box
+        FontMetrics {
+            id: metrics
+            font: box.font
+        }
+        implicitWidth: Math.ceil(Math.max(...model.map(t => metrics.advanceWidth(t)))) + leftPadding + rightPadding
+                       + (contentItem ? contentItem.leftPadding + contentItem.rightPadding : 0)
+    }
+
     contentWidth: availableWidth
     // Check box labels wrap instead of running off a narrow window.
     readonly property real textWidth: Math.max(Kirigami.Units.gridUnit * 10, availableWidth - Kirigami.Units.gridUnit * (Kirigami.Settings.isMobile || availableWidth < Kirigami.Units.gridUnit * 30 ? 4 : 18))
@@ -36,7 +47,7 @@ ThinScrollView {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.gridUnit
 
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Language:")
                 model: page.languages.map(l => l[1])
                 currentIndex: Math.max(0, page.languages.findIndex(l => l[0] === Prefs.language))
@@ -49,7 +60,7 @@ ThinScrollView {
                 font: Kirigami.Theme.smallFont
             }
 
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Theme:")
                 model: page.themes.map(t => t[1])
                 currentIndex: Math.max(0, page.themes.findIndex(t => t[0] === Prefs.theme))
@@ -62,14 +73,14 @@ ThinScrollView {
                 font: Kirigami.Theme.smallFont
             }
 
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Update speed:")
                 model: page.intervals.map(i => i[1])
                 currentIndex: Math.max(0, page.intervals.findIndex(i => i[0] === Prefs.intervalMs))
                 onActivated: (i) => Prefs.intervalMs = page.intervals[i][0]
             }
 
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Start page:")
                 model: page.pageNames
                 currentIndex: Prefs.startPage
@@ -108,7 +119,7 @@ ThinScrollView {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: qsTr("Graphs")
             }
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Points per graph:")
                 model: page.points.map(p => qsTr("%1 (%2)").arg(p).arg(Format.span(p * Math.max(Prefs.intervalMs, 250) / 1000)))
                 currentIndex: Math.max(0, page.points.indexOf(Prefs.historyPoints))
@@ -151,13 +162,13 @@ ThinScrollView {
                 Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: qsTr("Units")
             }
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Sizes:")
                 model: [qsTr("Powers of 1024 (1 KB = 1024 B)"), qsTr("Powers of 1000 (1 kB = 1000 B)")]
                 currentIndex: Prefs.sizeBase10 ? 1 : 0
                 onActivated: (i) => Prefs.sizeBase10 = i === 1
             }
-            QQC2.ComboBox {
+            FitComboBox {
                 Kirigami.FormData.label: qsTr("Network speed:")
                 model: [qsTr("Bits per second (Mb/s)"), qsTr("Bits, powers of 1024 (Mib/s)"), qsTr("Bytes per second (MB/s)")]
                 currentIndex: Prefs.networkBytes ? 2 : Prefs.networkBase2 ? 1 : 0

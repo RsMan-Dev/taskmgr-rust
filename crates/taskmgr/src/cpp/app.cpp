@@ -1,6 +1,8 @@
 #include "app.h"
 
 #include <QApplication>
+#include <QDir>
+#include <QFile>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -25,28 +27,25 @@
 
 static int s_signalFds[2];
 
-// Breeze colours for the portable build, which ships no KDE colour schemes.
-static QPalette breezePalette(bool dark)
+// The shipped colour scheme as a file: KColorScheme reads a path.
+static QString schemeFile(bool dark)
 {
-    const auto c = [](int r, int g, int b) { return QColor(r, g, b); };
-    QPalette p;
-    p.setColor(QPalette::Window, dark ? c(32, 35, 38) : c(239, 240, 241));
-    p.setColor(QPalette::WindowText, dark ? c(252, 252, 252) : c(35, 38, 41));
-    p.setColor(QPalette::Base, dark ? c(20, 22, 24) : c(255, 255, 255));
-    p.setColor(QPalette::AlternateBase, dark ? c(29, 31, 34) : c(247, 247, 247));
-    p.setColor(QPalette::Text, dark ? c(252, 252, 252) : c(35, 38, 41));
-    p.setColor(QPalette::Button, dark ? c(41, 44, 48) : c(252, 252, 252));
-    p.setColor(QPalette::ButtonText, dark ? c(252, 252, 252) : c(35, 38, 41));
-    p.setColor(QPalette::Highlight, c(61, 174, 233));
-    p.setColor(QPalette::HighlightedText, dark ? c(252, 252, 252) : c(255, 255, 255));
-    p.setColor(QPalette::ToolTipBase, dark ? c(41, 44, 48) : c(247, 247, 247));
-    p.setColor(QPalette::ToolTipText, dark ? c(252, 252, 252) : c(35, 38, 41));
-    p.setColor(QPalette::Link, dark ? c(29, 153, 243) : c(41, 128, 185));
-    p.setColor(QPalette::PlaceholderText, dark ? c(161, 169, 177) : c(112, 125, 138));
-    for (auto role : {QPalette::Text, QPalette::WindowText, QPalette::ButtonText}) {
-        p.setColor(QPalette::Disabled, role, dark ? c(161, 169, 177) : c(112, 125, 138));
+    const QString name = dark ? QStringLiteral("dark.colors") : QStringLiteral("light.colors");
+    QFile in(QStringLiteral(":/colors/") + name);
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    QDir().mkpath(dir);
+    const QString path = dir + QLatin1Char('/') + name;
+    QFile out(path);
+    if (in.open(QIODevice::ReadOnly)) {
+        const QByteArray data = in.readAll();
+        if (!(out.open(QIODevice::ReadOnly) && out.readAll() == data)) {
+            out.close();
+            if (out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+                out.write(data);
+            }
+        }
     }
-    return p;
+    return path;
 }
 
 static QPalette schemePalette(const QString &path)
@@ -109,6 +108,11 @@ int taskmgr_run(const rust::Vec<rust::String> &args)
     }
     s_argv.push_back(nullptr);
     static int s_argc = static_cast<int>(s_args.size());
+    // The desktop's platform theme would bring its own palette, fonts,
+    // icons and style; the portal one only gives file dialogs and the
+    // light or dark preference.
+    qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
+    qunsetenv("QT_STYLE_OVERRIDE");
     QApplication app(s_argc, s_argv.data());
     app.setApplicationName(QStringLiteral("taskmgr"));
     app.setOrganizationName(QStringLiteral("rsman"));
@@ -118,36 +122,21 @@ int taskmgr_run(const rust::Vec<rust::String> &args)
     app.setWindowIcon(QIcon(QStringLiteral(":/icons/logo.svg")));
     QIcon::setFallbackThemeName(QStringLiteral("breeze"));
 
-    // "prefs/theme": "light" or "dark" applies a Breeze colour scheme to
-    // this application only, the way KColorSchemeManager does: Kirigami reads
-    // the scheme from the property, widgets from the palette.
+    // One look everywhere: Breeze controls and colours shipped with the
+    // app, whatever the desktop's style or colour scheme. Only light or dark
+    // follows the desktop, unless the settings choose.
     const QString theme = QSettings().value(QStringLiteral("prefs/theme")).toString();
-    // Portable build (AppImage): no KDE platform theme or style is shipped.
-    const bool portable = qEnvironmentVariableIsSet("TASKMGR_PORTABLE");
-    if (portable) {
-        const bool dark = theme == QLatin1String("dark")
-            || (theme.isEmpty() && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
-        // Fusion picks its own palette from the colour scheme.
-#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-        QGuiApplication::styleHints()->setColorScheme(dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
-#endif
-        app.setPalette(breezePalette(dark));
-        // The AppImage bundles the few Breeze icons Kirigami asks for by name.
-        QStringList iconPaths = QIcon::themeSearchPaths();
-        for (const QString &d : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
-            iconPaths << d + QStringLiteral("/icons");
-        }
-        QIcon::setThemeSearchPaths(iconPaths);
-        QIcon::setThemeName(dark ? QStringLiteral("breeze-dark") : QStringLiteral("breeze"));
-    } else if (theme == QLatin1String("light") || theme == QLatin1String("dark")) {
-        const QString scheme = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
-            theme == QLatin1String("light") ? QStringLiteral("color-schemes/BreezeLight.colors")
-                                            : QStringLiteral("color-schemes/BreezeDark.colors"));
-        if (!scheme.isEmpty()) {
-            app.setProperty("KDE_COLOR_SCHEME_PATH", scheme);
-            app.setPalette(schemePalette(scheme));
-        }
+    const bool dark = theme == QLatin1String("dark")
+        || (theme.isEmpty() && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+    const QString scheme = schemeFile(dark);
+    app.setProperty("KDE_COLOR_SCHEME_PATH", scheme);
+    app.setPalette(schemePalette(scheme));
+    QStringList iconPaths = QIcon::themeSearchPaths();
+    for (const QString &d : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+        iconPaths << d + QStringLiteral("/icons");
     }
+    QIcon::setThemeSearchPaths(iconPaths);
+    QIcon::setThemeName(dark ? QStringLiteral("breeze-dark") : QStringLiteral("breeze"));
 
     // "prefs/language": empty follows the system, "en" or "fr" forces it.
     const QString language = QSettings().value(QStringLiteral("prefs/language")).toString();
@@ -160,12 +149,7 @@ int taskmgr_run(const rust::Vec<rust::String> &args)
     }
     quitOnSignals(app);
 
-    // org.kde.desktop draws with QStyle, hence QApplication. The portable
-    // build ships styles/Fusion/Theme.qml in Kirigami so its colours follow
-    // the palette.
-    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
-        QQuickStyle::setStyle(portable ? QStringLiteral("Fusion") : QStringLiteral("org.kde.desktop"));
-    }
+    QQuickStyle::setStyle(QStringLiteral("org.kde.breeze"));
 
     qmlRegisterType<SeriesPlot>("org.taskmgr.charts", 1, 0, "SeriesPlot");
     QQmlApplicationEngine engine;

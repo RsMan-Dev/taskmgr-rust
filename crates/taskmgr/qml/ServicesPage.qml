@@ -91,6 +91,7 @@ ColumnLayout {
         title: qsTr("Services")
 
         QQC2.ComboBox {
+            implicitContentWidthPolicy: QQC2.ComboBox.WidestText
             model: [qsTr("All"), qsTr("System"), qsTr("User")]
             currentIndex: page.scope
             onActivated: (i) => page.scope = i

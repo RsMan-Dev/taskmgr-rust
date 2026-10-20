@@ -22,7 +22,8 @@ ColumnLayout {
     // Phone-sized window: name, processor and memory only.
     readonly property bool compact: width < Kirigami.Units.gridUnit * 30
     readonly property real nameMinimumWidth: Kirigami.Units.gridUnit * (compact ? 6 : 14)
-    readonly property real viewportWidth: list.width - (list.QQC2.ScrollBar.vertical.visible ? list.QQC2.ScrollBar.vertical.width : 0)
+    // The bar's room is kept even when it hides, as in ThinScrollView.
+    readonly property real viewportWidth: list.width - list.QQC2.ScrollBar.vertical.width
     // Names shrink down to their minimum, then the table scrolls sideways.
     readonly property real tableWidth: Math.max(viewportWidth, nameMinimumWidth + columns.reduce((a, c) => a + c.width, 0))
     readonly property var allColumns: columnSet.allColumns
